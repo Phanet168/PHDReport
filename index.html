@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <title>បញ្ជីបុគ្គលិក</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Noto Sans Khmer', sans-serif; background-color: #f1f3f5; }
+    .header-logo { max-height: 80px; }
+    .official-header { background: #fff; padding: 30px 20px 10px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+    .official-header .sub-col { width: 33%; }
+  </style>
+</head>
+<body class="container py-4">
+
+<!-- Header -->
+<div class="official-header d-flex justify-content-between align-items-start">
+  <div class="sub-col text-start">
+    <p class="fw-bold" style="font-size: 18px;">ក្រសួងមហាផ្ទៃ</p>
+    <p>អគ្គនាយកដ្ឋានអាណត្តិ និងសញ្ជាតិ</p>
+  </div>
+  <div class="sub-col text-center">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/5/58/Royal_Arms_of_Cambodia.svg" class="header-logo">
+    <h4 class="text-primary fw-bold mt-2">បញ្ជីឈ្មោះសមាជិកបក្សប្រចាំបោះឆ្នោត</h4>
+  </div>
+  <div class="sub-col text-end">
+    <p class="fw-bold" style="font-size: 18px;">ព្រះរាជាណាចក្រកម្ពុជា</p>
+    <p>ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="bg-white p-4 shadow-sm rounded">
+  <table id="staff-table" class="table table-bordered nowrap" style="width:100%">
+    <thead>
+      <tr>
+        <th>ល.រ</th><th>កូដ</th><th>ឈ្មោះ</th><th>ភេទ</th><th>សកម្មភាព</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">កែប្រែព័ត៌មាន</h5></div>
+      <div class="modal-body"><form id="editForm" class="row g-3"></form></div>
+      <div class="modal-footer">
+        <button id="saveChanges" type="button" class="btn btn-primary">រក្សាទុក</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បិទ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<script>
+const scriptURL = "https://script.google.com/macros/s/AKfycbx4IRq6dnXDuHemkxcHxqFAdjevu6wv4xP01043xQNZQ_wEv2kmfYC3At9pLPmp5As0aA/exec";
+
+const fields = ["ID", "Code", "Name", "Sex"];
+const labelMap = {
+  Code: "កូដ", Name: "ឈ្មោះ", Sex: "ភេទ", DOB: "ថ្ងៃកំណើត", DateSigin: "ថ្ងៃចូលបក្ស",
+  DOP: "ទីកន្លែងកំណើត", Village: "ភូមិ", Commune: "ឃុំ", District: "ស្រុក", Province: "ខេត្ត",
+  IDCard: "អត្តសញ្ញាណ", RomeNumber: "លេខបោះឆ្នោត", PositionInGov: "តួនាទីរដ្ឋ",
+  PositionInCpp: "តួនាទីបក្ស", Mager: "កម្រិតវប្បធម៌", Voted_yet: "បោះឆ្នោតនៅ?",
+  Entered_service: "ចូលបម្រើ", Phone: "ទូរស័ព្ទ", CardCPP: "ប័ណ្ណសមាជិក", Party_life: "ជីវភាពបក្ស"
+};
+
+function generateFormFields() {
+  const form = document.getElementById("editForm");
+  form.innerHTML = "";
+  fields.slice(1).forEach(f => {
+    const div = document.createElement("div");
+    div.className = "col-md-4";
+    if (f === "Sex") {
+      div.innerHTML = `
+        <label for="edit${f}">${labelMap[f]}</label>
+        <select class="form-control" id="edit${f}">
+          <option value="">ជ្រើសរើស</option>
+          <option value="ប្រុស">ប្រុស</option>
+          <option value="ស្រី">ស្រី</option>
+        </select>`;
+    } else if (f === "DOB") {
+      div.innerHTML = `<label for="edit${f}">${labelMap[f]}</label><input type="date" class="form-control" id="edit${f}">`;
+    } else {
+      div.innerHTML = `<label for="edit${f}">${labelMap[f]}</label><input class="form-control" id="edit${f}">`;
+    }
+    form.appendChild(div);
+  });
+
+  const idInput = document.createElement("input");
+  idInput.type = "hidden"; idInput.id = "editID";
+  form.appendChild(idInput);
+}
+
+$(document).ready(function () {
+  generateFormFields();
+  const table = $('#staff-table').DataTable({ responsive: true });
+
+  fetch(scriptURL)
+    .then(res => res.json())
+    .then(data => {
+      data.forEach(row => {
+        const btn = `<button class="btn btn-sm btn-warning edit-btn"
+          ${fields.map(f => `data-${f.toLowerCase()}="${row[f] || ''}"`).join(' ')}
+          data-bs-toggle="modal" data-bs-target="#editModal">កែប្រែ</button>`;
+
+        const rowData = fields.map(f => row[f] || '');
+        rowData.push(btn);
+
+        table.row.add(rowData).draw(false);
+      });
+
+      $('#staff-table').on('click', '.edit-btn', function () {
+        const button = $(this);
+        fields.forEach(f => $(`#edit${f}`).val(button.data(f.toLowerCase())));
+      });
+
+      $('#saveChanges').click(function () {
+        const updated = {};
+        fields.forEach(f => updated[f] = $(`#edit${f}`).val());
+
+        fetch(scriptURL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updated)
+        })
+        .then(res => res.text())
+        .then(msg => {
+          alert("✅ បានរក្សាទុក: " + msg);
+          $('#editModal').modal('hide');
+          location.reload();
+        })
+        .catch(err => alert("❌ កំហុស: " + err));
+      });
+    });
+});
+</script>
+
+</body>
+</html>
