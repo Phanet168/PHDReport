@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="km">
 <head>
@@ -20,10 +19,11 @@
 </head>
 <body class="container py-4">
 
+<!-- Header -->
 <div class="official-header d-flex justify-content-between align-items-start">
   <div class="sub-col text-start">
-    <p class="fw-bold" style="font-size: 18px;">គណកម្មាធិការបក្សខេត្តស្ទឹងត្រែង</p>
-    <p>គណកម្មាធិការបក្សសាខាមន្ទីរសុខាភិបាល</p>
+    <p class="fw-bold" style="font-size: 18px;">ក្រសួងមហាផ្ទៃ</p>
+    <p>អគ្គនាយកដ្ឋានអាណត្តិ និងសញ្ជាតិ</p>
   </div>
   <div class="sub-col text-center">
     <img src="https://upload.wikimedia.org/wikipedia/en/1/19/Cambodian_People%27s_Party_%28emblem%29.png" class="header-logo">
@@ -35,17 +35,19 @@
   </div>
 </div>
 
+<!-- Table -->
 <div class="bg-white p-4 shadow-sm rounded">
   <table id="staff-table" class="table table-bordered nowrap" style="width:100%">
     <thead>
       <tr>
-        <th>ល.រ</th><th>កូដមន្រ្តី</th><th>គោតនាម​ និង នាម</th><th>ភេទ</th><th>សកម្មភាព</th>
+        <th>ល.រ</th><th>កូដ</th><th>ឈ្មោះ</th><th>ភេទ</th><th>សកម្មភាព</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 </div>
 
+<!-- Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
   <div class="modal-dialog modal-xl">
     <div class="modal-content">
@@ -59,6 +61,7 @@
   </div>
 </div>
 
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -66,33 +69,68 @@
 
 <script>
 const scriptURL = "https://script.google.com/macros/s/AKfycbx4IRq6dnXDuHemkxcHxqFAdjevu6wv4xP01043xQNZQ_wEv2kmfYC3At9pLPmp5As0aA/exec";
+
 const fields = [
-  "ID", "Code", "Name", "Sex", "DOB", "DateSigin", "DOP", "Village", "Commune",
-  "District", "Province", "IDCard", "RomeNumber", "PositionInGov", "PositionInCpp",
-  "Mager", "Voted_yet", "Entered_service", "Phone", "CardCPP", "Party_life"
+  "ID", "Code", "Name", "Sex", "DOB", "DOP", "IDCard",
+  "Village", "Commune", "District", "Province",
+  "Mager", "PositionInGov", "Entered_service", "Phone",
+  "VotedYet", "RomeNumber", "PositionInCpp", "DateSignin", "CardCPP", "Party_life"
 ];
 
 function generateFormFields() {
   const form = document.getElementById("editForm");
-  form.innerHTML = fields.map(f => `
-    <div class="col-md-4">
-      <label for="edit${f}">${f}</label>
-      <input id="edit${f}" class="form-control" ${f === "ID" ? "readonly" : ""}>
-    </div>`).join('');
+  form.innerHTML = `
+    <fieldset><legend>ព័ត៌មានទូទៅ</legend><div class="row">
+      ${inputField("ID", "លេខសម្គាល់", "text", true)}
+      ${inputField("Code", "កូដ", "number")}
+      ${inputField("Name", "គោត្តនាម​និងនាម")}
+      ${selectField("Sex", "ភេទ", ["ប្រុស", "ស្រី"])}
+      ${inputField("DOB", "ថ្ងៃកំណើត", "date")}
+      ${inputField("DOP", "ទីកន្លែងកំណើត")}
+      ${inputField("IDCard", "អត្តសញ្ញាណប័ណ្ណ")}
+    </div></fieldset>
+
+    <fieldset><legend>អាសយដ្ឋានបច្ចុប្បន្ន</legend><div class="row">
+      ${inputField("Village", "ភូមិ")}
+      ${inputField("Commune", "ឃុំ/សង្កាត់")}
+      ${inputField("District", "ស្រុក/ក្រុង")}
+      ${inputField("Province", "ខេត្ត")}
+    </div></fieldset>
+
+    <fieldset><legend>ព័ត៌មានអំពីការងារ</legend><div class="row">
+      ${inputField("Mager", "កម្រិតវប្បធម៌")}
+      ${inputField("PositionInGov", "តួនាទីរដ្ឋ")}
+      ${inputField("Entered_service", "ថ្ងៃចូលបម្រើការងារ", "date")}
+      ${inputField("Phone", "ទូរស័ព្ទ", "tel")}
+    </div></fieldset>
+
+    <fieldset><legend>ព័ត៌មានគណៈបក្ស</legend><div class="row">
+      ${selectField("VotedYet", "បោះឆ្នោត?", ["បាទ", "មិនទាន់"])}
+      ${inputField("RomeNumber", "លេខការិយាល័យបោះឆ្នោត", "number")}
+      ${inputField("PositionInCpp", "តួនាទីបក្ស")}
+      ${inputField("DateSignin", "ថ្ងៃចូលបក្ស", "date")}
+      ${inputField("CardCPP", "ប័ណ្ណសមាជិកបក្ស")}
+      ${inputField("Party_life", "ជីវភាពបក្ស")}
+    </div></fieldset>`;
 }
 
 function inputField(id, label, type = "text", readonly = false) {
-  return `<div class="col-md-4">
-    <label for="edit${id}">${label}</label>
-    <input id="edit${id}" class="form-control" type="${type}" ${readonly ? "readonly" : ""}></div>`;
+  return `
+    <div class="col-md-4">
+      <label for="edit${id}">${label}</label>
+      <input id="edit${id}" class="form-control" type="${type}" ${readonly ? "readonly" : ""}>
+    </div>`;
 }
 
 function selectField(id, label, options) {
-  return `<div class="col-md-4"><label for="edit${id}">${label}</label>
-    <select id="edit${id}" class="form-control">
-      <option value="">-- ជ្រើសរើស --</option>
-      ${options.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
-    </select></div>`;
+  return `
+    <div class="col-md-4">
+      <label for="edit${id}">${label}</label>
+      <select id="edit${id}" class="form-control">
+        <option value="">-- ជ្រើសរើស --</option>
+        ${options.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
+      </select>
+    </div>`;
 }
 
 $(document).ready(function () {
