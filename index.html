@@ -151,25 +151,52 @@ $(document).ready(function () {
         const btn = $(this);
         fields.forEach(f => $(`#edit${f}`).val(btn.data(f.toLowerCase())));
       });
+const labelMap = {
+  ID: "លេខសម្គាល់",
+  Code: "កូដ", Name: "គោត្តនាម និងនាម", Sex: "ភេទ", DOB: "ថ្ងៃកំណើត",
+  DateSignin: "ថ្ងៃចូលបក្ស", DOP: "ទីកន្លែងកំណើត", Village: "ភូមិ",
+  Commune: "ឃុំ/សង្កាត់", District: "ស្រុក/ក្រុង", Province: "ខេត្ត",
+  IDCard: "អត្តសញ្ញាណប័ណ្ណ", RomeNumber: "លេខការិយាល័យបោះឆ្នោត",
+  PositionInGov: "តួនាទីរដ្ឋ", PositionInCpp: "តួនាទីបក្ស",
+  Mager: "កម្រិតវប្បធម៌", Voted_yet: "បានបោះឆ្នោត?", 
+  Entered_service: "ថ្ងៃចូលបម្រើការងារ", Phone: "ទូរស័ព្ទ", 
+  CardCPP: "ប័ណ្ណសមាជិកបក្ស", Party_life: "ជីវភាពបក្ស"
+};
 
       $('#saveChanges').click(function () {
-        const updated = {};
-        fields.forEach(f => updated[f] = $(`#edit${f}`).val());
-        fetch(scriptURL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updated)
-        })
-        .then(res => res.text())
-        .then(msg => {
-          alert("✅ បានរក្សាទុក: " + msg);
-          $('#editModal').modal('hide');
-          location.reload();
-        })
-        .catch(err => alert("❌ កំហុស: " + err));
-      });
-    });
-});
+  const updated = {};
+  let hasEmpty = false;
+  let missingFields = [];
+
+  fields.forEach(f => {
+    const value = $(`#edit${f}`).val().trim();
+    updated[f] = value;
+
+    // Exclude optional fields if any; here we require all except ID
+    if (!value && f !== "ID") {
+      hasEmpty = true;
+      missingFields.push(labelMap[f] || f);
+    }
+  });
+
+  if (hasEmpty) {
+    alert("⚠️ សូមបំពេញព័ត៌មានខាងក្រោមអោយគ្រប់គ្រាន់ មិនអាចរក្សាទុកបានទេ:\n\n" + missingFields.join(" | "));
+    return;
+  }
+
+  fetch(scriptURL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updated)
+  })
+  .then(res => res.text())
+  .then(msg => {
+    alert("✅ បានរក្សាទុក: " + msg);
+    $('#editModal').modal('hide');
+    location.reload();
+  })
+  .catch(err => alert("❌ កំហុស: " + err));
+});});
 </script>
 
 </body>
