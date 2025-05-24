@@ -66,92 +66,70 @@
 <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 
 <script>
-const scriptURL = "https://script.google.com/macros/s/AKfycbx4IRq6dnXDuHemkxcHxqFAdjevu6wv4xP01043xQNZQ_wEv2kmfYC3At9pLPmp5As0aA/exec"; // change to your endpoint
+const scriptURL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
 
 const fields = [
-  "ID", "Code", "Name", "Sex", "DOB", "DateSignin", "DOP","Village", "Commune", "District", "Province",
-  "Mager", "Voted_Yet", "IDCard", "RomeNumber", "PositionInGov", "PositionInCpp",
-  "Entered_service", "Phone", "CardCPP", "Party_life"
+  "ID", "Code", "Name", "Sex", "DOB", "DOP", "IDCard",
+  "Village", "Commune", "District", "Province",
+  "Mager", "PositionInGov", "Entered_service", "Phone",
+  "VotedYet", "RomeNumber", "PositionInCpp", "DateSignin", "CardCPP", "Party_life"
 ];
-
-const labelMap = {
-  Code: "កូដមន្រ្តី", Name: "គោត្តនាម​និងនាម", Sex: "ភេទ", DOB: "ថ្ងៃកំណើត",DOP: "ទីកន្លែងកំណើត", DateSignin: "ថ្ងៃចូលបក្ស",
-  Village: "ភូមិ", Commune: "ឃុំ", District: "ស្រុក", Province: "ខេត្ត", Mager: "កម្រិតវប្បធម៌",
-  Voted_Yet: "បោះឆ្នោត?", IDCard: "អត្តសញា្ញណប័ណ្ណ", RomeNumber: "លេខការិយាល័យបោះឆ្នោត",
-  PositionInGov: "តួនាទីរដ្ឋ", PositionInCpp: "តួនាទីបក្ស", Entered_service: "ថ្ងៃចូលបម្រើការងាររដ្ឋ",
-  Phone: "លេខទូរស័ព្ទទំនាក់ទំនង", CardCPP: "ប័ណ្ណសមាជិកបក្ស", Party_life: "ជីវភាពបក្ស"
-};
 
 function generateFormFields() {
   const form = document.getElementById("editForm");
   form.innerHTML = `
-    <fieldset class="border p-3 mb-3">
-      <legend class="float-none w-auto px-3">ព័ត៌មានទូទៅ</legend>
-      <div class="row">
-        <div class="col-md-4"><label>លេខសម្គាល់</label><input id="editID" class="form-control" readonly></div>
-        <div class="col-md-4"><label>កូដ</label><input id="editCode" type="number" class="form-control"></div>
-        <div class="col-md-4"><label>គោត្តនាម​ និង​ នាម</label><input id="editName" type="text" class="form-control"></div>
-        <div class="col-md-4"><label>ភេទ</label>
-          <select id="editSex" class="form-control">
-            <option value="">-- ជ្រើសរើស --</option>
-            <option value="ប្រុស">ប្រុស</option>
-            <option value="ស្រី">ស្រី</option>
-          </select>
-        </div>
-        <div class="col-md-4"><label>ថ្ងៃកំណើត</label><input id="editDOB" type="date" class="form-control"></div>
-        <div class="col-md-4"><label>ទីកន្លែងកំណើត</label><input id="editDOP" type="text" class="form-control"></div>
-        <div class="col-md-4"><label for="editIDCard">អត្តសញ្ញាណប័ណ្ណសញ្ញាតិខ្មែរ</label><input class="form-control" id="editIDCard" type="text"></div>
-      </div>
-    </fieldset>
+    <fieldset><legend>ព័ត៌មានទូទៅ</legend><div class="row">
+      ${inputField("ID", "លេខសម្គាល់", "text", true)}
+      ${inputField("Code", "កូដ", "number")}
+      ${inputField("Name", "គោត្តនាម​និងនាម")}
+      ${selectField("Sex", "ភេទ", ["ប្រុស", "ស្រី"])}
+      ${inputField("DOB", "ថ្ងៃកំណើត", "date")}
+      ${inputField("DOP", "ទីកន្លែងកំណើត")}
+      ${inputField("IDCard", "អត្តសញ្ញាណប័ណ្ណ")}
+    </div></fieldset>
 
- <fieldset class="border p-3 mb-3">
-  <legend class="float-none w-auto px-3">អាស័យដ្ឋានបច្ចុប្បន្ន</legend>
-  <div class="row g-3">
-    <div class="col-md-4"><label for="editVillage">ភូមិ</label><input class="form-control" id="editVillage" type="text"></div>
-    <div class="col-md-4"><label for="editCommune">ឃុំ/សង្កាត់</label><input class="form-control" id="editCommune" type="text"></div>
-    <div class="col-md-4"><label for="editDistrict">ស្រុក/ក្រុង</label><input class="form-control" id="editDistrict" type="text"></div>
-    <div class="col-md-4"><label for="editProvince">ខេត្ត</label><input class="form-control" id="editProvince" type="text"></div>
-  </div>
-</fieldset>
+    <fieldset><legend>អាសយដ្ឋានបច្ចុប្បន្ន</legend><div class="row">
+      ${inputField("Village", "ភូមិ")}
+      ${inputField("Commune", "ឃុំ/សង្កាត់")}
+      ${inputField("District", "ស្រុក/ក្រុង")}
+      ${inputField("Province", "ខេត្ត")}
+    </div></fieldset>
 
-    <fieldset class="border p-3 mb-3">
-      <legend class="float-none w-auto px-3">ព័ត៌មានអំពីការងាររដ្ឋ</legend>
-      <div class="row">
-        <div class="col-md-4"><label>កម្រិតវប្បធម៌</label><input id="editMager" class="form-control"></div>
-        <div class="col-md-4"><label for="editPositionInGov">តួនាទីរដ្ឋ</label><input class="form-control" id="editPositionInGov" type="text"></div>
-        <div class="col-md-4"><label>ថ្ងៃចូលបម្រើការងាររដ្ឋ</label><input id="editEntered_service" class="form-control" type="date"></div>
-        <div class="col-md-4"><label>លេខទូរស័ព្ទទំនាក់ទំនង</label><input id="editPhone" type="tel" class="form-control"></div>
-      </div>
-    </fieldset>
+    <fieldset><legend>ព័ត៌មានអំពីការងារ</legend><div class="row">
+      ${inputField("Mager", "កម្រិតវប្បធម៌")}
+      ${inputField("PositionInGov", "តួនាទីរដ្ឋ")}
+      ${inputField("Entered_service", "ថ្ងៃចូលបម្រើការងារ", "date")}
+      ${inputField("Phone", "ទូរស័ព្ទ", "tel")}
+    </div></fieldset>
 
-    <!-- ត្រូវបញ្ចូលនៅក្នុង <form id="editForm"> -->
-
-
-
-<fieldset class="border p-3 mb-3">
-  <legend class="float-none w-auto px-3">ព័ត៌មានអំពីសមាជិកគណៈបក្ស</legend>
-  <div class="row g-3">
-    <div class="col-md-4">
-      <label for="editVotedYet">បោះឆ្នោត?</label>
-      <select class="form-control" id="editVotedYet">
-        <option value="">-- ជ្រើសរើស --</option>
-        <option value="បាទ">បាទ</option>
-        <option value="មិនទាន់">មិនទាន់</option>
-      </select>
-    </div>
- 
-    <div class="col-md-4"><label for="editRomeNumber">លេខការិយាល័យបោះឆ្នោត</label><input class="form-control" id="editRomeNumber" type="number"></div>
-    <div class="col-md-4"><label for="editPositionInCpp">តួនាទីបក្ស</label><input class="form-control" id="editPositionInCpp" type="text"></div>
-    <div class="col-md-4"><label for="editEntered_service">ថ្ងៃចូលគណៈបក្ស</label><input class="form-control" id="editEntered_service" type="date"></div>
-   
-    <div class="col-md-4"><label for="editCardCPP">ប័ណ្ណសមាជិកបក្ស</label><input class="form-control" id="editCardCPP" type="text"></div>
-    <div class="col-md-4"><label for="editParty_life">ជីវភាពបក្ស</label><input class="form-control" id="editParty_life" type="text"></div>
-  </div>
-</fieldset>
-
-  `;
+    <fieldset><legend>ព័ត៌មានគណៈបក្ស</legend><div class="row">
+      ${selectField("VotedYet", "បោះឆ្នោត?", ["បាទ", "មិនទាន់"])}
+      ${inputField("RomeNumber", "លេខការិយាល័យបោះឆ្នោត", "number")}
+      ${inputField("PositionInCpp", "តួនាទីបក្ស")}
+      ${inputField("DateSignin", "ថ្ងៃចូលបក្ស", "date")}
+      ${inputField("CardCPP", "ប័ណ្ណសមាជិកបក្ស")}
+      ${inputField("Party_life", "ជីវភាពបក្ស")}
+    </div></fieldset>`;
 }
 
+function inputField(id, label, type = "text", readonly = false) {
+  return `
+    <div class="col-md-4">
+      <label for="edit${id}">${label}</label>
+      <input id="edit${id}" class="form-control" type="${type}" ${readonly ? "readonly" : ""}>
+    </div>`;
+}
+
+function selectField(id, label, options) {
+  return `
+    <div class="col-md-4">
+      <label for="edit${id}">${label}</label>
+      <select id="edit${id}" class="form-control">
+        <option value="">-- ជ្រើសរើស --</option>
+        ${options.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
+      </select>
+    </div>`;
+}
 
 $(document).ready(function () {
   generateFormFields();
@@ -161,23 +139,21 @@ $(document).ready(function () {
     .then(res => res.json())
     .then(data => {
       data.forEach(row => {
-        const btn = `<button class="btn btn-sm btn-warning edit-btn"
+        const btn = `<button class="btn btn-warning btn-sm edit-btn"
           ${fields.map(f => `data-${f.toLowerCase()}="${row[f] || ''}"`).join(' ')}
           data-bs-toggle="modal" data-bs-target="#editModal">កែប្រែ</button>`;
-
-        const rowData = [row.ID || '', row.Code || '', row.Name || '', row.Sex || '', btn];
+        const rowData = [row.ID, row.Code, row.Name, row.Sex, btn];
         table.row.add(rowData).draw(false);
       });
 
       $('#staff-table').on('click', '.edit-btn', function () {
-        const button = $(this);
-        fields.forEach(f => $(`#edit${f}`).val(button.data(f.toLowerCase())));
+        const btn = $(this);
+        fields.forEach(f => $(`#edit${f}`).val(btn.data(f.toLowerCase())));
       });
 
       $('#saveChanges').click(function () {
         const updated = {};
         fields.forEach(f => updated[f] = $(`#edit${f}`).val());
-
         fetch(scriptURL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -191,8 +167,7 @@ $(document).ready(function () {
         })
         .catch(err => alert("❌ កំហុស: " + err));
       });
-    })
-    .catch(err => alert("❌ មិនអាចទាញទិន្នន័យបានទេ: " + err));
+    });
 });
 </script>
 
