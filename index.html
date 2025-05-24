@@ -156,7 +156,7 @@ $(document).ready(function () {
 $('#saveChanges').click(function () {
   const updated = {};
   fields.forEach(f => updated[f] = $(`#edit${f}`).val());
-  console.log(updated); // <-- optional: debug JSON
+  console.log(updated); // Debug JSON
 
   fetch(scriptURL, {
     method: "POST",
@@ -172,7 +172,10 @@ $('#saveChanges').click(function () {
   .catch(err => alert("❌ កំហុស: " + err));
 });
 
-</script>
+}); // <<== this closes the $(document).ready
+
+</script> <!-- ✅ This was missing -->
+
 
 </body>
 </html>
