@@ -69,17 +69,17 @@
 const scriptURL = "https://script.google.com/macros/s/AKfycbx4IRq6dnXDuHemkxcHxqFAdjevu6wv4xP01043xQNZQ_wEv2kmfYC3At9pLPmp5As0aA/exec"; // change to your endpoint
 
 const fields = [
-  "ID", "Code", "Name", "Sex", "DOB", "DateSignin", "Village", "Commune", "District", "Province",
+  "ID", "Code", "Name", "Sex", "DOB", "DateSignin", "DOP","Village", "Commune", "District", "Province",
   "Mager", "Voted_Yet", "IDCard", "RomeNumber", "PositionInGov", "PositionInCpp",
   "Entered_service", "Phone", "CardCPP", "Party_life"
 ];
 
 const labelMap = {
-  Code: "កូដ", Name: "ឈ្មោះ", Sex: "ភេទ", DOB: "ថ្ងៃកំណើត", DateSignin: "ថ្ងៃចូលបក្ស",
+  Code: "កូដមន្រ្តី", Name: "គោត្តនាម​និងនាម", Sex: "ភេទ", DOB: "ថ្ងៃកំណើត",DOP: "ទីកន្លែងកំណើត", DateSignin: "ថ្ងៃចូលបក្ស",
   Village: "ភូមិ", Commune: "ឃុំ", District: "ស្រុក", Province: "ខេត្ត", Mager: "កម្រិតវប្បធម៌",
-  Voted_Yet: "បោះឆ្នោត?", IDCard: "អត្តសញ្ញាណ", RomeNumber: "លេខបោះឆ្នោត",
-  PositionInGov: "តួនាទីរដ្ឋ", PositionInCpp: "តួនាទីបក្ស", Entered_service: "ចូលបម្រើ",
-  Phone: "ទូរស័ព្ទ", CardCPP: "ប័ណ្ណសមាជិក", Party_life: "ជីវភាពបក្ស"
+  Voted_Yet: "បោះឆ្នោត?", IDCard: "អត្តសញ្ញាណ", RomeNumber: "លេខការិយាល័យបោះឆ្នោត",
+  PositionInGov: "តួនាទីរដ្ឋ", PositionInCpp: "តួនាទីបក្ស", Entered_service: "ថ្ងៃចូលបម្រើការងាររដ្ឋ",
+  Phone: "លេខទូរស័ព្ទទំនាក់ទំនង", CardCPP: "ប័ណ្ណសមាជិកបក្ស", Party_life: "ជីវភាពបក្ស"
 };
 
 function generateFormFields() {
@@ -99,12 +99,13 @@ function generateFormFields() {
           </select>
         </div>
         <div class="col-md-4"><label>ថ្ងៃកំណើត</label><input id="editDOB" type="date" class="form-control"></div>
+        <div class="col-md-4"><label>ទីកន្លែងកំណើត</label><input id="editDOP" type="text" class="form-control"></div>
         <div class="col-md-4"><label for="editIDCard">អត្តសញ្ញាណប័ណ្ណសញ្ញាតិខ្មែរ</label><input class="form-control" id="editIDCard" type="text"></div>
       </div>
     </fieldset>
 
  <fieldset class="border p-3 mb-3">
-  <legend class="float-none w-auto px-3">អាសយដ្ឋានបច្ចុប្បន្ន</legend>
+  <legend class="float-none w-auto px-3">អាស័យដ្ឋានបច្ចុប្បន្ន</legend>
   <div class="row g-3">
     <div class="col-md-4"><label for="editVillage">ភូមិ</label><input class="form-control" id="editVillage" type="text"></div>
     <div class="col-md-4"><label for="editCommune">ឃុំ/សង្កាត់</label><input class="form-control" id="editCommune" type="text"></div>
