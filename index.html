@@ -13,6 +13,8 @@
     .header-logo { max-height: 80px; }
     .official-header { background: #fff; padding: 30px 20px 10px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
     .official-header .sub-col { width: 33%; }
+    fieldset { border: 1px solid #ccc !important; padding: 15px; border-radius: 5px; }
+    legend { font-size: 1rem; font-weight: bold; }
   </style>
 </head>
 <body class="container py-4">
@@ -20,8 +22,8 @@
 <!-- Header -->
 <div class="official-header d-flex justify-content-between align-items-start">
   <div class="sub-col text-start">
-    <p class="fw-bold" style="font-size: 18px;">គណកម្មាធិកាគណៈបក្សប្រជាជនកម្ពុជា</p>
-    <p>គណកម្មាធិការគណៈបក្សខេត្តស្ទឹងត្រែង</p>
+    <p class="fw-bold" style="font-size: 18px;">ក្រសួងមហាផ្ទៃ</p>
+    <p>អគ្គនាយកដ្ឋានអាណត្តិ និងសញ្ជាតិ</p>
   </div>
   <div class="sub-col text-center">
     <img src="https://upload.wikimedia.org/wikipedia/en/1/19/Cambodian_People%27s_Party_%28emblem%29.png" class="header-logo">
@@ -38,7 +40,7 @@
   <table id="staff-table" class="table table-bordered nowrap" style="width:100%">
     <thead>
       <tr>
-        <th>ល.រ</th><th>កូដមន្រ្តី</th><th>គោត្តនាម​ និងនាម</th><th>ភេទ</th><th>សកម្មភាព</th>
+        <th>ល.រ</th><th>កូដ</th><th>ឈ្មោះ</th><th>ភេទ</th><th>សកម្មភាព</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -66,7 +68,7 @@
 <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 
 <script>
-const scriptURL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbx4IRq6dnXDuHemkxcHxqFAdjevu6wv4xP01043xQNZQ_wEv2kmfYC3At9pLPmp5As0aA/exec";
 
 const fields = [
   "ID", "Code", "Name", "Sex", "DOB", "DOP", "IDCard",
