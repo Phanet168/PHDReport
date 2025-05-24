@@ -40,7 +40,7 @@
   <table id="staff-table" class="table table-bordered nowrap" style="width:100%">
     <thead>
       <tr>
-        <th>ល.រ</th><th>កូដ</th><th>ឈ្មោះ</th><th>ភេទ</th><th>សកម្មភាព</th>
+        <th>ល.រ</th><th>កូដមន្រ្តី</th><th>គោតនាម​ និង នាម</th><th>ភេទ</th><th>សកម្មភាព</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -74,7 +74,7 @@ const fields = [
   "ID", "Code", "Name", "Sex", "DOB", "DOP", "IDCard",
   "Village", "Commune", "District", "Province",
   "Mager", "PositionInGov", "Entered_service", "Phone",
-  "VotedYet", "RomeNumber", "PositionInCpp", "DateSignin", "CardCPP", "Party_life"
+  "Voted_yet", "RomeNumber", "PositionInCpp", "DateSignin", "CardCPP", "Party_life"
 ];
 
 function generateFormFields() {
@@ -105,7 +105,7 @@ function generateFormFields() {
     </div></fieldset>
 
     <fieldset><legend>ព័ត៌មានគណៈបក្ស</legend><div class="row">
-      ${selectField("VotedYet", "បោះឆ្នោត?", ["បាទ", "មិនទាន់"])}
+      ${selectField("Voted_yet", "បោះឆ្នោត?", ["បាទ", "មិនទាន់"])}
       ${inputField("RomeNumber", "លេខការិយាល័យបោះឆ្នោត", "number")}
       ${inputField("PositionInCpp", "តួនាទីបក្ស")}
       ${inputField("DateSignin", "ថ្ងៃចូលបក្ស", "date")}
