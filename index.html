@@ -1,191 +1,246 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="km">
 <head>
-  <meta charset="UTF-8">
-  <title>បញ្ជីបុគ្គលិក</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
-  <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer&display=swap" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HC Dashboard – UX/UI Example</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: 'Noto Sans Khmer', sans-serif; background-color: #f1f3f5; }
-    .header-logo { max-height: 80px; }
-    .official-header { background: #fff; padding: 30px 20px 10px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
-    .official-header .sub-col { width: 33%; }
-    fieldset { border: 1px solid #ccc !important; padding: 15px; border-radius: 5px; }
-    legend { font-size: 1rem; font-weight: bold; }
+    :root{--bg:#f6f7fb;--card:#fff;--txt:#1f2937;--muted:#6b7280;--pri:#089981;--bd:#e5e7eb}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,Segoe UI,Arial}
+    header{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--bd);z-index:10}
+    .wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+    .h-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
+    .brand{display:flex;gap:10px;align-items:center;font-weight:700}
+    .brand-badge{width:32px;height:32px;border-radius:8px;background:var(--pri)}
+    .tabs{display:flex;gap:8px;padding:0 0 12px}
+    .tab{padding:6px 10px;border-radius:8px;color:var(--muted);text-decoration:none;border:1px solid transparent}
+    .tab.active,.tab:hover{background:var(--pri);color:#fff}
+    main{padding:16px 0}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+    .filters label{color:var(--muted)}
+    .input,.btn{padding:8px 10px;border-radius:10px;border:1px solid var(--bd);background:#fff}
+    .btn{background:var(--pri);color:#fff;border:none;cursor:pointer}
+    .grid{display:grid;gap:12px}
+    .grid.cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+    .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .kpi-title{color:var(--muted);font-size:12px}
+    .kpi-value{font-weight:800;font-size:28px;letter-spacing:.2px}
+    .panel h3{margin:0 0 8px}
+    .table{overflow:auto;border:1px solid var(--bd);border-radius:12px;background:#fff}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px 10px;border-bottom:1px solid var(--bd);white-space:nowrap;text-align:left}
+    tfoot td{font-weight:700}
+    .muted{color:var(--muted)}
+    @media (min-width: 900px){ .grid.cols-2{grid-template-columns:2fr 1.2fr} }
   </style>
 </head>
-<body class="container py-4">
-
-<!-- Header -->
-<div class="official-header d-flex justify-content-between align-items-start">
-  <div class="sub-col text-start">
-    <p class="fw-bold" style="font-size: 18px;">គកម្មាធិការបក្សខេត្តស្ទឺងត្រែង</p>
-    <p>គណកម្មាធិការបក្សសាខាមន្ទីរសុខាភិបាល</p>
-  </div>
-  <div class="sub-col text-center">
-    <img src="https://upload.wikimedia.org/wikipedia/en/1/19/Cambodian_People%27s_Party_%28emblem%29.png" class="header-logo">
-    <h4 class="text-primary fw-bold mt-2">បញ្ជីឈ្មោះសមាជិកបក្សប្រចាំបោះឆ្នោត</h4>
-  </div>
-  <div class="sub-col text-end">
-    <p class="fw-bold" style="font-size: 18px;">ព្រះរាជាណាចក្រកម្ពុជា</p>
-    <p>ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
-  </div>
-</div>
-
-<!-- Table -->
-<div class="bg-white p-4 shadow-sm rounded">
-  <table id="staff-table" class="table table-bordered nowrap" style="width:100%">
-    <thead>
-      <tr>
-        <th>ល.រ</th><th>កូដមន្រ្តី</th><th>គោត្តនាម និងនាម</th><<th>ភេទ</th><th>សកម្មភាព</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-
-<!-- Modal -->
-<div class="modal fade" id="editModal" tabindex="-1">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title">កែប្រែព័ត៌មាន</h5></div>
-      <div class="modal-body"><form id="editForm" class="row g-3"></form></div>
-      <div class="modal-footer">
-        <button id="saveChanges" type="button" class="btn btn-primary">រក្សាទុក</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បិទ</button>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="h-row">
+        <div class="brand"><div class="brand-badge"></div><div>HC Dashboard</div></div>
+        <nav class="tabs">
+          <a class="tab active" data-tab="dash" href="#">Dashboard</a>
+          <a class="tab" data-tab="table" href="#">Table</a>
+          <a class="tab" data-tab="about" href="#">About</a>
+        </nav>
       </div>
     </div>
-  </div>
-</div>
+  </header>
 
-<!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+  <main class="wrap">
+    <!-- Filters -->
+    <div class="card">
+      <div class="filters">
+        <label>Org</label>
+        <select id="org" class="input"></select>
+        <label>Period</label>
+        <select id="per" class="input"></select>
+        <button class="btn" id="btnRefresh">Refresh</button>
+        <span class="muted" id="hint">ទាញទិន្នន័យ…</span>
+      </div>
+    </div>
 
-<script>
-const scriptURL = "https://script.google.com/macros/s/AKfycbx4IRq6dnXDuHemkxcHxqFAdjevu6wv4xP01043xQNZQ_wEv2kmfYC3At9pLPmp5As0aA/exec";
+    <!-- DASH -->
+    <section id="dash" class="tabpane">
+      <div class="grid cards">
+        <div class="card">
+          <div class="kpi-title">Mortality (IPD)</div>
+          <div class="kpi-value" id="kpiMort">—</div>
+          <div class="muted">Deaths / Discharges → %</div>
+        </div>
+        <div class="card">
+          <div class="kpi-title">Referrals</div>
+          <div class="kpi-value" id="kpiRef">—</div>
+          <div class="muted">OPD_REF • IPD_REF</div>
+        </div>
+        <div class="card">
+          <div class="kpi-title">Total OPD (Top)</div>
+          <div class="kpi-value" id="kpiOPDTop">—</div>
+          <div class="muted">Highest indicator</div>
+        </div>
+      </div>
 
-const fields = [
-  "ID", "Code", "Name", "Sex", "DOB", "DateSignin", "DOP", "Village", "Commune",
-  "District", "Province", "IDCard", "RomeNumber", "PositionInGov", "PositionInCpp",
-  "Mager", "Voted_yet", "Entered_service", "Phone", "CardCPP", "Party_life"
-];
+      <div class="grid cols-2" style="margin-top:12px">
+        <div class="card panel">
+          <h3>Top Indicators (Bar)</h3>
+          <canvas id="barTop"></canvas>
+        </div>
+        <div class="card panel">
+          <h3>6-Month Trend (Line)</h3>
+          <canvas id="lineTrend"></canvas>
+        </div>
+      </div>
+    </section>
 
-function generateFormFields() {
-  const form = document.getElementById("editForm");
-  form.innerHTML = `
-    <fieldset><legend>ព័ត៌មានទូទៅ</legend><div class="row">
-      ${inputField("ID", "លេខសម្គាល់", "text", true)}
-      ${inputField("Code", "កូដ", "number")}
-      ${inputField("Name", "គោត្តនាម ​និង នាម")}
-      ${selectField("Sex", "ភេទ", ["ប្រុស", "ស្រី"])}
-      ${inputField("DOB", "ថ្ងៃកំណើត", "date")}
-      ${inputField("DOP", "ទីកន្លែងកំណើត")}
-      ${inputField("IDCard", "អត្តសញ្ញាណប័ណ្ណ")}
-    </div></fieldset>
+    <!-- TABLE -->
+    <section id="table" class="tabpane" style="display:none">
+      <div class="card panel">
+        <h3>Monthly Values</h3>
+        <div class="table" id="tblWrap"></div>
+      </div>
+    </section>
 
-    <fieldset><legend>អាសយដ្ឋានបច្ចុប្បន្ន</legend><div class="row">
-      ${inputField("Village", "ភូមិ")}
-      ${inputField("Commune", "ឃុំ/សង្កាត់")}
-      ${inputField("District", "ស្រុក/ក្រុង")}
-      ${inputField("Province", "ខេត្ត")}
-    </div></fieldset>
+    <!-- ABOUT -->
+    <section id="about" class="tabpane" style="display:none">
+      <div class="card panel">
+        <h3>About this UX/UI</h3>
+        <ul>
+          <li>Filter bar (Org, Period) → KPIs → Charts → Table</li>
+          <li>Cards highlight critical metrics (Mortality, Referrals)</li>
+          <li>Responsive grid (desktop 2 columns, mobile 1 column)</li>
+          <li>Can run on GitHub Pages (static JSON) or XAMPP (PHP API)</li>
+        </ul>
+      </div>
+    </section>
+  </main>
 
-    <fieldset><legend>ព័ត៌មានអំពីការងារ</legend><div class="row">
-      ${inputField("Mager", "កម្រិតវប្បធម៌")}
-      ${inputField("PositionInGov", "តួនាទីរដ្ឋ")}
-      ${inputField("Entered_service", "ថ្ងៃចូលបម្រើការងារ", "date")}
-      ${inputField("Phone", "ទូរស័ព្ទទំនាក់ទំនង", "tel")}
-    </div></fieldset>
+  <script>
+    // ---- Simple tab switch
+    document.querySelectorAll('header .tab').forEach(b=>{
+      b.onclick = e => {
+        e.preventDefault();
+        document.querySelectorAll('header .tab').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        const id = b.dataset.tab;
+        document.querySelectorAll('.tabpane').forEach(p=>p.style.display='none');
+        document.getElementById(id).style.display='block';
+      };
+    });
 
-    <fieldset><legend>ព័ត៌មានគណៈបក្ស</legend><div class="row">
-      ${selectField("Voted_yet", "បោះឆ្នោត?", ["បាទ", "មិនទាន់"])}
-      ${inputField("RomeNumber", "លេខការិយាល័យបោះឆ្នោត", "number")}
-      ${inputField("PositionInCpp", "តួនាទីបក្ស")}
-      ${inputField("DateSignin", "ថ្ងៃចូលបក្ស", "date")}
-      ${inputField("CardCPP", "ប័ណ្ណសមាជិកបក្ស")}
-      ${inputField("Party_life", "ជីវភាពបក្ស")}
-    </div></fieldset>`;
-}
+    // ---- Data source (choose ONE):
+    // 1) Static JSON (GitHub Pages):
+    const DATA_URLS = {
+      meta:  'data/metadata.json',     // {orgs:[], periods:[]}
+      month: 'data/latest_month.json', // [{org_unit_id, period_id, indicator_id, value_num, ...}]
+      trend: 'data/trend_6m.json'      // optional: [{period_id, indicator_id, total}]
+    };
 
-function inputField(id, label, type = "text", readonly = false) {
-  return `
-    <div class="col-md-4">
-      <label for="edit${id}">${label}</label>
-      <input id="edit${id}" class="form-control" type="${type}" ${readonly ? "readonly" : ""}>
-    </div>`;
-}
+    // 2) PHP API (XAMPP) — comment above and uncomment below:
+    // const DATA_URLS = {
+    //   meta:  'api/meta.php',
+    //   month: (per, org) => `api/latest_table.php?period=${encodeURIComponent(per)}&org=${encodeURIComponent(org||'')}`,
+    //   mort:  (per, org) => `api/mortality.php?period=${encodeURIComponent(per)}&org=${encodeURIComponent(org||'')}`,
+    //   trend: 'api/trend.php' // if implemented
+    // };
 
-function selectField(id, label, options) {
-  return `
-    <div class="col-md-4">
-      <label for="edit${id}">${label}</label>
-      <select id="edit${id}" class="form-control">
-        <option value="">-- ជ្រើសរើស --</option>
-        ${options.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
-      </select>
-    </div>`;
-}
+    // ---- Elements
+    const elOrg = document.getElementById('org');
+    const elPer = document.getElementById('per');
+    const elMort = document.getElementById('kpiMort');
+    const elRef  = document.getElementById('kpiRef');
+    const elOPD  = document.getElementById('kpiOPDTop');
+    const elHint = document.getElementById('hint');
+    let chartBar, chartLine;
 
-$(document).ready(function () {
-  generateFormFields();
-  const table = $('#staff-table').DataTable({ responsive: true });
-
-  fetch(scriptURL)
-    .then(res => res.json())
-    .then(data => {
-      data.forEach(row => {
-        const btn = `<button class="btn btn-warning btn-sm edit-btn"
-          ${fields.map(f => `data-${f.toLowerCase()}="${row[f] || ''}"`).join(' ')}
-          data-bs-toggle="modal" data-bs-target="#editModal">កែប្រែ</button>`;
-        const rowData = [row.ID, row.Code, row.Name, row.Sex, btn];
-        table.row.add(rowData).draw(false);
-      });
-
-      $('#staff-table').on('click', '.edit-btn', function () {
-        const btn = $(this);
-        fields.forEach(f => $(`#edit${f}`).val(btn.data(f.toLowerCase())));
-      });
-
-      $('#saveChanges').click(function () {
-  const updated = {};
-  let missingFields = [];
-
-  fields.forEach(f => {
-    const value = $(`#edit${f}`).val();
-    updated[f] = value;
-
-    // ត្រួតពិនិត្យពេលមិនបញ្ចូល (រំលង ID ចំពោះ readonly)
-    if (f !== "ID" && (!value || value.trim() === "")) {
-      missingFields.push(f);
+    // ---- Load metadata + default
+    async function loadMeta() {
+      const r = await fetch(DATA_URLS.meta);
+      const meta = await r.json();
+      elOrg.innerHTML = `<option value="">All Orgs</option>` + meta.orgs.map(o=>`<option>${o}</option>`).join('');
+      const periods = meta.periods.sort().reverse();
+      elPer.innerHTML = periods.map(p=>`<option>${p}</option>`).join('');
+      return periods[0];
     }
-  });
 
-  if (missingFields.length > 0) {
-    alert("⚠️ សូមបញ្ចូលព័ត៌មានឲ្យគ្រប់គ្រាន់មុននឹងរក្សាទុក។");
-    return;
-  }
+    // ---- Refresh dashboard
+    async function refresh() {
+      elHint.textContent = 'កំពុងទាញទិន្នន័យ…';
+      const org = elOrg.value || ''; const per = elPer.value;
 
-  fetch(scriptURL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(updated)
-  })
-  .then(res => res.text())
-  .then(msg => {
-    alert("✅ បានរក្សាទុក: " + msg);
-    $('#editModal').modal('hide');
-    location.reload();
-  })
-  .catch(err => alert("❌ កំហុស: " + err));
-  });
-});
-</script>
+      // Load month rows (static JSON holds all orgs for latest; filter front-end)
+      const rows = await (await fetch(DATA_URLS.month)).json();
+      const filt = rows.filter(x => x.period_id===per && (!org || x.org_unit_id===org));
 
+      // KPIs
+      let deaths=0, disch=0, rOpd=0, rIpd=0, topVal=0;
+      const sums = {};
+      for (const r of filt) {
+        const v = Number(r.value_num||0);
+        sums[r.indicator_id] = (sums[r.indicator_id]||0)+v;
+        if (r.indicator_id==='IPD_003') deaths += v;
+        if (r.indicator_id==='IPD_002') disch  += v;
+        if (r.indicator_id==='OPD_REF') rOpd   += v;
+        if (r.indicator_id==='IPD_REF') rIpd   += v;
+      }
+      const rate = disch ? Math.round(10000*deaths/disch)/100 : 0;
+      elMort.textContent = `${deaths} / ${disch} → ${rate}%`;
+      elRef.textContent  = `OPD ${rOpd} • IPD ${rIpd}`;
+      const top = Object.entries(sums).sort((a,b)=>b[1]-a[1])[0];
+      elOPD.textContent = top ? `${top[0]}: ${top[1]}` : '—';
+
+      // Bar: Top 10
+      const top10 = Object.entries(sums).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const labels = top10.map(x=>x[0]), vals = top10.map(x=>x[1]);
+      if (!chartBar) {
+        chartBar = new Chart(document.getElementById('barTop').getContext('2d'), {
+          type:'bar',
+          data:{labels, datasets:[{label:'Total', data:vals}]},
+          options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{maxRotation:45}}}}
+        });
+      } else {
+        chartBar.data.labels = labels; chartBar.data.datasets[0].data = vals; chartBar.update();
+      }
+
+      // Line: 6-month trend (optional JSON)
+      try {
+        const trows = await (await fetch(DATA_URLS.trend)).json();
+        const t = trows.filter(x => (!org || x.org_unit_id===org));
+        const byPer = {};
+        for (const r of t) byPer[r.period_id] = (byPer[r.period_id]||0)+Number(r.total||0);
+        const tLabels = Object.keys(byPer).sort();
+        const tVals = tLabels.map(k=>byPer[k]);
+        if (!chartLine) {
+          chartLine = new Chart(document.getElementById('lineTrend').getContext('2d'), {
+            type:'line',
+            data:{labels:tLabels, datasets:[{label:'Total (All indicators)', data:tVals, tension:.3}]},
+            options:{responsive:true, plugins:{legend:{display:false}}}
+          });
+        } else {
+          chartLine.data.labels = tLabels; chartLine.data.datasets[0].data = tVals; chartLine.update();
+        }
+      } catch(e) {
+        // trend_6m.json not present → ignore
+      }
+
+      // Table
+      renderTable(filt);
+      elHint.textContent = `បានបង្ហាញ • ${org||'All Orgs'} @ ${per}`;
+    }
+
+    function renderTable(rows){
+      const cols = ['org_unit_id','period_id','indicator_id','age_group','sex','icd10_code','value_num','source_note'];
+      let html = '<div class="table"><table><thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+      for(const r of rows){ html += '<tr>'+cols.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>'; }
+      html += '</tbody></table></div>';
+      document.getElementById('tblWrap').innerHTML = html;
+    }
+
+    // Init
+    document.getElementById('btnRefresh').onclick = refresh;
+    (async()=>{ const latest = await loadMeta(); elPer.value = latest; refresh(); })();
+  </script>
 </body>
 </html>
