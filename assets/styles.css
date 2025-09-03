@@ -1,22 +1,7 @@
-:root{--bg:#f7f7fb;--card:#fff;--txt:#1f2937;--muted:#6b7280;--pri:#0b7;--bd:#e5e7eb}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,Segoe UI,Arial}
-header{background:var(--card);border-bottom:1px solid var(--bd)}
-.wrap{max-width:1100px;margin:0 auto;padding:12px 16px}
-h1{margin:6px 0 0}
-.muted{color:var(--muted)} .small{font-size:12px}
-main{padding:10px 0 20px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:8px 0}
-.grid{display:grid;gap:12px}
-.cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-.cols-2{grid-template-columns:2fr 1.2fr}
-.kpi-title{color:var(--muted);font-size:12px}
-.kpi{font-weight:800;font-size:28px}
-.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.filters select,.filters button{padding:6px 10px;border-radius:8px;border:1px solid var(--bd);background:#fff}
-.filters button{background:var(--pri);color:#fff;border:none}
-.table{overflow:auto;max-height:480px;border:1px solid var(--bd);border-radius:8px}
-table{width:100%;border-collapse:collapse}
-th,td{padding:6px 8px;border-bottom:1px solid var(--bd);white-space:nowrap;text-align:left;font-size:13px}
-footer{border-top:1px solid var(--bd);background:var(--card)}
-@media (max-width: 900px){ .cols-2{grid-template-columns:1fr} }
+/***** Light Gull-like touches *****/
+.nav-screen { min-height: 40vh; }
+.card { border-radius: 14px; }
+.card .card-header { background: #fff; }
+.table-responsive { max-height: 420px; }
+#tblWrap table { width: 100%; }
+#tblWrap th, #tblWrap td { padding: .4rem .6rem; border-bottom: 1px solid #eee; white-space: nowrap; }
