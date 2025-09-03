@@ -1,246 +1,76 @@
 <!doctype html>
 <html lang="km">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>HC Dashboard – UX/UI Example</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HC Dashboard (GitHub Pages)</title>
+  <link rel="stylesheet" href="assets/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    :root{--bg:#f6f7fb;--card:#fff;--txt:#1f2937;--muted:#6b7280;--pri:#089981;--bd:#e5e7eb}
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,Segoe UI,Arial}
-    header{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--bd);z-index:10}
-    .wrap{max-width:1200px;margin:0 auto;padding:0 16px}
-    .h-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
-    .brand{display:flex;gap:10px;align-items:center;font-weight:700}
-    .brand-badge{width:32px;height:32px;border-radius:8px;background:var(--pri)}
-    .tabs{display:flex;gap:8px;padding:0 0 12px}
-    .tab{padding:6px 10px;border-radius:8px;color:var(--muted);text-decoration:none;border:1px solid transparent}
-    .tab.active,.tab:hover{background:var(--pri);color:#fff}
-    main{padding:16px 0}
-    .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-    .filters label{color:var(--muted)}
-    .input,.btn{padding:8px 10px;border-radius:10px;border:1px solid var(--bd);background:#fff}
-    .btn{background:var(--pri);color:#fff;border:none;cursor:pointer}
-    .grid{display:grid;gap:12px}
-    .grid.cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-    .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-    .kpi-title{color:var(--muted);font-size:12px}
-    .kpi-value{font-weight:800;font-size:28px;letter-spacing:.2px}
-    .panel h3{margin:0 0 8px}
-    .table{overflow:auto;border:1px solid var(--bd);border-radius:12px;background:#fff}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px 10px;border-bottom:1px solid var(--bd);white-space:nowrap;text-align:left}
-    tfoot td{font-weight:700}
-    .muted{color:var(--muted)}
-    @media (min-width: 900px){ .grid.cols-2{grid-template-columns:2fr 1.2fr} }
-  </style>
 </head>
 <body>
   <header>
     <div class="wrap">
-      <div class="h-row">
-        <div class="brand"><div class="brand-badge"></div><div>HC Dashboard</div></div>
-        <nav class="tabs">
-          <a class="tab active" data-tab="dash" href="#">Dashboard</a>
-          <a class="tab" data-tab="table" href="#">Table</a>
-          <a class="tab" data-tab="about" href="#">About</a>
-        </nav>
-      </div>
+      <h1>HC Dashboard</h1>
+      <p class="muted">Frontend on GitHub Pages • Data from Apps Script (JSON)</p>
     </div>
   </header>
 
   <main class="wrap">
-    <!-- Filters -->
-    <div class="card">
+    <section class="card">
       <div class="filters">
-        <label>Org</label>
-        <select id="org" class="input"></select>
-        <label>Period</label>
-        <select id="per" class="input"></select>
-        <button class="btn" id="btnRefresh">Refresh</button>
-        <span class="muted" id="hint">ទាញទិន្នន័យ…</span>
-      </div>
-    </div>
-
-    <!-- DASH -->
-    <section id="dash" class="tabpane">
-      <div class="grid cards">
-        <div class="card">
-          <div class="kpi-title">Mortality (IPD)</div>
-          <div class="kpi-value" id="kpiMort">—</div>
-          <div class="muted">Deaths / Discharges → %</div>
-        </div>
-        <div class="card">
-          <div class="kpi-title">Referrals</div>
-          <div class="kpi-value" id="kpiRef">—</div>
-          <div class="muted">OPD_REF • IPD_REF</div>
-        </div>
-        <div class="card">
-          <div class="kpi-title">Total OPD (Top)</div>
-          <div class="kpi-value" id="kpiOPDTop">—</div>
-          <div class="muted">Highest indicator</div>
-        </div>
-      </div>
-
-      <div class="grid cols-2" style="margin-top:12px">
-        <div class="card panel">
-          <h3>Top Indicators (Bar)</h3>
-          <canvas id="barTop"></canvas>
-        </div>
-        <div class="card panel">
-          <h3>6-Month Trend (Line)</h3>
-          <canvas id="lineTrend"></canvas>
-        </div>
+        <label>ខែ (Period)</label>
+        <select id="per"></select>
+        <label>ប្រភេទអង្គភាព</label>
+        <select id="orgType">
+          <option value="">All</option>
+          <option value="HC">Health Center (HC)</option>
+          <option value="HOSP">Hospital (HOSP)</option>
+        </select>
+        <label>អង្គភាព</label>
+        <select id="org"></select>
+        <button id="btnRefresh">Refresh</button>
+        <span id="hint" class="muted">Loading…</span>
       </div>
     </section>
 
-    <!-- TABLE -->
-    <section id="table" class="tabpane" style="display:none">
-      <div class="card panel">
-        <h3>Monthly Values</h3>
-        <div class="table" id="tblWrap"></div>
+    <section class="grid cards">
+      <div class="card">
+        <div class="kpi-title">Mortality (IPD)</div>
+        <div id="kpiMort" class="kpi">—</div>
+        <div class="muted small">Deaths / Discharges → %</div>
+      </div>
+      <div class="card">
+        <div class="kpi-title">Referrals</div>
+        <div id="kpiRef" class="kpi">—</div>
+        <div class="muted small">OPD_REF • IPD_REF</div>
+      </div>
+      <div class="card">
+        <div class="kpi-title">Top Indicator</div>
+        <div id="kpiTop" class="kpi">—</div>
+        <div class="muted small">Highest total this month</div>
       </div>
     </section>
 
-    <!-- ABOUT -->
-    <section id="about" class="tabpane" style="display:none">
-      <div class="card panel">
-        <h3>About this UX/UI</h3>
-        <ul>
-          <li>Filter bar (Org, Period) → KPIs → Charts → Table</li>
-          <li>Cards highlight critical metrics (Mortality, Referrals)</li>
-          <li>Responsive grid (desktop 2 columns, mobile 1 column)</li>
-          <li>Can run on GitHub Pages (static JSON) or XAMPP (PHP API)</li>
-        </ul>
+    <section class="grid cols-2">
+      <div class="card">
+        <h3>Top Indicators</h3>
+        <canvas id="barTop"></canvas>
+      </div>
+      <div class="card">
+        <h3>Data Preview</h3>
+        <div id="tblWrap" class="table"></div>
       </div>
     </section>
   </main>
 
+  <footer>
+    <div class="wrap"><small class="muted">© HC Data • GitHub Pages</small></div>
+  </footer>
+
+  <!-- 🔗 កែ URL ខាងក្រោមជាមួយ Web App URL របស់អ្នក -->
   <script>
-    // ---- Simple tab switch
-    document.querySelectorAll('header .tab').forEach(b=>{
-      b.onclick = e => {
-        e.preventDefault();
-        document.querySelectorAll('header .tab').forEach(x=>x.classList.remove('active'));
-        b.classList.add('active');
-        const id = b.dataset.tab;
-        document.querySelectorAll('.tabpane').forEach(p=>p.style.display='none');
-        document.getElementById(id).style.display='block';
-      };
-    });
-
-    // ---- Data source (choose ONE):
-    // 1) Static JSON (GitHub Pages):
-    const DATA_URLS = {
-      meta:  'data/metadata.json',     // {orgs:[], periods:[]}
-      month: 'data/latest_month.json', // [{org_unit_id, period_id, indicator_id, value_num, ...}]
-      trend: 'data/trend_6m.json'      // optional: [{period_id, indicator_id, total}]
-    };
-
-    // 2) PHP API (XAMPP) — comment above and uncomment below:
-    // const DATA_URLS = {
-    //   meta:  'api/meta.php',
-    //   month: (per, org) => `api/latest_table.php?period=${encodeURIComponent(per)}&org=${encodeURIComponent(org||'')}`,
-    //   mort:  (per, org) => `api/mortality.php?period=${encodeURIComponent(per)}&org=${encodeURIComponent(org||'')}`,
-    //   trend: 'api/trend.php' // if implemented
-    // };
-
-    // ---- Elements
-    const elOrg = document.getElementById('org');
-    const elPer = document.getElementById('per');
-    const elMort = document.getElementById('kpiMort');
-    const elRef  = document.getElementById('kpiRef');
-    const elOPD  = document.getElementById('kpiOPDTop');
-    const elHint = document.getElementById('hint');
-    let chartBar, chartLine;
-
-    // ---- Load metadata + default
-    async function loadMeta() {
-      const r = await fetch(DATA_URLS.meta);
-      const meta = await r.json();
-      elOrg.innerHTML = `<option value="">All Orgs</option>` + meta.orgs.map(o=>`<option>${o}</option>`).join('');
-      const periods = meta.periods.sort().reverse();
-      elPer.innerHTML = periods.map(p=>`<option>${p}</option>`).join('');
-      return periods[0];
-    }
-
-    // ---- Refresh dashboard
-    async function refresh() {
-      elHint.textContent = 'កំពុងទាញទិន្នន័យ…';
-      const org = elOrg.value || ''; const per = elPer.value;
-
-      // Load month rows (static JSON holds all orgs for latest; filter front-end)
-      const rows = await (await fetch(DATA_URLS.month)).json();
-      const filt = rows.filter(x => x.period_id===per && (!org || x.org_unit_id===org));
-
-      // KPIs
-      let deaths=0, disch=0, rOpd=0, rIpd=0, topVal=0;
-      const sums = {};
-      for (const r of filt) {
-        const v = Number(r.value_num||0);
-        sums[r.indicator_id] = (sums[r.indicator_id]||0)+v;
-        if (r.indicator_id==='IPD_003') deaths += v;
-        if (r.indicator_id==='IPD_002') disch  += v;
-        if (r.indicator_id==='OPD_REF') rOpd   += v;
-        if (r.indicator_id==='IPD_REF') rIpd   += v;
-      }
-      const rate = disch ? Math.round(10000*deaths/disch)/100 : 0;
-      elMort.textContent = `${deaths} / ${disch} → ${rate}%`;
-      elRef.textContent  = `OPD ${rOpd} • IPD ${rIpd}`;
-      const top = Object.entries(sums).sort((a,b)=>b[1]-a[1])[0];
-      elOPD.textContent = top ? `${top[0]}: ${top[1]}` : '—';
-
-      // Bar: Top 10
-      const top10 = Object.entries(sums).sort((a,b)=>b[1]-a[1]).slice(0,10);
-      const labels = top10.map(x=>x[0]), vals = top10.map(x=>x[1]);
-      if (!chartBar) {
-        chartBar = new Chart(document.getElementById('barTop').getContext('2d'), {
-          type:'bar',
-          data:{labels, datasets:[{label:'Total', data:vals}]},
-          options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{maxRotation:45}}}}
-        });
-      } else {
-        chartBar.data.labels = labels; chartBar.data.datasets[0].data = vals; chartBar.update();
-      }
-
-      // Line: 6-month trend (optional JSON)
-      try {
-        const trows = await (await fetch(DATA_URLS.trend)).json();
-        const t = trows.filter(x => (!org || x.org_unit_id===org));
-        const byPer = {};
-        for (const r of t) byPer[r.period_id] = (byPer[r.period_id]||0)+Number(r.total||0);
-        const tLabels = Object.keys(byPer).sort();
-        const tVals = tLabels.map(k=>byPer[k]);
-        if (!chartLine) {
-          chartLine = new Chart(document.getElementById('lineTrend').getContext('2d'), {
-            type:'line',
-            data:{labels:tLabels, datasets:[{label:'Total (All indicators)', data:tVals, tension:.3}]},
-            options:{responsive:true, plugins:{legend:{display:false}}}
-          });
-        } else {
-          chartLine.data.labels = tLabels; chartLine.data.datasets[0].data = tVals; chartLine.update();
-        }
-      } catch(e) {
-        // trend_6m.json not present → ignore
-      }
-
-      // Table
-      renderTable(filt);
-      elHint.textContent = `បានបង្ហាញ • ${org||'All Orgs'} @ ${per}`;
-    }
-
-    function renderTable(rows){
-      const cols = ['org_unit_id','period_id','indicator_id','age_group','sex','icd10_code','value_num','source_note'];
-      let html = '<div class="table"><table><thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
-      for(const r of rows){ html += '<tr>'+cols.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>'; }
-      html += '</tbody></table></div>';
-      document.getElementById('tblWrap').innerHTML = html;
-    }
-
-    // Init
-    document.getElementById('btnRefresh').onclick = refresh;
-    (async()=>{ const latest = await loadMeta(); elPer.value = latest; refresh(); })();
+    window.APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8E3dvTgHbMsl_mfgS5KbLyn45UpgMkvKe9fjsqCuidJ_dD42aJcTMOx8LHgAWTAW9hw/exec?mode=latest";
   </script>
+  <script src="assets/app.js"></script>
 </body>
 </html>
