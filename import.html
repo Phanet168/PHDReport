@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="km">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Import Data</title>
+  <link href="assets/styles.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <h2>Import Excel → JSON → Google Drive</h2>
+  <input type="file" id="imp_file" accept=".xlsx">
+  <input type="text" id="imp_period" placeholder="YYYY-MM">
+  <select id="imp_orgType"><option value="">(optional)</option><option>HC</option><option>HOSP</option></select>
+  <button id="btn_convert_upload">Convert & Upload</button>
+  <div class="progress"><div id="imp_progress" class="progress-bar" style="width:0%"></div></div>
+  <pre id="imp_log"></pre>
+
+  <script>
+    // Apps Script read URL (for Dashboard) អ្នកអាច reuse
+    window.APPSCRIPT_URL = "YOUR_WEB_APP_URL?mode=latest";
+  </script>
+  <script src="assets/app.js"></script>
+  <script>
+    // bind បន្ថែម ប្រសិន app.js មិនបាន auto-bind
+    document.getElementById('btn_convert_upload')
+      .addEventListener('click', handleConvertAndUpload);
+  </script>
+</body>
+</html>
