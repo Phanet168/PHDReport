@@ -156,18 +156,57 @@
     </section>
 
     <!-- Import Guide -->
-    <section id="nav-import" class="nav-screen d-none">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="mb-3"><i class="bi bi-upload me-2"></i>Import Data – Monthly (Excel → JSON)</h5>
-          <ol class="mb-0">
-            <li>Prepare Excel with sheets: <code>report_values_template</code>, <code>issues_template</code>, <code>actions_template</code>.</li>
-            <li>Open the Apps Script uploader → choose Excel → Convert.</li>
-            <li>Script writes <code>latest_month.json</code> to Drive; this UI fetches live JSON.</li>
-          </ol>
+   <!-- Import Data -->
+<section id="nav-import" class="nav-screen d-none">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h5 class="mb-3"><i class="bi bi-upload me-2"></i>Import Data – Excel → JSON → Google Drive</h5>
+
+      <!-- Form -->
+      <div class="row g-3 align-items-end mb-2">
+        <div class="col-md-4">
+          <label class="form-label small text-muted">Excel (.xlsx)</label>
+          <input type="file" id="imp_file" accept=".xlsx" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">ខែ (YYYY-MM)</label>
+          <input type="text" id="imp_period" class="form-control" placeholder="2025-06">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">ប្រភេទអង្គភាព</label>
+          <select id="imp_orgType" class="form-select">
+            <option value="">(optional)</option>
+            <option value="HC">HC</option>
+            <option value="HOSP">HOSP</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button id="btn_convert_upload" class="btn btn-success w-100">
+            <i class="bi bi-cloud-arrow-up me-1"></i> Convert & Upload
+          </button>
         </div>
       </div>
-    </section>
+
+      <div class="mb-2">
+        <div class="progress" style="height:10px;">
+          <div id="imp_progress" class="progress-bar" role="progressbar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="small text-muted mb-2">
+        * ខាងលើគឺ metadata ជាជម្រើស។ បើ Excel មានជួរឈរ <code>period_id</code>/<code>org_type</code> រួចហើយ នឹងពឹងលើទិន្នន័យក្នុងសន្លឹក។
+      </div>
+
+      <div class="card mt-2">
+        <div class="card-header py-2"><i class="bi bi-terminal me-1"></i> Result / Log</div>
+        <div class="card-body">
+          <pre id="imp_log" class="mb-0" style="white-space:pre-wrap;"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 
     <!-- Reports -->
     <section id="nav-reports" class="nav-screen d-none">
@@ -210,3 +249,4 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
