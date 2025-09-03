@@ -8,15 +8,14 @@
   <!-- Bootstrap 5 + Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Chart.js for charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- XLSX.js for Excel parsing (used by Import Data page) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-
-  <!-- Custom styles -->
+  <!-- Custom CSS -->
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body class="bg-body-tertiary">
@@ -27,16 +26,17 @@
       <a class="navbar-brand fw-semibold" href="#">
         <i class="bi bi-activity text-success me-1"></i> HC Dashboard
       </a>
+
       <div class="d-flex align-items-center gap-2">
-        <!-- Filters quick (desktop) -->
+        <!-- Quick filters (desktop) -->
         <div class="d-none d-lg-flex align-items-center gap-2">
           <label class="text-muted small mb-0">ខែ</label>
           <select id="per" class="form-select form-select-sm w-auto"></select>
           <label class="text-muted small mb-0">ប្រភេទ</label>
           <select id="orgType" class="form-select form-select-sm w-auto">
             <option value="">All</option>
-            <option value="HC">Health Center (HC)</option>
-            <option value="HOSP">Hospital (HOSP)</option>
+            <option value="HC">HC</option>
+            <option value="HOSP">HOSP</option>
           </select>
           <label class="text-muted small mb-0">អង្គភាព</label>
           <select id="org" class="form-select form-select-sm w-auto"></select>
@@ -51,7 +51,7 @@
     </div>
   </nav>
 
-  <!-- Right Slide Menu (Laravel/Gull style) -->
+  <!-- Right Slide Menu -->
   <div class="offcanvas offcanvas-end" tabindex="-1" id="rightMenu">
     <div class="offcanvas-header border-bottom">
       <h5 class="offcanvas-title"><i class="bi bi-speedometer2 me-1"></i> Menu</h5>
@@ -63,19 +63,15 @@
           <i class="bi bi-bar-chart me-2"></i> Dashboard
         </a>
         <a href="#" class="list-group-item list-group-item-action" data-nav="nav-import">
-          <i class="bi bi-upload me-2"></i> Import Data (Guide)
+          <i class="bi bi-upload me-2"></i> Import Data
         </a>
         <a href="#" class="list-group-item list-group-item-action" data-nav="nav-reports">
           <i class="bi bi-journal-text me-2"></i> Reports
-        </a>
-        <a href="#" class="list-group-item list-group-item-action" data-nav="nav-issues">
-          <i class="bi bi-flag me-2"></i> Issues & Actions
         </a>
         <a href="#" class="list-group-item list-group-item-action" data-nav="nav-settings">
           <i class="bi bi-gear me-2"></i> Settings
         </a>
       </div>
-
       <div class="p-3 border-top small text-muted">
         <div><i class="bi bi-cloud-arrow-down me-1"></i> Data source</div>
         <code id="srcLabel" class="d-block text-break"></code>
@@ -105,7 +101,6 @@
 
     <!-- Dashboard -->
     <section id="nav-dashboard" class="nav-screen">
-      <!-- KPI Cards -->
       <div class="row g-3">
         <div class="col-md-4">
           <div class="card shadow-sm h-100">
@@ -136,7 +131,6 @@
         </div>
       </div>
 
-      <!-- Charts & Table -->
       <div class="row g-3 mt-1">
         <div class="col-lg-8">
           <div class="card shadow-sm">
@@ -159,72 +153,62 @@
       </div>
     </section>
 
-    <!-- Import Guide -->
-   <!-- Import Data -->
-<section id="nav-import" class="nav-screen d-none">
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <h5 class="mb-3"><i class="bi bi-upload me-2"></i>Import Data – Excel → JSON → Google Drive</h5>
-
-      <!-- Form -->
-      <div class="row g-3 align-items-end mb-2">
-        <div class="col-md-4">
-          <label class="form-label small text-muted">Excel (.xlsx)</label>
-          <input type="file" id="imp_file" accept=".xlsx" class="form-control">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label small text-muted">ខែ (YYYY-MM)</label>
-          <input type="text" id="imp_period" class="form-control" placeholder="2025-06">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label small text-muted">ប្រភេទអង្គភាព</label>
-          <select id="imp_orgType" class="form-select">
-            <option value="">(optional)</option>
-            <option value="HC">HC</option>
-            <option value="HOSP">HOSP</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <button id="btn_convert_upload" class="btn btn-success w-100">
-            <i class="bi bi-cloud-arrow-up me-1"></i> Convert & Upload
-          </button>
-        </div>
-      </div>
-
-      <div class="mb-2">
-        <div class="progress" style="height:10px;">
-          <div id="imp_progress" class="progress-bar" role="progressbar" style="width:0%"></div>
-        </div>
-      </div>
-
-      <div class="small text-muted mb-2">
-        * ខាងលើគឺ metadata ជាជម្រើស។ បើ Excel មានជួរឈរ <code>period_id</code>/<code>org_type</code> រួចហើយ នឹងពឹងលើទិន្នន័យក្នុងសន្លឹក។
-      </div>
-
-      <div class="card mt-2">
-        <div class="card-header py-2"><i class="bi bi-terminal me-1"></i> Result / Log</div>
+    <!-- Import Data -->
+    <section id="nav-import" class="nav-screen d-none">
+      <div class="card shadow-sm">
         <div class="card-body">
-          <pre id="imp_log" class="mb-0" style="white-space:pre-wrap;"></pre>
+          <h5 class="mb-3"><i class="bi bi-upload me-2"></i>Import Data – Excel → JSON → Google Drive</h5>
+
+          <div class="row g-3 align-items-end mb-2">
+            <div class="col-md-4">
+              <label class="form-label small text-muted">Excel (.xlsx)</label>
+              <input type="file" id="imp_file" accept=".xlsx" class="form-control">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted">ខែ (YYYY-MM)</label>
+              <input type="text" id="imp_period" class="form-control" placeholder="2025-06">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted">ប្រភេទអង្គភាព</label>
+              <select id="imp_orgType" class="form-select">
+                <option value="">(optional)</option>
+                <option value="HC">HC</option>
+                <option value="HOSP">HOSP</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button id="btn_convert_upload" class="btn btn-success w-100">
+                <i class="bi bi-cloud-arrow-up me-1"></i> Convert & Upload
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <div class="progress" style="height:10px;">
+              <div id="imp_progress" class="progress-bar" role="progressbar" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div class="small text-muted mb-2">
+            * បើ Excel មានជួរឈរ <code>period_id</code>/<code>org_type</code> រួចហើយ នឹងប្រើតម្លៃក្នុងសន្លឹក។ Field header សំខាន់៖
+            <code>org_unit_id, org_type, period_id, indicator_id, value_num (ឬ value)</code>.
+          </div>
+
+          <div class="card mt-2">
+            <div class="card-header py-2"><i class="bi bi-terminal me-1"></i> Result / Log</div>
+            <div class="card-body">
+              <pre id="imp_log" class="mb-0" style="white-space:pre-wrap;"></pre>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-</section>
-
+    </section>
 
     <!-- Reports -->
     <section id="nav-reports" class="nav-screen d-none">
       <div class="card shadow-sm"><div class="card-body">
         <h5 class="mb-2"><i class="bi bi-journal-text me-2"></i>Reports</h5>
-        <p class="text-muted mb-0">Coming soon — monthly/quarterly/annual summaries with export to PDF/Excel.</p>
-      </div></div>
-    </section>
-
-    <!-- Issues & Actions -->
-    <section id="nav-issues" class="nav-screen d-none">
-      <div class="card shadow-sm"><div class="card-body">
-        <h5 class="mb-2"><i class="bi bi-flag me-2"></i>Issues & Actions</h5>
-        <p class="text-muted mb-0">Planned: filter and review issues/actions from JSON, assign owners, track progress.</p>
+        <p class="text-muted mb-0">Coming soon — monthly/quarterly summaries.</p>
       </div></div>
     </section>
 
@@ -244,15 +228,13 @@
     <div class="container-fluid px-3">© HC Data • GitHub Pages</div>
   </footer>
 
-  <!-- Configure your Apps Script endpoint here (fallback) -->
+  <!-- Default API URL (can be overridden from Settings) -->
   <script>
-    window.APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8E3dvTgHbMsl_mfgS5KbLyn45UpgMkvKe9fjsqCuidJ_dD42aJcTMOx8LHgAWTAW9hw/exec?mode=latest";
+    window.APPSCRIPT_URL = "YOUR_WEB_APP_URL?mode=latest";
   </script>
 
+  <!-- App JS + Bootstrap -->
   <script src="assets/app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
-
-
