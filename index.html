@@ -1,109 +1,616 @@
 <!doctype html>
 <html lang="km">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DMS Reports</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-<style>
-  body{ background:#f7f8fb }
-  .card{ border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.05) }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PHD Report System — Static (GitHub Pages)</title>
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Khmer font (optional) -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{ --bg:#f6f7fb; --radius:16px; --shadow:0 10px 25px rgba(0,0,0,.06); }
+    *{ box-sizing: border-box }
+    body{ background:var(--bg); font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+    .card{ border-radius:var(--radius); box-shadow:var(--shadow); }
+    .nav-pills .nav-link.active{ background:#0d6efd }
+    .page-title{ font-weight:700 }
+    .table thead th{ white-space:nowrap }
+    .required:after{ content:" *"; color:#dc3545 }
+  </style>
 </head>
-<body class="p-3">
-  <div class="container">
-    <h1 class="mb-3">ប្រព័ន្ធគ្រប់គ្រងរបាយការណ៍</h1>
+<body class="p-3 p-sm-4">
+  <div class="container-xl">
+    <header class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-3">
+      <h1 class="page-title m-0">ប្រព័ន្ធគ្រប់គ្រងរបាយការណ៍ — PHD</h1>
+      <div class="input-group" style="max-width:380px">
+        <span class="input-group-text">API</span>
+        <input id="apiBase" class="form-control" placeholder="Paste Apps Script Web App URL here">
+        <button class="btn btn-outline-secondary" id="btnSaveApi">Save</button>
+      </div>
+    </header>
 
-    <div class="card mb-3">
-      <div class="card-body">
-        <form id="frmAdd" class="row g-2 align-items-end">
-          <div class="col-md-2">
-            <label class="form-label">Year</label>
-            <input type="number" class="form-control" id="year" value="2025">
+    <ul class="nav nav-pills mb-3" id="tabs">
+      <li class="nav-item"><button class="nav-link active" data-tab="dashboard">Dashboard</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="reports">Reports</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="indicators">Indicators</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="issues">Issues</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="periods">Periods</button></li>
+    </ul>
+
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="view active">
+      <div class="row g-3">
+        <div class="col-lg-3 col-sm-6">
+          <div class="card p-3">
+            <div class="text-muted">Reports (YTD)</div>
+            <div class="h2 m-0" id="kpiReports">—</div>
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Period ID</label>
-            <input class="form-control" id="period_id" placeholder="2025M08">
+        </div>
+        <div class="col-lg-9">
+          <div class="card p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <div class="fw-bold">Value vs Plan (by Indicator)</div>
+              <div class="d-flex gap-2 align-items-center">
+                <label class="form-label m-0 me-1">Year</label>
+                <input type="number" id="dashYear" class="form-control form-control-sm" style="width:120px" />
+                <button class="btn btn-sm btn-outline-primary" id="btnDashReload">Reload</button>
+              </div>
+            </div>
+            <div id="dashSummary">Loading…</div>
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Indicator ID</label>
-            <input class="form-control" id="indicator_id" placeholder="123">
+        </div>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="view-reports" class="view d-none">
+      <div class="card p-3 mb-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-auto">
+            <label class="form-label m-0">Year</label>
+            <input type="number" id="repYear" class="form-control" />
           </div>
-          <div class="col-md-2">
-            <label class="form-label">Value</label>
-            <input type="number" class="form-control" id="value" value="0">
+          <div class="col-auto">
+            <label class="form-label m-0">Indicator</label>
+            <input id="repIndicator" class="form-control" placeholder="(optional)" />
           </div>
-          <div class="col-md-2">
-            <label class="form-label">Plan</label>
-            <input type="number" class="form-control" id="plan" value="0">
+          <div class="col-auto">
+            <button class="btn btn-primary" id="btnRepLoad">Load</button>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#mdlReport">+ Add</button>
           </div>
-          <div class="col-12 mt-2">
-            <button class="btn btn-primary">Save Report</button>
+        </div>
+      </div>
+      <div class="card p-3">
+        <div class="table-responsive">
+          <table class="table table-striped" id="tblReports">
+            <thead>
+              <tr>
+                <th>ID</th><th>Indicator</th><th>Period</th><th class="text-end">Value</th><th class="text-end">Plan</th><th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- INDICATORS -->
+    <section id="view-indicators" class="view d-none">
+      <div class="card p-3 mb-3">
+        <div class="d-flex gap-2 align-items-end">
+          <button class="btn btn-primary" id="btnIndLoad">Load</button>
+          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#mdlIndicator">+ Add</button>
+        </div>
+      </div>
+      <div class="card p-3">
+        <div class="table-responsive">
+          <table class="table table-striped" id="tblIndicators">
+            <thead>
+              <tr>
+                <th>ID</th><th>Name</th><th>Type</th><th>Department</th><th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ISSUES -->
+    <section id="view-issues" class="view d-none">
+      <div class="card p-3 mb-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-auto">
+            <label class="form-label m-0">Year</label>
+            <input type="number" id="issYear" class="form-control" />
           </div>
-        </form>
+          <div class="col-auto">
+            <label class="form-label m-0">Status</label>
+            <select id="issStatus" class="form-select">
+              <option value="">(All)</option>
+              <option>Open</option>
+              <option>Doing</option>
+              <option>Done</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-primary" id="btnIssLoad">Load</button>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#mdlIssue">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="card p-3">
+        <div class="table-responsive">
+          <table class="table table-striped" id="tblIssues">
+            <thead>
+              <tr>
+                <th>ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Owner</th><th>Due</th><th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PERIODS -->
+    <section id="view-periods" class="view d-none">
+      <div class="card p-3">
+        <div class="d-flex gap-2 align-items-end">
+          <div>
+            <label class="form-label m-0">Year</label>
+            <input type="number" id="perYear" class="form-control" />
+          </div>
+          <button class="btn btn-primary" id="btnGenPeriods">Generate Periods</button>
+          <button class="btn btn-outline-secondary" id="btnPerList">List Periods</button>
+        </div>
+        <div id="perMsg" class="small text-muted mt-2"></div>
+        <div class="table-responsive mt-3">
+          <table class="table table-striped" id="tblPeriods">
+            <thead><tr><th>ID</th><th>Name</th><th>Year</th><th>Month</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODALS -->
+    <!-- Report Modal -->
+    <div class="modal fade" id="mdlReport" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header"><h5 class="modal-title">Save Report</h5></div>
+          <div class="modal-body">
+            <form id="frmReport" class="row g-2">
+              <input type="hidden" id="report_id">
+              <div class="col-6">
+                <label class="form-label required">Indicator ID</label>
+                <input id="indicator_id" class="form-control" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label required">Period ID</label>
+                <input id="period_id" class="form-control" placeholder="2025M08" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label required">Value</label>
+                <input type="number" id="value" class="form-control" value="0" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label required">Plan</label>
+                <input type="number" id="plan_value" class="form-control" value="0" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label required">Year</label>
+                <input type="number" id="rep_year" class="form-control" required>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button class="btn btn-primary" id="btnRepSave">Save</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-body">
-        <div class="d-flex gap-2 align-items-end mb-3">
-          <div>
-            <label class="form-label">Year</label>
-            <input type="number" class="form-control" id="lyear" value="2025">
+    <!-- Indicator Modal -->
+    <div class="modal fade" id="mdlIndicator" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header"><h5 class="modal-title">Save Indicator</h5></div>
+          <div class="modal-body">
+            <form id="frmIndicator" class="row g-2">
+              <input type="hidden" id="indicator_id_pk">
+              <div class="col-12">
+                <label class="form-label required">Name</label>
+                <input id="indicator_name" class="form-control" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label">Type</label>
+                <input id="indicator_type" class="form-control">
+              </div>
+              <div class="col-6">
+                <label class="form-label">Department ID</label>
+                <input id="indicator_department_id" class="form-control">
+              </div>
+            </form>
           </div>
-          <div>
-            <label class="form-label">Indicator</label>
-            <input class="form-control" id="lind" placeholder="(optional)">
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button class="btn btn-primary" id="btnIndSave">Save</button>
           </div>
-          <button class="btn btn-outline-secondary" id="btnLoad">Load Reports</button>
         </div>
-        <table class="table table-striped" id="tbl">
-          <thead><tr>
-            <th>report_id</th><th>indicator_id</th><th>period_id</th>
-            <th>value</th><th>plan_value</th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
+      </div>
+    </div>
+
+    <!-- Issue Modal -->
+    <div class="modal fade" id="mdlIssue" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header"><h5 class="modal-title">Save Issue</h5></div>
+          <div class="modal-body">
+            <form id="frmIssue" class="row g-2">
+              <input type="hidden" id="issues_id">
+              <div class="col-md-6">
+                <label class="form-label required">Title</label>
+                <input id="title" class="form-control" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Department ID</label>
+                <input id="department_id" class="form-control">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Indicator ID</label>
+                <input id="issues_indicator_id" class="form-control">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label required">Period ID</label>
+                <input id="issues_period_id" class="form-control" placeholder="2025M08" required>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Description</label>
+                <textarea id="description" class="form-control" rows="2"></textarea>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Category</label>
+                <input id="category" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Severity</label>
+                <select id="severity" class="form-select">
+                  <option value="">(n/a)</option>
+                  <option>Low</option><option>Medium</option><option>High</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Status</label>
+                <select id="status" class="form-select">
+                  <option>Open</option><option>Doing</option><option>Done</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Owner</label>
+                <input id="owner" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Due Date</label>
+                <input type="date" id="due_date" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Evidence link</label>
+                <input id="evidence_link" class="form-control" placeholder="https://...">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label required">Year</label>
+                <input type="number" id="iss_year" class="form-control" required>
+              </div>
+              <div class="col-12 small text-muted">ចំណាំ៖ Year ត្រូវការសម្រាប់បែងចែកឯកសារ JSON តាមឆ្នាំនៅ Google Drive.</div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button class="btn btn-primary" id="btnIssSave">Save</button>
+          </div>
+        </div>
       </div>
     </div>
 
   </div>
 
-<script>
-const API_BASE = '<<PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE>>';
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+  // ====== CONFIG & HELPERS ======
+  const ls = window.localStorage;
+  const apiInput = document.getElementById('apiBase');
+  const defaultYear = new Date().getFullYear();
 
-// Save (create) report
-document.getElementById('frmAdd').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const payload = {
-    indicator_id: Number(document.getElementById('indicator_id').value),
-    period_id: document.getElementById('period_id').value.trim(),
-    value: Number(document.getElementById('value').value),
-    plan_value: Number(document.getElementById('plan').value),
-    year: Number(document.getElementById('year').value)
-  };
-  const url = `${API_BASE}?api=1&route=report&op=upsert`;
-  const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-  const data = await res.json();
-  alert('Saved report_id: ' + data.row.report_id);
-});
+  function getApiBase(){ return (ls.getItem('API_BASE') || '').trim(); }
+  function setApiBase(v){ ls.setItem('API_BASE', v.trim()); }
 
-// Load reports (by year + optional indicator)
-document.getElementById('btnLoad').addEventListener('click', async ()=>{
-  const y = document.getElementById('lyear').value;
-  const ind = document.getElementById('lind').value.trim();
-  const q = new URLSearchParams({ api:'1', route:'report', op:'list', year:String(y) });
-  if (ind) q.set('indicator_id', ind);
-  const url = `${API_BASE}?${q.toString()}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  const tb = document.querySelector('#tbl tbody'); tb.innerHTML = '';
-  data.rows.forEach(r=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${r.report_id}</td><td>${r.indicator_id}</td><td>${r.period_id}</td><td>${r.value}</td><td>${r.plan_value}</td>`;
-    tb.appendChild(tr);
+  function ensureApi(){
+    const b = getApiBase();
+    if(!b){ alert('សូមបំពេញ API URL (Apps Script Web App) នៅខាងលើ មុន Load ទិន្នន័យ'); }
+    return !!b;
+  }
+
+  function apiUrl(params){
+    const base = getApiBase();
+    const usp = new URLSearchParams(params);
+    return base + (base.includes('?')?'&':'?') + usp.toString();
+  }
+
+  async function apiGet(params){
+    const res = await fetch(apiUrl(params));
+    if(!res.ok) throw new Error('API GET error');
+    return res.json();
+  }
+  async function apiPost(params, body){
+    const res = await fetch(apiUrl(params), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{})});
+    if(!res.ok) throw new Error('API POST error');
+    return res.json();
+  }
+
+  function showTab(tab){
+    document.querySelectorAll('#tabs .nav-link').forEach(el=>{
+      el.classList.toggle('active', el.dataset.tab===tab);
+    });
+    document.querySelectorAll('.view').forEach(v=>v.classList.add('d-none'));
+    document.getElementById('view-'+tab).classList.remove('d-none');
+  }
+
+  function yFromPid(pid){
+    const m = /^(\d{4})/.exec(pid||'');
+    return m ? Number(m[1]) : defaultYear;
+  }
+
+  // ====== DASHBOARD ======
+  async function loadSummary(){
+    if(!ensureApi()) return;
+    const year = document.getElementById('dashYear').value || defaultYear;
+    const data = await apiGet({ api:1, route:'analytics', op:'summary', year });
+    const rows = data.rows||[];
+    document.getElementById('kpiReports').textContent = rows.reduce((a,b)=>a+(b.count||0),0);
+    const html = `<div class="table-responsive"><table class="table table-sm">`
+      +`<thead><tr><th>Indicator</th><th class="text-end">Value</th><th class="text-end">Plan</th><th class="text-end">Gap</th></tr></thead>`
+      +`<tbody>`
+      + rows.map(r=>`<tr><td>${r.key}</td><td class="text-end">${r.value}</td><td class="text-end">${r.plan}</td><td class="text-end">${r.gap}</td></tr>`).join('')
+      + `</tbody></table></div>`;
+    document.getElementById('dashSummary').innerHTML = html;
+  }
+
+  // ====== REPORTS ======
+  async function loadReports(){
+    if(!ensureApi()) return;
+    const year = document.getElementById('repYear').value || defaultYear;
+    const indicator_id = document.getElementById('repIndicator').value.trim();
+    const params = { api:1, route:'report', op:'list', year };
+    if(indicator_id) params.indicator_id = indicator_id;
+    const data = await apiGet(params);
+    const tb = document.querySelector('#tblReports tbody');
+    tb.innerHTML='';
+    (data.rows||[]).forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.report_id||''}</td>
+        <td>${r.indicator_id||''}</td>
+        <td>${r.period_id||''}</td>
+        <td class="text-end">${r.value||0}</td>
+        <td class="text-end">${r.plan_value||0}</td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-primary me-1" onclick='editReport(${JSON.stringify(r).replace(/"/g,"&quot;")})'>Edit</button>
+          <button class="btn btn-sm btn-outline-danger" onclick='delReport(${r.report_id}, ${yFromPid(r.period_id)})'>Del</button>
+        </td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  function editReport(r){
+    document.getElementById('report_id').value = r.report_id||'';
+    document.getElementById('indicator_id').value = r.indicator_id||'';
+    document.getElementById('period_id').value = r.period_id||'';
+    document.getElementById('value').value = r.value||0;
+    document.getElementById('plan_value').value = r.plan_value||0;
+    document.getElementById('rep_year').value = yFromPid(r.period_id);
+    new bootstrap.Modal(document.getElementById('mdlReport')).show();
+  }
+
+  async function saveReport(){
+    if(!ensureApi()) return;
+    const payload = {
+      report_id: document.getElementById('report_id').value || undefined,
+      indicator_id: document.getElementById('indicator_id').value.trim(),
+      period_id: document.getElementById('period_id').value.trim(),
+      value: Number(document.getElementById('value').value||0),
+      plan_value: Number(document.getElementById('plan_value').value||0),
+      year: Number(document.getElementById('rep_year').value||yFromPid(document.getElementById('period_id').value))
+    };
+    await apiPost({ api:1, route:'report', op:'upsert' }, payload);
+    bootstrap.Modal.getInstance(document.getElementById('mdlReport')).hide();
+    loadReports(); loadSummary();
+  }
+
+  async function delReport(id, year){
+    if(!ensureApi()) return;
+    if(!confirm('Delete this report?')) return;
+    await apiPost({ api:1, route:'report', op:'delete', report_id:id }, { year });
+    loadReports(); loadSummary();
+  }
+
+  // ====== INDICATORS ======
+  async function loadIndicators(){
+    if(!ensureApi()) return;
+    const data = await apiGet({ api:1, route:'indicator', op:'list', limit:1000 });
+    const tb = document.querySelector('#tblIndicators tbody');
+    tb.innerHTML='';
+    (data.rows||[]).forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.indicator_id||''}</td>
+        <td>${r.indicator_name||''}</td>
+        <td>${r.indicator_type||''}</td>
+        <td>${r.department_id||''}</td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-primary me-1" onclick='editIndicator(${JSON.stringify(r).replace(/"/g,"&quot;")})'>Edit</button>
+          <button class="btn btn-sm btn-outline-danger" onclick='delIndicator(${r.indicator_id})'>Del</button>
+        </td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  function editIndicator(r){
+    document.getElementById('indicator_id_pk').value = r.indicator_id||'';
+    document.getElementById('indicator_name').value = r.indicator_name||'';
+    document.getElementById('indicator_type').value = r.indicator_type||'';
+    document.getElementById('indicator_department_id').value = r.department_id||'';
+    new bootstrap.Modal(document.getElementById('mdlIndicator')).show();
+  }
+
+  async function saveIndicator(){
+    if(!ensureApi()) return;
+    const payload = {
+      indicator_id: document.getElementById('indicator_id_pk').value || undefined,
+      indicator_name: document.getElementById('indicator_name').value.trim(),
+      indicator_type: document.getElementById('indicator_type').value.trim(),
+      department_id: document.getElementById('indicator_department_id').value.trim()
+    };
+    await apiPost({ api:1, route:'indicator', op:'upsert' }, payload);
+    bootstrap.Modal.getInstance(document.getElementById('mdlIndicator')).hide();
+    loadIndicators();
+  }
+
+  async function delIndicator(id){
+    if(!ensureApi()) return;
+    if(!confirm('Delete this indicator?')) return;
+    await apiPost({ api:1, route:'indicator', op:'delete', indicator_id:id }, {});
+    loadIndicators();
+  }
+
+  // ====== ISSUES ======
+  async function loadIssues(){
+    if(!ensureApi()) return;
+    const year = document.getElementById('issYear').value || defaultYear;
+    const status = document.getElementById('issStatus').value;
+    const params = { api:1, route:'issues', op:'list', year };
+    if(status) params.status = status;
+    const data = await apiGet(params);
+    const tb = document.querySelector('#tblIssues tbody');
+    tb.innerHTML='';
+    (data.rows||[]).forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.issues_id||''}</td>
+        <td>${r.title||''}</td>
+        <td>${r.severity||''}</td>
+        <td>${r.status||''}</td>
+        <td>${r.owner||''}</td>
+        <td>${r.due_date||''}</td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-primary me-1" onclick='editIssue(${JSON.stringify(r).replace(/"/g,"&quot;")})'>Edit</button>
+          <button class="btn btn-sm btn-outline-danger" onclick='delIssue(${r.issues_id}, ${year})'>Del</button>
+        </td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  function editIssue(r){
+    document.getElementById('issues_id').value = r.issues_id||'';
+    document.getElementById('title').value = r.title||'';
+    document.getElementById('department_id').value = r.department_id||'';
+    document.getElementById('issues_indicator_id').value = r.indicator_id||'';
+    document.getElementById('issues_period_id').value = r.period_id||'';
+    document.getElementById('description').value = r.description||'';
+    document.getElementById('category').value = r.category||'';
+    document.getElementById('severity').value = r.severity||'';
+    document.getElementById('status').value = r.status||'Open';
+    document.getElementById('owner').value = r.owner||'';
+    document.getElementById('due_date').value = r.due_date||'';
+    document.getElementById('evidence_link').value = r.evidence_link||'';
+    document.getElementById('iss_year').value = yFromPid(r.period_id);
+    new bootstrap.Modal(document.getElementById('mdlIssue')).show();
+  }
+
+  async function saveIssue(){
+    if(!ensureApi()) return;
+    const payload = {
+      issues_id: document.getElementById('issues_id').value || undefined,
+      title: document.getElementById('title').value.trim(),
+      department_id: document.getElementById('department_id').value.trim(),
+      indicator_id: document.getElementById('issues_indicator_id').value.trim(),
+      period_id: document.getElementById('issues_period_id').value.trim(),
+      description: document.getElementById('description').value.trim(),
+      category: document.getElementById('category').value.trim(),
+      severity: document.getElementById('severity').value,
+      status: document.getElementById('status').value,
+      owner: document.getElementById('owner').value.trim(),
+      due_date: document.getElementById('due_date').value,
+      evidence_link: document.getElementById('evidence_link').value.trim(),
+      year: Number(document.getElementById('iss_year').value || yFromPid(document.getElementById('issues_period_id').value))
+    };
+    await apiPost({ api:1, route:'issues', op:'upsert' }, payload);
+    bootstrap.Modal.getInstance(document.getElementById('mdlIssue')).hide();
+    loadIssues();
+  }
+
+  async function delIssue(id, year){
+    if(!ensureApi()) return;
+    if(!confirm('Delete this issue?')) return;
+    await apiPost({ api:1, route:'issues', op:'delete', issues_id:id }, { year });
+    loadIssues();
+  }
+
+  // ====== PERIODS ======
+  async function genPeriods(){
+    if(!ensureApi()) return;
+    const year = document.getElementById('perYear').value || defaultYear;
+    const data = await apiGet({ api:1, route:'period', op:'generate', year });
+    document.getElementById('perMsg').textContent = `Added ${data.added||0} periods for ${year}`;
+  }
+
+  async function listPeriods(){
+    if(!ensureApi()) return;
+    const year = document.getElementById('perYear').value || defaultYear;
+    const data = await apiGet({ api:1, route:'period', op:'list', year, limit:5000 });
+    const tb = document.querySelector('#tblPeriods tbody');
+    tb.innerHTML='';
+    (data.rows||[]).forEach(p=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${p.period_id}</td><td>${p.period_name||''}</td><td>${p.year||''}</td><td>${p.month||''}</td>`;
+      tb.appendChild(tr);
+    })
+  }
+
+  // ====== INIT & EVENTS ======
+  document.addEventListener('click', (e)=>{
+    const t = e.target.closest('[data-tab]');
+    if(t){ showTab(t.dataset.tab); }
   });
-});
-</script>
+
+  document.getElementById('btnSaveApi').addEventListener('click', ()=>{
+    const v = apiInput.value.trim(); if(!v){ alert('Please paste API URL'); return; }
+    setApiBase(v); alert('Saved!');
+  });
+
+  document.getElementById('btnDashReload').addEventListener('click', loadSummary);
+  document.getElementById('btnRepLoad').addEventListener('click', loadReports);
+  document.getElementById('btnRepSave').addEventListener('click', saveReport);
+  document.getElementById('btnIndLoad').addEventListener('click', loadIndicators);
+  document.getElementById('btnIndSave').addEventListener('click', saveIndicator);
+  document.getElementById('btnIssLoad').addEventListener('click', loadIssues);
+  document.getElementById('btnIssSave').addEventListener('click', saveIssue);
+  document.getElementById('btnGenPeriods').addEventListener('click', genPeriods);
+  document.getElementById('btnPerList').addEventListener('click', listPeriods);
+
+  // defaults
+  (function init(){
+    document.getElementById('dashYear').value = defaultYear;
+    document.getElementById('repYear').value = defaultYear;
+    document.getElementById('issYear').value = defaultYear;
+    document.getElementById('perYear').value = defaultYear;
+    document.getElementById('rep_year').value = defaultYear;
+    document.getElementById('iss_year').value = defaultYear;
+    apiInput.value = getApiBase();
+  })();
+  </script>
 </body>
 </html>
