@@ -1,247 +1,346 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="km">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600&display=swap" rel="stylesheet">
-<style> body { font-family: "Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial; } </style>
-
-<!-- PapaParse -->
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
-  <title>HC Dashboard</title>
-
-  <!-- Bootstrap 5 + Icons -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PHD Reports – Highub + Google Drive JSON</title>
+  <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Icons + Khmer font -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-  <!-- Chart.js for charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Identity Services + gapi (Drive v3) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
 
-  <!-- XLSX.js for Excel parsing (used by Import Data page) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="assets/styles.css">
+  <style>
+    :root{ --brand:#0f3d8a; --ink:#111827; --muted:#6b7280; --bg:#f6f7fb; --paper:#fff; --border:#e5e7eb; --radius:16px; }
+    body{font-family:'Noto Sans Khmer',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .navbar{box-shadow:0 10px 25px rgba(0,0,0,.06)}
+    .brand{font-weight:800;color:var(--brand)}
+    .card{border:1px solid var(--border);border-radius:var(--radius)}
+    .stat{background:var(--paper);border:1px solid var(--border);border-radius:16px}
+    .stat .label{color:var(--muted)}
+    .table thead th{background:#eff4ff}
+    .hidden{display:none!important}
+  </style>
 </head>
-<body class="bg-body-tertiary">
-
-  <!-- Topbar -->
-  <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
-    <div class="container-fluid px-3">
-      <a class="navbar-brand fw-semibold" href="#">
-        <i class="bi bi-activity text-success me-1"></i> HC Dashboard
-      </a>
-
-      <div class="d-flex align-items-center gap-2">
-        <!-- Quick filters (desktop) -->
-        <div class="d-none d-lg-flex align-items-center gap-2">
-          <label class="text-muted small mb-0">ខែ</label>
-          <select id="per" class="form-select form-select-sm w-auto"></select>
-          <label class="text-muted small mb-0">ប្រភេទ</label>
-          <select id="orgType" class="form-select form-select-sm w-auto">
-            <option value="">All</option>
-            <option value="HC">HC</option>
-            <option value="HOSP">HOSP</option>
-          </select>
-          <label class="text-muted small mb-0">អង្គភាព</label>
-          <select id="org" class="form-select form-select-sm w-auto"></select>
-          <button id="btnRefresh" class="btn btn-sm btn-success">Refresh</button>
+<body>
+  <nav class="navbar navbar-expand-lg bg-white sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#"><span class="brand">PHD</span> Report System</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+      <div id="nav" class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link active" href="#" id="lnkDash"><i class="bi bi-speedometer2 me-1"></i>ផ្ទាំងសម្រង់</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" id="lnkReports"><i class="bi bi-table me-1"></i>របាយការណ៍</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" id="lnkSettings"><i class="bi bi-gear me-1"></i>Settings</a></li>
+        </ul>
+        <div class="d-flex gap-2 align-items-center">
+          <span class="badge text-bg-light" id="badgeFolder">No DB</span>
+          <button class="btn btn-outline-primary" id="btnSignIn"><i class="bi bi-google"></i> Sign in</button>
+          <button class="btn btn-outline-secondary hidden" id="btnSignOut"><i class="bi bi-box-arrow-right"></i> Sign out</button>
         </div>
-
-        <!-- Right slide menu trigger -->
-        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#rightMenu">
-          <i class="bi bi-list"></i>
-        </button>
       </div>
     </div>
   </nav>
 
-  <!-- Right Slide Menu -->
-  <div class="offcanvas offcanvas-end" tabindex="-1" id="rightMenu">
-    <div class="offcanvas-header border-bottom">
-      <h5 class="offcanvas-title"><i class="bi bi-speedometer2 me-1"></i> Menu</h5>
-      <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-    </div>
-    <div class="offcanvas-body p-0">
-      <div class="list-group list-group-flush">
-        <a href="#" class="list-group-item list-group-item-action active" data-nav="nav-dashboard">
-          <i class="bi bi-bar-chart me-2"></i> Dashboard
-        </a>
-        <a href="#" class="list-group-item list-group-item-action" data-nav="nav-import">
-          <i class="bi bi-upload me-2"></i> Import Data
-        </a>
-        <a href="#" class="list-group-item list-group-item-action" data-nav="nav-reports">
-          <i class="bi bi-journal-text me-2"></i> Reports
-        </a>
-        <a href="#" class="list-group-item list-group-item-action" data-nav="nav-settings">
-          <i class="bi bi-gear me-2"></i> Settings
-        </a>
-      </div>
-      <div class="p-3 border-top small text-muted">
-        <div><i class="bi bi-cloud-arrow-down me-1"></i> Data source</div>
-        <code id="srcLabel" class="d-block text-break"></code>
-      </div>
-    </div>
-  </div>
-
-  <!-- Content -->
-  <main class="container-fluid px-3 py-3">
-    <!-- Mobile filters -->
-    <div class="card d-lg-none mb-3">
-      <div class="card-body d-flex flex-wrap align-items-center gap-2">
-        <label class="text-muted small mb-0">ខែ</label>
-        <select id="per_m" class="form-select form-select-sm w-auto"></select>
-        <label class="text-muted small mb-0">ប្រភេទ</label>
-        <select id="orgType_m" class="form-select form-select-sm w-auto">
-          <option value="">All</option>
-          <option value="HC">HC</option>
-          <option value="HOSP">HOSP</option>
-        </select>
-        <label class="text-muted small mb-0">អង្គភាព</label>
-        <select id="org_m" class="form-select form-select-sm w-auto"></select>
-        <button id="btnRefresh_m" class="btn btn-sm btn-success">Refresh</button>
-        <span id="hint" class="text-muted small ms-auto">Loading…</span>
-      </div>
-    </div>
-
+  <main class="container py-3">
     <!-- Dashboard -->
-    <section id="nav-dashboard" class="nav-screen">
+    <section id="pageDash">
       <div class="row g-3">
-        <div class="col-md-4">
-          <div class="card shadow-sm h-100">
-            <div class="card-body">
-              <div class="text-muted small">Mortality (IPD)</div>
-              <div id="kpiMort" class="display-6 fw-bold">—</div>
-              <div class="text-muted small">Deaths / Discharges → %</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card shadow-sm h-100">
-            <div class="card-body">
-              <div class="text-muted small">Referrals</div>
-              <div id="kpiRef" class="display-6 fw-bold">—</div>
-              <div class="text-muted small">OPD_REF • IPD_REF</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card shadow-sm h-100">
-            <div class="card-body">
-              <div class="text-muted small">Top Indicator</div>
-              <div id="kpiTop" class="display-6 fw-bold">—</div>
-              <div class="text-muted small">Highest total this month</div>
-            </div>
-          </div>
-        </div>
+        <div class="col-12 col-md-4"><div class="p-3 stat"><div class="label">សូចនាករ</div><div class="fs-2 fw-bold" id="statInd">0</div></div></div>
+        <div class="col-12 col-md-4"><div class="p-3 stat"><div class="label">របាយការណ៍សរុប</div><div class="fs-2 fw-bold" id="statRep">0</div></div></div>
+        <div class="col-12 col-md-4"><div class="p-3 stat"><div class="label">បញ្ហាកំពុងដំណើរការ</div><div class="fs-2 fw-bold" id="statIss">0</div></div></div>
       </div>
-
-      <div class="row g-3 mt-1">
-        <div class="col-lg-8">
-          <div class="card shadow-sm">
-            <div class="card-header d-flex align-items-center justify-content-between">
-              <span><i class="bi bi-bar-chart-steps me-1"></i> Top Indicators</span>
-            </div>
-            <div class="card-body">
-              <canvas id="barTop" height="120"></canvas>
-            </div>
-          </div>
+      <div class="card mt-3"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">សង្ខេបតាមរយៈពេល</h5>
+          <button class="btn btn-outline-secondary" id="btnExport"><i class="bi bi-download"></i> Export</button>
         </div>
-        <div class="col-lg-4">
-          <div class="card shadow-sm h-100">
-            <div class="card-header"><i class="bi bi-table me-1"></i> Data Preview</div>
-            <div class="card-body p-0">
-              <div id="tblWrap" class="table-responsive small"></div>
-            </div>
-          </div>
+        <div class="table-responsive">
+          <table class="table table-hover" id="tblSummary"><thead><tr><th>រយៈពេល</th><th>ការិយាល័យ</th><th class="text-end">ចំនួន</th></tr></thead><tbody></tbody></table>
         </div>
-      </div>
-    </section>
-
-    <!-- Import Data -->
-    <section id="nav-import" class="nav-screen d-none">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="mb-3"><i class="bi bi-upload me-2"></i>Import Data – Excel → JSON → Google Drive</h5>
-
-          <div class="row g-3 align-items-end mb-2">
-            <div class="col-md-4">
-              <label class="form-label small text-muted">Excel (.xlsx)</label>
-              <input type="file" id="imp_file" accept=".xlsx" class="form-control">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label small text-muted">ខែ (YYYY-MM)</label>
-              <input type="text" id="imp_period" class="form-control" placeholder="2025-06">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label small text-muted">ប្រភេទអង្គភាព</label>
-              <select id="imp_orgType" class="form-select">
-                <option value="">(optional)</option>
-                <option value="HC">HC</option>
-                <option value="HOSP">HOSP</option>
-              </select>
-            </div>
-            <div class="col-md-2">
-              <button id="btn_convert_upload" class="btn btn-success w-100">
-                <i class="bi bi-cloud-arrow-up me-1"></i> Convert & Upload
-              </button>
-            </div>
-          </div>
-
-          <div class="mb-2">
-            <div class="progress" style="height:10px;">
-              <div id="imp_progress" class="progress-bar" role="progressbar" style="width:0%"></div>
-            </div>
-          </div>
-
-          <div class="small text-muted mb-2">
-            * បើ Excel មានជួរឈរ <code>period_id</code>/<code>org_type</code> រួចហើយ នឹងប្រើតម្លៃក្នុងសន្លឹក។ Field header សំខាន់៖
-            <code>org_unit_id, org_type, period_id, indicator_id, value_num (ឬ value)</code>.
-          </div>
-
-          <div class="card mt-2">
-            <div class="card-header py-2"><i class="bi bi-terminal me-1"></i> Result / Log</div>
-            <div class="card-body">
-              <pre id="imp_log" class="mb-0" style="white-space:pre-wrap;"></pre>
-            </div>
-          </div>
-        </div>
-      </div>
+      </div></div>
     </section>
 
     <!-- Reports -->
-    <section id="nav-reports" class="nav-screen d-none">
-      <div class="card shadow-sm"><div class="card-body">
-        <h5 class="mb-2"><i class="bi bi-journal-text me-2"></i>Reports</h5>
-        <p class="text-muted mb-0">Coming soon — monthly/quarterly summaries.</p>
+    <section id="pageReports" class="hidden">
+      <div class="card"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">Reports</h5>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalReport"><i class="bi bi-plus-circle"></i> Add</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped align-middle" id="tblReports"><thead><tr>
+            <th>#</th><th>សូចនាករ</th><th>រយៈពេល</th><th class="text-end">តម្លៃ</th><th class="text-end">គោលដៅ</th><th></th>
+          </tr></thead><tbody></tbody></table>
+        </div>
       </div></div>
     </section>
 
     <!-- Settings -->
-    <section id="nav-settings" class="nav-screen d-none">
-      <div class="card shadow-sm"><div class="card-body">
-        <h5 class="mb-3"><i class="bi bi-gear me-2"></i>Settings</h5>
-        <div class="mb-2">Apps Script URL</div>
-        <input id="apiInput" class="form-control form-control-sm" placeholder="https://script.google.com/.../exec?mode=latest">
-        <button id="saveApi" class="btn btn-sm btn-primary mt-2">Save</button>
-        <div class="form-text">Saved in localStorage (browser) only.</div>
+    <section id="pageSettings" class="hidden">
+      <div class="card"><div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-gear"></i> Database Settings</h5>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Google OAuth Client ID</label>
+            <input id="inpClientId" class="form-control" placeholder="YOUR_CLIENT_ID.apps.googleusercontent.com">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Google API Key</label>
+            <input id="inpApiKey" class="form-control" placeholder="YOUR_API_KEY">
+          </div>
+          <div class="col-md-8">
+            <label class="form-label">Drive Folder ID (DB)</label>
+            <input id="inpFolder" class="form-control" placeholder="e.g. 1AbC...">
+          </div>
+          <div class="col-md-4 d-grid align-self-end">
+            <button class="btn btn-success" id="btnInitDb"><i class="bi bi-check2-circle"></i> Save & Init</button>
+          </div>
+          <div class="col-12"><div class="alert alert-secondary small mb-0">
+            <b>Steps:</b> Create a Google Cloud project → Enable <code>Drive API</code> → Create <b>Web OAuth Client</b> + API Key → Add your Highub domain to Authorized origins → Paste Client ID & API Key here → Sign in → Set a Folder ID (or click Create) → Save & Init.
+          </div></div>
+          <div class="col-12 d-flex gap-2">
+            <button class="btn btn-outline-primary" id="btnCreateFolder"><i class="bi bi-folder-plus"></i> Create DB Folder</button>
+            <button class="btn btn-outline-secondary" id="btnCheckFiles"><i class="bi bi-search"></i> Check/Ensure Table Files</button>
+          </div>
+        </div>
       </div></div>
     </section>
   </main>
 
-  <footer class="bg-white border-top py-3 small text-muted">
-    <div class="container-fluid px-3">© HC Data • GitHub Pages</div>
-  </footer>
+  <!-- Report Modal -->
+  <div class="modal fade" id="modalReport" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Add Report</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">អង្គភាព</label><input class="form-control" id="frmOffice" placeholder="planning/cdc..."/></div>
+            <div class="col-md-6"><label class="form-label">សូចនាករ</label><input class="form-control" id="frmIndicator"/></div>
+            <div class="col-md-4"><label class="form-label">រយៈពេល</label><input class="form-control" id="frmPeriod" placeholder="Jan 2025"/></div>
+            <div class="col-md-4"><label class="form-label">តម្លៃ</label><input type="number" class="form-control" id="frmValue" value="0"/></div>
+            <div class="col-md-4"><label class="form-label">គោលដៅ</label><input type="number" class="form-control" id="frmPlan" value="0"/></div>
+          </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button><button class="btn btn-primary" id="btnSaveReport">រក្សាទុក</button></div>
+      </div>
+    </div>
+  </div>
 
-  <!-- Default API URL (can be overridden from Settings) -->
   <script>
-    window.APPSCRIPT_URL = "YOUR_WEB_APP_URL?mode=latest";
-  </script>
+  // ========= CONFIG (edit in Settings UI; stored in localStorage) =========
+  let GOOGLE_CLIENT_ID = localStorage.getItem('phd_client_id') || '';
+  let GOOGLE_API_KEY   = localStorage.getItem('phd_api_key') || '';
+  let DB_FOLDER_ID     = localStorage.getItem('phd_folder_id') || '';
 
-  <!-- App JS + Bootstrap -->
-  <script src="assets/app.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  const TABLES = {
+    users: 'users.json',
+    departments: 'departments.json',
+    units: 'units.json',
+    periods: 'periods.json',
+    indicators: 'indicators.json',
+    reports: 'reports.json',
+    issues: 'issues.json',
+    actions: 'actions.json',
+  };
+  const tableFileIds = {}; // {table: fileId}
+
+  // ========= GOOGLE AUTH / GAPI =========
+  let tokenClient; let gapiInited = false; let gisInited = false;
+
+  window.addEventListener('load', () => { // gapi & GIS scripts async
+    // no-op, we init on Sign In after user pastes keys
+  });
+
+  async function initGapi(){
+    await new Promise(res => gapi.load('client', res));
+    await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+    gapiInited = true;
+  }
+  function initGis(){
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: (resp) => {
+        if (resp && resp.access_token) {
+          document.getElementById('btnSignIn').classList.add('hidden');
+          document.getElementById('btnSignOut').classList.remove('hidden');
+          refreshAll();
+        }
+      }
+    });
+    gisInited = true;
+  }
+  function ensureAuth(){
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_API_KEY) { alert('Please set Client ID & API Key in Settings.'); return false; }
+    if (!gapiInited) { /* fallthrough; we call signIn() which inits */ }
+    return true;
+  }
+
+  async function signIn(){
+    if (!ensureAuth()) return;
+    if (!gapiInited) await initGapi();
+    if (!gisInited) initGis();
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  }
+  async function signOut(){
+    const token = gapi.client.getToken();
+    if (token) {
+      await google.accounts.oauth2.revoke(token.access_token);
+      gapi.client.setToken('');
+    }
+    document.getElementById('btnSignOut').classList.add('hidden');
+    document.getElementById('btnSignIn').classList.remove('hidden');
+  }
+
+  // ========= DRIVE HELPERS =========
+  async function driveList(q){
+    const res = await gapi.client.drive.files.list({ q, fields: 'files(id,name,mimeType,parents)' });
+    return res.result.files || [];
+  }
+  async function driveGet(fileId){
+    const res = await gapi.client.drive.files.get({ fileId, alt: 'media' });
+    return res.body ? JSON.parse(res.body) : res.result; // gapi sometimes returns body string
+  }
+  async function driveCreateJson(parentId, name, data){
+    const boundary = '-------314159265358979323846';
+    const delimiter = `\r\n--${boundary}\r\n`;
+    const closeDelim = `\r\n--${boundary}--`;
+    const meta = { name, mimeType: 'application/json', parents: [parentId] };
+    const body =
+      delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) +
+      delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(data) +
+      closeDelim;
+    const res = await gapi.client.request({ path: '/upload/drive/v3/files', method: 'POST', params: { uploadType: 'multipart' }, headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body });
+    return res.result;
+  }
+  async function driveUpdateJson(fileId, data){
+    const boundary = '-------314159265358979323846';
+    const delimiter = `\r\n--${boundary}\r\n`;
+    const closeDelim = `\r\n--${boundary}--`;
+    const meta = { mimeType: 'application/json' };
+    const body =
+      delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) +
+      delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(data) +
+      closeDelim;
+    const res = await gapi.client.request({ path: '/upload/drive/v3/files/' + fileId, method: 'PATCH', params: { uploadType: 'multipart' }, headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body });
+    return res.result;
+  }
+  async function ensureFile(table){
+    if (tableFileIds[table]) return tableFileIds[table];
+    const name = TABLES[table];
+    const files = await driveList(`'${DB_FOLDER_ID}' in parents and name='${name}' and trashed=false`);
+    if (files.length){ tableFileIds[table] = files[0].id; return files[0].id; }
+    // create default content
+    let initial = [];
+    if (table==='users') initial = [{ user_id:1, user_name:'admin', user_pass:'admin123', user_type:'superuser', user_root:'all', department_id:1 }];
+    const f = await driveCreateJson(DB_FOLDER_ID, name, initial);
+    tableFileIds[table] = f.id; return f.id;
+  }
+  async function readTable(table){
+    const id = await ensureFile(table);
+    try { return await driveGet(id); } catch(e){ return []; }
+  }
+  async function writeTable(table, rows){
+    const id = await ensureFile(table);
+    await driveUpdateJson(id, rows); return true;
+  }
+
+  // ========= APP STATE / UI =========
+  function showPage(id){
+    document.getElementById('pageDash').classList.add('hidden');
+    document.getElementById('pageReports').classList.add('hidden');
+    document.getElementById('pageSettings').classList.add('hidden');
+    document.getElementById(id).classList.remove('hidden');
+  }
+  function setFolderBadge(){
+    const el = document.getElementById('badgeFolder');
+    el.textContent = DB_FOLDER_ID ? ('DB: ' + DB_FOLDER_ID.substring(0,8)+'…') : 'No DB';
+  }
+
+  async function refreshAll(){
+    setFolderBadge();
+    if (!DB_FOLDER_ID) return;
+    const [inds, reps, isss] = await Promise.all([
+      readTable('indicators'), readTable('reports'), readTable('issues')
+    ]);
+    document.getElementById('statInd').textContent = inds.length;
+    document.getElementById('statRep').textContent = reps.length;
+    document.getElementById('statIss').textContent = (isss.filter(i => (i.status||'').toLowerCase()!=='closed')).length;
+
+    // summary
+    const by = {};
+    for (const r of reps){ const k = (r.period||'NA')+'|'+(r.office||'NA'); by[k]=(by[k]||0)+1; }
+    const tbody = document.querySelector('#tblSummary tbody'); tbody.innerHTML='';
+    Object.entries(by).forEach(([k,c])=>{ const [p,o]=k.split('|'); const tr=document.createElement('tr'); tr.innerHTML=`<td>${p}</td><td>${o}</td><td class='text-end'>${c}</td>`; tbody.appendChild(tr); });
+
+    // reports table
+    const t = document.querySelector('#tblReports tbody'); t.innerHTML='';
+    let i=1; reps.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${i++}</td><td>${r.indicator||''}</td><td>${r.period||''}</td><td class='text-end'>${r.value||0}</td><td class='text-end'>${r.plan||0}</td><td></td>`; t.appendChild(tr); });
+  }
+
+  // ========= EVENTS =========
+  document.getElementById('lnkDash').addEventListener('click', e=>{e.preventDefault(); showPage('pageDash');});
+  document.getElementById('lnkReports').addEventListener('click', e=>{e.preventDefault(); showPage('pageReports');});
+  document.getElementById('lnkSettings').addEventListener('click', e=>{e.preventDefault(); showPage('pageSettings');});
+
+  document.getElementById('btnSignIn').addEventListener('click', signIn);
+  document.getElementById('btnSignOut').addEventListener('click', signOut);
+
+  document.getElementById('btnInitDb').addEventListener('click', async ()=>{
+    GOOGLE_CLIENT_ID = document.getElementById('inpClientId').value.trim();
+    GOOGLE_API_KEY   = document.getElementById('inpApiKey').value.trim();
+    DB_FOLDER_ID     = document.getElementById('inpFolder').value.trim();
+    localStorage.setItem('phd_client_id', GOOGLE_CLIENT_ID);
+    localStorage.setItem('phd_api_key', GOOGLE_API_KEY);
+    localStorage.setItem('phd_folder_id', DB_FOLDER_ID);
+    tableFileIds = {}; // reset cache
+    setFolderBadge();
+    alert('Saved. Now click Sign in and then Check/Ensure files.');
+  });
+
+  document.getElementById('btnCreateFolder').addEventListener('click', async ()=>{
+    if (!ensureAuth()) return; if (!gapiInited) await initGapi(); if (!gisInited) initGis(); tokenClient.requestAccessToken({prompt:''});
+    const res = await gapi.client.drive.files.create({ resource: { name: 'PHD_DB', mimeType: 'application/vnd.google-apps.folder' }, fields:'id,name' });
+    DB_FOLDER_ID = res.result.id; localStorage.setItem('phd_folder_id', DB_FOLDER_ID);
+    document.getElementById('inpFolder').value = DB_FOLDER_ID; setFolderBadge(); alert('Folder created: '+res.result.name);
+  });
+
+  document.getElementById('btnCheckFiles').addEventListener('click', async ()=>{
+    if (!DB_FOLDER_ID) return alert('Set a Folder ID first.');
+    await ensureFile('users'); await ensureFile('departments'); await ensureFile('units'); await ensureFile('periods'); await ensureFile('indicators'); await ensureFile('reports'); await ensureFile('issues'); await ensureFile('actions');
+    alert('Table files ensured.');
+    refreshAll();
+  });
+
+  document.getElementById('btnSaveReport').addEventListener('click', async ()=>{
+    if (!DB_FOLDER_ID) return alert('No DB folder set.');
+    const rows = await readTable('reports');
+    const rec = {
+      id: Date.now(),
+      office: document.getElementById('frmOffice').value.trim(),
+      indicator: document.getElementById('frmIndicator').value.trim(),
+      period: document.getElementById('frmPeriod').value.trim(),
+      value: Number(document.getElementById('frmValue').value||0),
+      plan: Number(document.getElementById('frmPlan').value||0)
+    };
+    rows.push(rec); await writeTable('reports', rows);
+    const m = bootstrap.Modal.getInstance(document.getElementById('modalReport')); m.hide();
+    refreshAll();
+  });
+
+  // ===== boot form values from storage
+  document.getElementById('inpClientId').value = GOOGLE_CLIENT_ID;
+  document.getElementById('inpApiKey').value   = GOOGLE_API_KEY;
+  document.getElementById('inpFolder').value   = DB_FOLDER_ID;
+  setFolderBadge();
+  </script>
 </body>
 </html>
-
