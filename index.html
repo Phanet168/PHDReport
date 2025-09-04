@@ -1,346 +1,109 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="km">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PHD Reports – Highub + Google Drive JSON</title>
-  <!-- Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Icons + Khmer font -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-  <!-- Google Identity Services + gapi (Drive v3) -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="https://apis.google.com/js/api.js" async defer></script>
-
-  <style>
-    :root{ --brand:#0f3d8a; --ink:#111827; --muted:#6b7280; --bg:#f6f7fb; --paper:#fff; --border:#e5e7eb; --radius:16px; }
-    body{font-family:'Noto Sans Khmer',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    .navbar{box-shadow:0 10px 25px rgba(0,0,0,.06)}
-    .brand{font-weight:800;color:var(--brand)}
-    .card{border:1px solid var(--border);border-radius:var(--radius)}
-    .stat{background:var(--paper);border:1px solid var(--border);border-radius:16px}
-    .stat .label{color:var(--muted)}
-    .table thead th{background:#eff4ff}
-    .hidden{display:none!important}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DMS Reports</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<style>
+  body{ background:#f7f8fb }
+  .card{ border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.05) }
+</style>
 </head>
-<body>
-  <nav class="navbar navbar-expand-lg bg-white sticky-top">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#"><span class="brand">PHD</span> Report System</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
-      <div id="nav" class="collapse navbar-collapse">
-        <ul class="navbar-nav me-auto">
-          <li class="nav-item"><a class="nav-link active" href="#" id="lnkDash"><i class="bi bi-speedometer2 me-1"></i>ផ្ទាំងសម្រង់</a></li>
-          <li class="nav-item"><a class="nav-link" href="#" id="lnkReports"><i class="bi bi-table me-1"></i>របាយការណ៍</a></li>
-          <li class="nav-item"><a class="nav-link" href="#" id="lnkSettings"><i class="bi bi-gear me-1"></i>Settings</a></li>
-        </ul>
-        <div class="d-flex gap-2 align-items-center">
-          <span class="badge text-bg-light" id="badgeFolder">No DB</span>
-          <button class="btn btn-outline-primary" id="btnSignIn"><i class="bi bi-google"></i> Sign in</button>
-          <button class="btn btn-outline-secondary hidden" id="btnSignOut"><i class="bi bi-box-arrow-right"></i> Sign out</button>
-        </div>
+<body class="p-3">
+  <div class="container">
+    <h1 class="mb-3">ប្រព័ន្ធគ្រប់គ្រងរបាយការណ៍</h1>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <form id="frmAdd" class="row g-2 align-items-end">
+          <div class="col-md-2">
+            <label class="form-label">Year</label>
+            <input type="number" class="form-control" id="year" value="2025">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Period ID</label>
+            <input class="form-control" id="period_id" placeholder="2025M08">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Indicator ID</label>
+            <input class="form-control" id="indicator_id" placeholder="123">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Value</label>
+            <input type="number" class="form-control" id="value" value="0">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Plan</label>
+            <input type="number" class="form-control" id="plan" value="0">
+          </div>
+          <div class="col-12 mt-2">
+            <button class="btn btn-primary">Save Report</button>
+          </div>
+        </form>
       </div>
     </div>
-  </nav>
 
-  <main class="container py-3">
-    <!-- Dashboard -->
-    <section id="pageDash">
-      <div class="row g-3">
-        <div class="col-12 col-md-4"><div class="p-3 stat"><div class="label">សូចនាករ</div><div class="fs-2 fw-bold" id="statInd">0</div></div></div>
-        <div class="col-12 col-md-4"><div class="p-3 stat"><div class="label">របាយការណ៍សរុប</div><div class="fs-2 fw-bold" id="statRep">0</div></div></div>
-        <div class="col-12 col-md-4"><div class="p-3 stat"><div class="label">បញ្ហាកំពុងដំណើរការ</div><div class="fs-2 fw-bold" id="statIss">0</div></div></div>
-      </div>
-      <div class="card mt-3"><div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5 class="mb-0">សង្ខេបតាមរយៈពេល</h5>
-          <button class="btn btn-outline-secondary" id="btnExport"><i class="bi bi-download"></i> Export</button>
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex gap-2 align-items-end mb-3">
+          <div>
+            <label class="form-label">Year</label>
+            <input type="number" class="form-control" id="lyear" value="2025">
+          </div>
+          <div>
+            <label class="form-label">Indicator</label>
+            <input class="form-control" id="lind" placeholder="(optional)">
+          </div>
+          <button class="btn btn-outline-secondary" id="btnLoad">Load Reports</button>
         </div>
-        <div class="table-responsive">
-          <table class="table table-hover" id="tblSummary"><thead><tr><th>រយៈពេល</th><th>ការិយាល័យ</th><th class="text-end">ចំនួន</th></tr></thead><tbody></tbody></table>
-        </div>
-      </div></div>
-    </section>
-
-    <!-- Reports -->
-    <section id="pageReports" class="hidden">
-      <div class="card"><div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="mb-0">Reports</h5>
-          <div class="d-flex gap-2">
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalReport"><i class="bi bi-plus-circle"></i> Add</button>
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-striped align-middle" id="tblReports"><thead><tr>
-            <th>#</th><th>សូចនាករ</th><th>រយៈពេល</th><th class="text-end">តម្លៃ</th><th class="text-end">គោលដៅ</th><th></th>
-          </tr></thead><tbody></tbody></table>
-        </div>
-      </div></div>
-    </section>
-
-    <!-- Settings -->
-    <section id="pageSettings" class="hidden">
-      <div class="card"><div class="card-body">
-        <h5 class="mb-3"><i class="bi bi-gear"></i> Database Settings</h5>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">Google OAuth Client ID</label>
-            <input id="inpClientId" class="form-control" placeholder="YOUR_CLIENT_ID.apps.googleusercontent.com">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Google API Key</label>
-            <input id="inpApiKey" class="form-control" placeholder="YOUR_API_KEY">
-          </div>
-          <div class="col-md-8">
-            <label class="form-label">Drive Folder ID (DB)</label>
-            <input id="inpFolder" class="form-control" placeholder="e.g. 1AbC...">
-          </div>
-          <div class="col-md-4 d-grid align-self-end">
-            <button class="btn btn-success" id="btnInitDb"><i class="bi bi-check2-circle"></i> Save & Init</button>
-          </div>
-          <div class="col-12"><div class="alert alert-secondary small mb-0">
-            <b>Steps:</b> Create a Google Cloud project → Enable <code>Drive API</code> → Create <b>Web OAuth Client</b> + API Key → Add your Highub domain to Authorized origins → Paste Client ID & API Key here → Sign in → Set a Folder ID (or click Create) → Save & Init.
-          </div></div>
-          <div class="col-12 d-flex gap-2">
-            <button class="btn btn-outline-primary" id="btnCreateFolder"><i class="bi bi-folder-plus"></i> Create DB Folder</button>
-            <button class="btn btn-outline-secondary" id="btnCheckFiles"><i class="bi bi-search"></i> Check/Ensure Table Files</button>
-          </div>
-        </div>
-      </div></div>
-    </section>
-  </main>
-
-  <!-- Report Modal -->
-  <div class="modal fade" id="modalReport" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Add Report</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-md-6"><label class="form-label">អង្គភាព</label><input class="form-control" id="frmOffice" placeholder="planning/cdc..."/></div>
-            <div class="col-md-6"><label class="form-label">សូចនាករ</label><input class="form-control" id="frmIndicator"/></div>
-            <div class="col-md-4"><label class="form-label">រយៈពេល</label><input class="form-control" id="frmPeriod" placeholder="Jan 2025"/></div>
-            <div class="col-md-4"><label class="form-label">តម្លៃ</label><input type="number" class="form-control" id="frmValue" value="0"/></div>
-            <div class="col-md-4"><label class="form-label">គោលដៅ</label><input type="number" class="form-control" id="frmPlan" value="0"/></div>
-          </div>
-        </div>
-        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button><button class="btn btn-primary" id="btnSaveReport">រក្សាទុក</button></div>
+        <table class="table table-striped" id="tbl">
+          <thead><tr>
+            <th>report_id</th><th>indicator_id</th><th>period_id</th>
+            <th>value</th><th>plan_value</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
       </div>
     </div>
+
   </div>
 
-  <script>
-  // ========= CONFIG (edit in Settings UI; stored in localStorage) =========
-  let GOOGLE_CLIENT_ID = localStorage.getItem('phd_client_id') || '';
-  let GOOGLE_API_KEY   = localStorage.getItem('phd_api_key') || '';
-  let DB_FOLDER_ID     = localStorage.getItem('phd_folder_id') || '';
+<script>
+const API_BASE = '<<PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE>>';
 
-  const TABLES = {
-    users: 'users.json',
-    departments: 'departments.json',
-    units: 'units.json',
-    periods: 'periods.json',
-    indicators: 'indicators.json',
-    reports: 'reports.json',
-    issues: 'issues.json',
-    actions: 'actions.json',
+// Save (create) report
+document.getElementById('frmAdd').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const payload = {
+    indicator_id: Number(document.getElementById('indicator_id').value),
+    period_id: document.getElementById('period_id').value.trim(),
+    value: Number(document.getElementById('value').value),
+    plan_value: Number(document.getElementById('plan').value),
+    year: Number(document.getElementById('year').value)
   };
-  const tableFileIds = {}; // {table: fileId}
+  const url = `${API_BASE}?api=1&route=report&op=upsert`;
+  const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const data = await res.json();
+  alert('Saved report_id: ' + data.row.report_id);
+});
 
-  // ========= GOOGLE AUTH / GAPI =========
-  let tokenClient; let gapiInited = false; let gisInited = false;
-
-  window.addEventListener('load', () => { // gapi & GIS scripts async
-    // no-op, we init on Sign In after user pastes keys
+// Load reports (by year + optional indicator)
+document.getElementById('btnLoad').addEventListener('click', async ()=>{
+  const y = document.getElementById('lyear').value;
+  const ind = document.getElementById('lind').value.trim();
+  const q = new URLSearchParams({ api:'1', route:'report', op:'list', year:String(y) });
+  if (ind) q.set('indicator_id', ind);
+  const url = `${API_BASE}?${q.toString()}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  const tb = document.querySelector('#tbl tbody'); tb.innerHTML = '';
+  data.rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.report_id}</td><td>${r.indicator_id}</td><td>${r.period_id}</td><td>${r.value}</td><td>${r.plan_value}</td>`;
+    tb.appendChild(tr);
   });
-
-  async function initGapi(){
-    await new Promise(res => gapi.load('client', res));
-    await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
-    gapiInited = true;
-  }
-  function initGis(){
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/drive.file',
-      callback: (resp) => {
-        if (resp && resp.access_token) {
-          document.getElementById('btnSignIn').classList.add('hidden');
-          document.getElementById('btnSignOut').classList.remove('hidden');
-          refreshAll();
-        }
-      }
-    });
-    gisInited = true;
-  }
-  function ensureAuth(){
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_API_KEY) { alert('Please set Client ID & API Key in Settings.'); return false; }
-    if (!gapiInited) { /* fallthrough; we call signIn() which inits */ }
-    return true;
-  }
-
-  async function signIn(){
-    if (!ensureAuth()) return;
-    if (!gapiInited) await initGapi();
-    if (!gisInited) initGis();
-    tokenClient.requestAccessToken({ prompt: 'consent' });
-  }
-  async function signOut(){
-    const token = gapi.client.getToken();
-    if (token) {
-      await google.accounts.oauth2.revoke(token.access_token);
-      gapi.client.setToken('');
-    }
-    document.getElementById('btnSignOut').classList.add('hidden');
-    document.getElementById('btnSignIn').classList.remove('hidden');
-  }
-
-  // ========= DRIVE HELPERS =========
-  async function driveList(q){
-    const res = await gapi.client.drive.files.list({ q, fields: 'files(id,name,mimeType,parents)' });
-    return res.result.files || [];
-  }
-  async function driveGet(fileId){
-    const res = await gapi.client.drive.files.get({ fileId, alt: 'media' });
-    return res.body ? JSON.parse(res.body) : res.result; // gapi sometimes returns body string
-  }
-  async function driveCreateJson(parentId, name, data){
-    const boundary = '-------314159265358979323846';
-    const delimiter = `\r\n--${boundary}\r\n`;
-    const closeDelim = `\r\n--${boundary}--`;
-    const meta = { name, mimeType: 'application/json', parents: [parentId] };
-    const body =
-      delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) +
-      delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(data) +
-      closeDelim;
-    const res = await gapi.client.request({ path: '/upload/drive/v3/files', method: 'POST', params: { uploadType: 'multipart' }, headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body });
-    return res.result;
-  }
-  async function driveUpdateJson(fileId, data){
-    const boundary = '-------314159265358979323846';
-    const delimiter = `\r\n--${boundary}\r\n`;
-    const closeDelim = `\r\n--${boundary}--`;
-    const meta = { mimeType: 'application/json' };
-    const body =
-      delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) +
-      delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(data) +
-      closeDelim;
-    const res = await gapi.client.request({ path: '/upload/drive/v3/files/' + fileId, method: 'PATCH', params: { uploadType: 'multipart' }, headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body });
-    return res.result;
-  }
-  async function ensureFile(table){
-    if (tableFileIds[table]) return tableFileIds[table];
-    const name = TABLES[table];
-    const files = await driveList(`'${DB_FOLDER_ID}' in parents and name='${name}' and trashed=false`);
-    if (files.length){ tableFileIds[table] = files[0].id; return files[0].id; }
-    // create default content
-    let initial = [];
-    if (table==='users') initial = [{ user_id:1, user_name:'admin', user_pass:'admin123', user_type:'superuser', user_root:'all', department_id:1 }];
-    const f = await driveCreateJson(DB_FOLDER_ID, name, initial);
-    tableFileIds[table] = f.id; return f.id;
-  }
-  async function readTable(table){
-    const id = await ensureFile(table);
-    try { return await driveGet(id); } catch(e){ return []; }
-  }
-  async function writeTable(table, rows){
-    const id = await ensureFile(table);
-    await driveUpdateJson(id, rows); return true;
-  }
-
-  // ========= APP STATE / UI =========
-  function showPage(id){
-    document.getElementById('pageDash').classList.add('hidden');
-    document.getElementById('pageReports').classList.add('hidden');
-    document.getElementById('pageSettings').classList.add('hidden');
-    document.getElementById(id).classList.remove('hidden');
-  }
-  function setFolderBadge(){
-    const el = document.getElementById('badgeFolder');
-    el.textContent = DB_FOLDER_ID ? ('DB: ' + DB_FOLDER_ID.substring(0,8)+'…') : 'No DB';
-  }
-
-  async function refreshAll(){
-    setFolderBadge();
-    if (!DB_FOLDER_ID) return;
-    const [inds, reps, isss] = await Promise.all([
-      readTable('indicators'), readTable('reports'), readTable('issues')
-    ]);
-    document.getElementById('statInd').textContent = inds.length;
-    document.getElementById('statRep').textContent = reps.length;
-    document.getElementById('statIss').textContent = (isss.filter(i => (i.status||'').toLowerCase()!=='closed')).length;
-
-    // summary
-    const by = {};
-    for (const r of reps){ const k = (r.period||'NA')+'|'+(r.office||'NA'); by[k]=(by[k]||0)+1; }
-    const tbody = document.querySelector('#tblSummary tbody'); tbody.innerHTML='';
-    Object.entries(by).forEach(([k,c])=>{ const [p,o]=k.split('|'); const tr=document.createElement('tr'); tr.innerHTML=`<td>${p}</td><td>${o}</td><td class='text-end'>${c}</td>`; tbody.appendChild(tr); });
-
-    // reports table
-    const t = document.querySelector('#tblReports tbody'); t.innerHTML='';
-    let i=1; reps.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${i++}</td><td>${r.indicator||''}</td><td>${r.period||''}</td><td class='text-end'>${r.value||0}</td><td class='text-end'>${r.plan||0}</td><td></td>`; t.appendChild(tr); });
-  }
-
-  // ========= EVENTS =========
-  document.getElementById('lnkDash').addEventListener('click', e=>{e.preventDefault(); showPage('pageDash');});
-  document.getElementById('lnkReports').addEventListener('click', e=>{e.preventDefault(); showPage('pageReports');});
-  document.getElementById('lnkSettings').addEventListener('click', e=>{e.preventDefault(); showPage('pageSettings');});
-
-  document.getElementById('btnSignIn').addEventListener('click', signIn);
-  document.getElementById('btnSignOut').addEventListener('click', signOut);
-
-  document.getElementById('btnInitDb').addEventListener('click', async ()=>{
-    GOOGLE_CLIENT_ID = document.getElementById('inpClientId').value.trim();
-    GOOGLE_API_KEY   = document.getElementById('inpApiKey').value.trim();
-    DB_FOLDER_ID     = document.getElementById('inpFolder').value.trim();
-    localStorage.setItem('phd_client_id', GOOGLE_CLIENT_ID);
-    localStorage.setItem('phd_api_key', GOOGLE_API_KEY);
-    localStorage.setItem('phd_folder_id', DB_FOLDER_ID);
-    tableFileIds = {}; // reset cache
-    setFolderBadge();
-    alert('Saved. Now click Sign in and then Check/Ensure files.');
-  });
-
-  document.getElementById('btnCreateFolder').addEventListener('click', async ()=>{
-    if (!ensureAuth()) return; if (!gapiInited) await initGapi(); if (!gisInited) initGis(); tokenClient.requestAccessToken({prompt:''});
-    const res = await gapi.client.drive.files.create({ resource: { name: 'PHD_DB', mimeType: 'application/vnd.google-apps.folder' }, fields:'id,name' });
-    DB_FOLDER_ID = res.result.id; localStorage.setItem('phd_folder_id', DB_FOLDER_ID);
-    document.getElementById('inpFolder').value = DB_FOLDER_ID; setFolderBadge(); alert('Folder created: '+res.result.name);
-  });
-
-  document.getElementById('btnCheckFiles').addEventListener('click', async ()=>{
-    if (!DB_FOLDER_ID) return alert('Set a Folder ID first.');
-    await ensureFile('users'); await ensureFile('departments'); await ensureFile('units'); await ensureFile('periods'); await ensureFile('indicators'); await ensureFile('reports'); await ensureFile('issues'); await ensureFile('actions');
-    alert('Table files ensured.');
-    refreshAll();
-  });
-
-  document.getElementById('btnSaveReport').addEventListener('click', async ()=>{
-    if (!DB_FOLDER_ID) return alert('No DB folder set.');
-    const rows = await readTable('reports');
-    const rec = {
-      id: Date.now(),
-      office: document.getElementById('frmOffice').value.trim(),
-      indicator: document.getElementById('frmIndicator').value.trim(),
-      period: document.getElementById('frmPeriod').value.trim(),
-      value: Number(document.getElementById('frmValue').value||0),
-      plan: Number(document.getElementById('frmPlan').value||0)
-    };
-    rows.push(rec); await writeTable('reports', rows);
-    const m = bootstrap.Modal.getInstance(document.getElementById('modalReport')); m.hide();
-    refreshAll();
-  });
-
-  // ===== boot form values from storage
-  document.getElementById('inpClientId').value = GOOGLE_CLIENT_ID;
-  document.getElementById('inpApiKey').value   = GOOGLE_API_KEY;
-  document.getElementById('inpFolder').value   = DB_FOLDER_ID;
-  setFolderBadge();
-  </script>
+});
+</script>
 </body>
 </html>
