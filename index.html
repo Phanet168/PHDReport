@@ -3,231 +3,320 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PHD Report System — Login</title>
+  <title>PHD Report System</title>
+
+  <!-- Gull CSS (update paths to match your template) -->
+  <link rel="stylesheet" href="assets/css/lite-purple.min.css">
+  <link rel="stylesheet" href="assets/css/perfect-scrollbar.min.css">
+  <link rel="stylesheet" href="assets/fonts/icomoon/style.css"> <!-- for i-Home1, i-Bar-Chart ... -->
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <style>
-    body{background:#f0f2f5; font-family:"Noto Sans Khmer", Arial, sans-serif;}
-    .login-card{max-width:420px; margin:10vh auto; border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.1);}
-    .sidebar{width:220px; background:#0d6efd; color:#fff; height:100vh; position:fixed; top:0; left:0; padding:1rem;}
-    .sidebar .nav-link{color:#fff; margin:.3rem 0;}
-    .sidebar .nav-link.active{background:#0b5ed7; border-radius:8px;}
-    .main{margin-left:220px; padding:1rem;}
-    .table-sm td,.table-sm th{padding:.35rem .5rem;}
+    body{ font-family:"Noto Sans Khmer","Roboto","Nunito",sans-serif; }
+    .auth-layout-wrap{ min-height:100vh; background:#0d6efd linear-gradient(135deg,#0d6efd,#6610f2); }
+    .auth-content .card{ border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.12); }
+    .nav-text{ font-size:14px; }
+    .main-content .card{ border-radius:14px; }
+    .table-sm td,.table-sm th{ padding:.4rem .6rem; }
   </style>
 </head>
 <body>
 
-<!-- LOGIN PAGE -->
-<div id="loginPage" class="container">
-  <div class="card login-card p-4">
-    <h3 class="mb-3 text-center">PHD Report System</h3>
-    <form id="loginForm">
-      <div class="mb-3">
-        <label class="form-label">ឈ្មោះអ្នកប្រើប្រាស់</label>
-        <input type="text" id="username" class="form-control" required>
+<!-- ===================== LOGIN (Gull Auth Layout) ===================== -->
+<div id="loginPage" class="auth-layout-wrap">
+  <div class="auth-content">
+    <div class="card o-hidden">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="p-4 p-md-5">
+            <div class="text-center mb-3">
+              <h3 class="mb-1">PHD Report System</h3>
+              <div class="text-muted">ចូលប្រើប្រាស់</div>
+            </div>
+            <form id="loginForm">
+              <div class="form-group mb-3">
+                <label class="text-muted">ឈ្មោះអ្នកប្រើប្រាស់</label>
+                <input type="text" id="username" class="form-control form-control-rounded" required>
+              </div>
+              <div class="form-group mb-4">
+                <label class="text-muted">ពាក្យសម្ងាត់</label>
+                <input type="password" id="password" class="form-control form-control-rounded" required>
+              </div>
+              <button class="btn btn-rounded btn-primary btn-block mt-2">ចូលប្រើប្រាស់</button>
+            </form>
+            <div id="loginMsg" class="text-danger small mt-2 d-none">Login មិនបាន</div>
+          </div>
+        </div>
       </div>
-      <div class="mb-3">
-        <label class="form-label">ពាក្យសម្ងាត់</label>
-        <input type="password" id="password" class="form-control" required>
-      </div>
-      <button class="btn btn-primary w-100">ចូលប្រើប្រាស់</button>
-    </form>
-  </div>
-</div>
-
-<!-- MAIN DASHBOARD -->
-<div id="dashboardPage" class="d-none">
-  <div class="sidebar">
-    <h5 class="mb-4">📊 Dashboard</h5>
-    <nav class="nav flex-column">
-      <a href="#" class="nav-link active" data-tab="dashboard">Dashboard</a>
-      <a href="#" class="nav-link" data-tab="reports">Reports</a>
-      <a href="#" class="nav-link" data-tab="indicators">Indicators</a>
-      <a href="#" class="nav-link" data-tab="issues">Issues</a>
-      <a href="#" class="nav-link" data-tab="periods">Periods</a>
-      <hr class="border-light">
-      <a href="#" class="nav-link text-warning" id="btnLogout">Logout</a>
-    </nav>
-  </div>
-  <div class="main">
-    <div id="content">
-      <h2>សូមស្វាគមន៍ មកកាន់ផ្ទាំងគ្រប់គ្រង</h2>
-      <p>ជ្រើសរើសម៉ឺនុយពីខាងឆ្វេង។</p>
     </div>
   </div>
 </div>
 
+<!-- ===================== APP LAYOUT (Gull Admin) ===================== -->
+<div id="dashboardPage" class="app-admin-wrap layout-sidebar-large d-none">
+  <!-- Sidebar -->
+  <div class="sidebar-left open">
+    <div class="logo d-flex align-items-center px-3 py-2">
+      <span class="text-white fw-bold">PHD Report</span>
+    </div>
+    <div class="ps ps--active-y perfect-scrollbar">
+      <ul class="navigation-left">
+        <li class="nav-item active">
+          <a class="nav-item-hold" href="#" data-tab="dashboard">
+            <i class="nav-icon i-Home1"></i><span class="nav-text">Dashboard</span>
+          </a><div class="triangle"></div>
+        </li>
+        <li class="nav-item">
+          <a class="nav-item-hold" href="#" data-tab="reports">
+            <i class="nav-icon i-Bar-Chart"></i><span class="nav-text">Reports</span>
+          </a><div class="triangle"></div>
+        </li>
+        <li class="nav-item">
+          <a class="nav-item-hold" href="#" data-tab="indicators">
+            <i class="nav-icon i-Check"></i><span class="nav-text">Indicators</span>
+          </a><div class="triangle"></div>
+        </li>
+        <li class="nav-item">
+          <a class="nav-item-hold" href="#" data-tab="issues">
+            <i class="nav-icon i-Warning"></i><span class="nav-text">Issues</span>
+          </a><div class="triangle"></div>
+        </li>
+        <li class="nav-item">
+          <a class="nav-item-hold" href="#" data-tab="periods">
+            <i class="nav-icon i-Calendar-4"></i><span class="nav-text">Periods</span>
+          </a><div class="triangle"></div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main-content-wrap sidenav-open d-flex flex-column">
+    <!-- Header -->
+    <div class="main-header d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center">
+        <div class="menu-toggle">
+          <div></div><div></div><div></div>
+        </div>
+        <h4 class="ms-3 mb-0">ផ្ទាំងគ្រប់គ្រង</h4>
+      </div>
+      <div class="header-part-right d-flex align-items-center">
+        <div class="user col align-self-end pe-3">
+          <span id="topUser" class="text-muted small"></span>
+        </div>
+        <button id="btnLogout" class="btn btn-outline-danger btn-sm">Logout</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="main-content">
+      <div class="container-fluid" id="content">
+        <!-- dynamic -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== JS ===================== -->
+<script src="assets/js/perfect-scrollbar.min.js"></script>
 <script>
-// ====== CONFIG (Apps Script Web App URL) ======
+// ========== CONFIG ==========
 const API_BASE = "https://script.google.com/macros/s/AKfycbwcfq6wRE-d1TY1PRAobF3VhVbv0R6thDat7mB580AZIDnXrPiikn-fvKaIgcuPSMlJLA/exec";
 
-// ====== Elements ======
-const loginForm = document.getElementById('loginForm');
+// ========== Elements ==========
 const loginPage = document.getElementById('loginPage');
 const dashboardPage = document.getElementById('dashboardPage');
+const loginForm = document.getElementById('loginForm');
+const loginMsg = document.getElementById('loginMsg');
 const content = document.getElementById('content');
-const links = () => document.querySelectorAll('.sidebar .nav-link[data-tab]');
+const topUser = document.getElementById('topUser');
 
-// ====== Helpers ======
-async function sha256Hex(str){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
+// ========== Helpers ==========
 function apiUrl(params){
   const usp = new URLSearchParams(params);
   return API_BASE + (API_BASE.includes('?')?'&':'?') + usp.toString();
 }
 async function apiGet(params){
-  const res = await fetch(apiUrl(params), { cache: "no-store" });
+  const res = await fetch(apiUrl(params), { cache: 'no-store' });
   if(!res.ok) throw new Error('API GET failed');
   return res.json();
 }
+async function sha256Hex(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// auth state
+function getProfile(){ try{ return JSON.parse(localStorage.getItem('phdUserProfile')||'null'); }catch{ return null } }
+function setProfile(p){ localStorage.setItem('phdUserProfile', JSON.stringify(p)); topUser.textContent = p.user_name; }
+function clearProfile(){ localStorage.removeItem('phdUserProfile'); topUser.textContent = ''; }
+
 function showDashboard(){ loginPage.classList.add('d-none'); dashboardPage.classList.remove('d-none'); }
 function showLogin(){ dashboardPage.classList.add('d-none'); loginPage.classList.remove('d-none'); }
 
-// ====== Auth State ======
-function getProfile(){ try{ return JSON.parse(localStorage.getItem('phdUserProfile')||'null'); }catch{ return null } }
-function setProfile(p){ localStorage.setItem('phdUserProfile', JSON.stringify(p)); }
-function clearProfile(){ localStorage.removeItem('phdUserProfile'); }
+// init: keep session
+(function(){
+  const p = getProfile();
+  if(p){ setProfile(p); showDashboard(); renderDashboard(); }
+})();
 
-// auto-show dashboard if session exists
-(function initAuth(){ if(getProfile()) showDashboard(); })();
-
-// ====== Login (validate with users.json on server) ======
+// ========== Login ==========
 loginForm.addEventListener('submit', async (e)=>{
   e.preventDefault();
+  loginMsg.classList.add('d-none');
   const user = document.getElementById('username').value.trim();
   const pass = document.getElementById('password').value;
-  if(!user || !pass){ alert('សូមបំពេញឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់'); return; }
+  if(!user || !pass){ loginMsg.textContent='សូមបំពេញឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់'; loginMsg.classList.remove('d-none'); return; }
   try{
-    // server uses singular route names → 'user'
     const data = await apiGet({ api:1, route:'user', op:'list', limit:5000 });
     const rows = data.rows || [];
     const u = rows.find(r => String(r.user_name||'').toLowerCase() === user.toLowerCase());
-    if(!u){ alert('មិនមានអ្នកប្រើប្រាស់នេះ'); return; }
-
+    if(!u){ loginMsg.textContent='មិនមានអ្នកប្រើប្រាស់នេះ'; loginMsg.classList.remove('d-none'); return; }
     const stored = String(u.user_pass||'');
-    let ok = false;
-    if(stored && stored.length === 64){
-      const hash = await sha256Hex(pass); ok = (hash === stored);
-    } else { ok = (stored === pass); }
+    let ok=false;
+    if(stored.length===64){ ok=(await sha256Hex(pass))===stored; } else { ok = stored===pass; }
+    if(!ok){ loginMsg.textContent='ពាក្យសម្ងាត់មិនត្រឹមត្រូវ'; loginMsg.classList.remove('d-none'); return; }
 
-    if(!ok){ alert('ពាក្យសម្ងាត់មិនត្រឹមត្រូវ'); return; }
-
-    setProfile({
-      user_id: u.user_id, user_name: u.user_name,
-      user_type: u.user_type, user_root: u.user_root,
-      department_id: u.department_id, login_at: Date.now()
-    });
+    const profile = { user_id:u.user_id, user_name:u.user_name, user_type:u.user_type, user_root:u.user_root, department_id:u.department_id, login_at:Date.now() };
+    setProfile(profile);
     showDashboard();
-    // default load dashboard content
     renderDashboard();
   }catch(err){
-    console.error(err); alert('Login បរាជ័យ (API)');
+    console.error(err);
+    loginMsg.textContent='Login បរាជ័យ (API)'; loginMsg.classList.remove('d-none');
   }
 });
 
-// ====== Sidebar navigation ======
-function wireNav(){
-  links().forEach(l=>{
-    l.addEventListener('click', async (e)=>{
-      e.preventDefault();
-      links().forEach(x=>x.classList.remove('active'));
-      l.classList.add('active');
-      const tab = l.dataset.tab;
-      if (tab === 'dashboard') renderDashboard();
-      else if (tab === 'indicators') await renderIndicators();
-      else if (tab === 'periods') await renderPeriods();
-      else content.innerHTML = `<h3 class="text-capitalize">${tab}</h3><p>គ្រប់គ្រង ${tab} នៅទីនេះ...</p>`;
-    });
+// ========== Sidebar actions ==========
+document.querySelectorAll('.navigation-left .nav-item a[data-tab]').forEach(a=>{
+  a.addEventListener('click', async (e)=>{
+    e.preventDefault();
+    document.querySelectorAll('.navigation-left .nav-item').forEach(li=>li.classList.remove('active'));
+    a.closest('.nav-item').classList.add('active');
+    const tab = a.dataset.tab;
+    if(tab==='dashboard') renderDashboard();
+    else if(tab==='indicators') await renderIndicators();
+    else if(tab==='periods') await renderPeriods();
+    else if(tab==='reports') await renderReports();
+    else if(tab==='issues') await renderIssues();
   });
-}
-wireNav();
+});
 
-// ====== Views ======
+// ========== Views ==========
 function renderDashboard(){
   const p = getProfile();
   content.innerHTML = `
-    <div class="d-flex align-items-center justify-content-between">
-      <h2 class="mb-0">សូមស្វាគមន៍ ${p ? p.user_name : ''}</h2>
-      <span class="badge text-bg-primary">Department: ${p?.department_id ?? '-'}</span>
-    </div>
-    <p class="text-muted mt-2">ជ្រើសម៉ឺនុយខាងឆ្វេង ឬមើលបញ្ជីសុច្សនាករ។</p>
-  `;
+    <div class="row">
+      <div class="col-lg-4">
+        <div class="card mb-3">
+          <div class="card-body">
+            <h5 class="card-title mb-2">សូមស្វាគមន៍</h5>
+            <div class="text-muted">អ្នកប្រើ: <b>${p?.user_name||'-'}</b></div>
+            <div class="text-muted">Department: <b>${p?.department_id ?? '-'}</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-8">
+        <div class="card mb-3">
+          <div class="card-body">
+            <h5 class="card-title mb-2">Quick Links</h5>
+            <div class="d-flex gap-2 flex-wrap">
+              <button class="btn btn-primary btn-sm" onclick="renderIndicators()">📌 Indicators</button>
+              <button class="btn btn-success btn-sm" onclick="renderPeriods()">🗓️ Periods</button>
+              <button class="btn btn-info btn-sm" onclick="renderReports()">📈 Reports</button>
+              <button class="btn btn-warning btn-sm" onclick="renderIssues()">⚠️ Issues</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
 }
 
 async function renderIndicators(){
-  content.innerHTML = `<div class="py-3">កំពុងទាញទិន្នន័យ...</div>`;
+  content.innerHTML = `<div class="card"><div class="card-body">កំពុងទាញទិន្នន័យ...</div></div>`;
   try{
-    // singular route on server → indicator
     const { rows=[] } = await apiGet({ api:1, route:'indicator', op:'list', limit:1000 });
-    if(!rows.length){
-      content.innerHTML = `<div class="alert alert-warning">មិនមានទិន្នន័យ Indicators ទេ</div>`;
-      return;
-    }
+    if(!rows.length){ content.innerHTML = `<div class="alert alert-warning m-2">មិនមានទិន្នន័យ Indicators</div>`; return; }
     const rowsHtml = rows.map((r,i)=>`
       <tr>
-        <td>${i+1}</td>
-        <td>${r.indicator_id}</td>
-        <td>${r.indicator_name||''}</td>
-        <td>${r.indicator_type||''}</td>
+        <td>${i+1}</td><td>${r.indicator_id}</td>
+        <td>${r.indicator_name||''}</td><td>${r.indicator_type||''}</td>
         <td>${r.department_id||''}</td>
-      </tr>
-    `).join('');
+      </tr>`).join('');
     content.innerHTML = `
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <h3 class="mb-0">Indicators</h3>
-        <button class="btn btn-sm btn-outline-primary" id="btnRefreshInd">↻ Refresh</button>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-striped align-middle">
-          <thead class="table-light">
-            <tr><th>#</th><th>ID</th><th>សូចនាករ</th><th>ប្រភេទ</th><th>កូដការិយាល័យ</th></tr>
-          </thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </div>
-    `;
-    document.getElementById('btnRefreshInd').onclick = renderIndicators;
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="mb-0">📌 Indicators</h5>
+            <button class="btn btn-outline-primary btn-sm" onclick="renderIndicators()">↻ Refresh</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped">
+              <thead class="table-light"><tr>
+                <th>#</th><th>ID</th><th>សូចនាករ</th><th>ប្រភេទ</th><th>កូដការិយាល័យ</th>
+              </tr></thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
   }catch(err){
     console.error(err);
-    content.innerHTML = `<div class="alert alert-danger">ទាញទិន្នន័យបរាជ័យ</div>`;
+    content.innerHTML = `<div class="alert alert-danger m-2">ទាញទិន្នន័យបរាជ័យ</div>`;
   }
 }
 
 async function renderPeriods(){
-  content.innerHTML = `<div class="py-3">កំពុងទាញ Periods...</div>`;
+  content.innerHTML = `<div class="card"><div class="card-body">កំពុងទាញ Periods...</div></div>`;
   try{
     const { rows=[] } = await apiGet({ api:1, route:'period', op:'list', limit:5000 });
     const rowsHtml = rows.map((r,i)=>`
       <tr><td>${i+1}</td><td>${r.period_id}</td><td>${r.period_name||''}</td><td>${r.year||''}</td><td>${r.month ?? ''}</td></tr>
     `).join('');
     content.innerHTML = `
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <h3 class="mb-0">Periods</h3>
-        <button class="btn btn-sm btn-outline-primary" id="btnGenPer">Generate ${new Date().getFullYear()}</button>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-striped align-middle">
-          <thead class="table-light">
-            <tr><th>#</th><th>ID</th><th>ឈ្មោះ</th><th>ឆ្នាំ</th><th>ខែ</th></tr>
-          </thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </div>
-    `;
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="mb-0">🗓️ Periods</h5>
+            <button class="btn btn-outline-primary btn-sm" id="btnGenPer">Generate ${new Date().getFullYear()}</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped">
+              <thead class="table-light">
+                <tr><th>#</th><th>ID</th><th>ឈ្មោះ</th><th>ឆ្នាំ</th><th>ខែ</th></tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
     document.getElementById('btnGenPer').onclick = async ()=>{
       await apiGet({ api:1, route:'period', op:'generate', year:new Date().getFullYear() });
       await renderPeriods();
     };
   }catch(err){
     console.error(err);
-    content.innerHTML = `<div class="alert alert-danger">ទាញ Periods បរាជ័យ</div>`;
+    content.innerHTML = `<div class="alert alert-danger m-2">ទាញ Periods បរាជ័យ</div>`;
   }
 }
 
-// ====== Logout ======
+async function renderReports(){
+  content.innerHTML = `
+    <div class="card"><div class="card-body">
+      <h5 class="mb-2">📈 Reports</h5>
+      <div class="text-muted">UI ជាអាទិភាពក្រោយ — នឹងភ្ជាប់ CRUD & Filter (period, indicator, department)...</div>
+    </div></div>`;
+}
+
+async function renderIssues(){
+  content.innerHTML = `
+    <div class="card"><div class="card-body">
+      <h5 class="mb-2">⚠️ Issues</h5>
+      <div class="text-muted">UI ដាក់បន្ត — បន្ថែមបញ្ជី បញ្ហា និង Actions ជាមួយ CRUD</div>
+    </div></div>`;
+}
+
+// ========== Logout ==========
 document.getElementById('btnLogout').addEventListener('click', (e)=>{
   e.preventDefault(); clearProfile(); showLogin();
 });
