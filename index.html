@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PHD Report System — Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body{background:#f0f2f5; font-family:"Noto Sans Khmer", Arial, sans-serif;}
@@ -12,6 +13,7 @@
     .sidebar .nav-link{color:#fff; margin:.3rem 0;}
     .sidebar .nav-link.active{background:#0b5ed7; border-radius:8px;}
     .main{margin-left:220px; padding:1rem;}
+    .table-sm td,.table-sm th{padding:.35rem .5rem;}
   </style>
 </head>
 <body>
@@ -57,13 +59,14 @@
 </div>
 
 <script>
-// ====== CONFIG (Injected Apps Script URL) ======
+// ====== CONFIG (Apps Script Web App URL) ======
 const API_BASE = "https://script.google.com/macros/s/AKfycbwcfq6wRE-d1TY1PRAobF3VhVbv0R6thDat7mB580AZIDnXrPiikn-fvKaIgcuPSMlJLA/exec";
 
 // ====== Elements ======
 const loginForm = document.getElementById('loginForm');
 const loginPage = document.getElementById('loginPage');
 const dashboardPage = document.getElementById('dashboardPage');
+const content = document.getElementById('content');
 const links = () => document.querySelectorAll('.sidebar .nav-link[data-tab]');
 
 // ====== Helpers ======
@@ -76,38 +79,29 @@ function apiUrl(params){
   return API_BASE + (API_BASE.includes('?')?'&':'?') + usp.toString();
 }
 async function apiGet(params){
-  const res = await fetch(apiUrl(params));
+  const res = await fetch(apiUrl(params), { cache: "no-store" });
   if(!res.ok) throw new Error('API GET failed');
   return res.json();
 }
-function showDashboard(){
-  loginPage.classList.add('d-none');
-  dashboardPage.classList.remove('d-none');
-}
-function showLogin(){
-  dashboardPage.classList.add('d-none');
-  loginPage.classList.remove('d-none');
-}
+function showDashboard(){ loginPage.classList.add('d-none'); dashboardPage.classList.remove('d-none'); }
+function showLogin(){ dashboardPage.classList.add('d-none'); loginPage.classList.remove('d-none'); }
 
 // ====== Auth State ======
 function getProfile(){ try{ return JSON.parse(localStorage.getItem('phdUserProfile')||'null'); }catch{ return null } }
 function setProfile(p){ localStorage.setItem('phdUserProfile', JSON.stringify(p)); }
 function clearProfile(){ localStorage.removeItem('phdUserProfile'); }
 
-// Auto-redirect if already logged in
-(function initAuth(){
-  const p = getProfile();
-  if(p) showDashboard();
-})();
+// auto-show dashboard if session exists
+(function initAuth(){ if(getProfile()) showDashboard(); })();
 
-// ====== Login Flow (validate against Apps Script users.json) ======
-loginForm.addEventListener('submit', async function(e){
+// ====== Login (validate with users.json on server) ======
+loginForm.addEventListener('submit', async (e)=>{
   e.preventDefault();
   const user = document.getElementById('username').value.trim();
   const pass = document.getElementById('password').value;
   if(!user || !pass){ alert('សូមបំពេញឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់'); return; }
   try{
-    // fetch all users (MVP). You can add a server-side filter later.
+    // server uses singular route names → 'user'
     const data = await apiGet({ api:1, route:'user', op:'list', limit:5000 });
     const rows = data.rows || [];
     const u = rows.find(r => String(r.user_name||'').toLowerCase() === user.toLowerCase());
@@ -116,51 +110,127 @@ loginForm.addEventListener('submit', async function(e){
     const stored = String(u.user_pass||'');
     let ok = false;
     if(stored && stored.length === 64){
-      // stored is SHA-256 hex
-      const hash = await sha256Hex(pass);
-      ok = (hash === stored);
-    } else {
-      // stored plaintext (for MVP/testing)
-      ok = (stored === pass);
-    }
+      const hash = await sha256Hex(pass); ok = (hash === stored);
+    } else { ok = (stored === pass); }
 
-    if(!ok){ alert('ពាក់សំងាត់មិនត៊ីរំមាត'); return; }
+    if(!ok){ alert('ពាក្យសម្ងាត់មិនត្រឹមត្រូវ'); return; }
 
-    const profile = {
-      user_id: u.user_id,
-      user_name: u.user_name,
-      user_type: u.user_type,
-      user_root: u.user_root,
-      department_id: u.department_id,
-      login_at: Date.now()
-    };
-    setProfile(profile);
+    setProfile({
+      user_id: u.user_id, user_name: u.user_name,
+      user_type: u.user_type, user_root: u.user_root,
+      department_id: u.department_id, login_at: Date.now()
+    });
     showDashboard();
-  } catch(err){
-    console.error(err);
-    alert('Login បរាជ័យ (API)');
+    // default load dashboard content
+    renderDashboard();
+  }catch(err){
+    console.error(err); alert('Login បរាជ័យ (API)');
   }
 });
 
-// ====== Sidebar navigation switch ======
+// ====== Sidebar navigation ======
 function wireNav(){
   links().forEach(l=>{
-    l.addEventListener('click', e=>{
+    l.addEventListener('click', async (e)=>{
       e.preventDefault();
       links().forEach(x=>x.classList.remove('active'));
       l.classList.add('active');
-      const tab=l.dataset.tab;
-      document.getElementById('content').innerHTML=`<h3 class="text-capitalize">${tab}</h3><p>គ្រប់គ្រង ${tab} នៅទីនេះ...</p>`;
+      const tab = l.dataset.tab;
+      if (tab === 'dashboard') renderDashboard();
+      else if (tab === 'indicators') await renderIndicators();
+      else if (tab === 'periods') await renderPeriods();
+      else content.innerHTML = `<h3 class="text-capitalize">${tab}</h3><p>គ្រប់គ្រង ${tab} នៅទីនេះ...</p>`;
     });
   });
 }
 wireNav();
 
-// ====== Logout ======
-const btnLogout = document.getElementById('btnLogout');
-if(btnLogout){
-  btnLogout.addEventListener('click', (e)=>{ e.preventDefault(); clearProfile(); showLogin(); });
+// ====== Views ======
+function renderDashboard(){
+  const p = getProfile();
+  content.innerHTML = `
+    <div class="d-flex align-items-center justify-content-between">
+      <h2 class="mb-0">សូមស្វាគមន៍ ${p ? p.user_name : ''}</h2>
+      <span class="badge text-bg-primary">Department: ${p?.department_id ?? '-'}</span>
+    </div>
+    <p class="text-muted mt-2">ជ្រើសម៉ឺនុយខាងឆ្វេង ឬមើលបញ្ជីសុច្សនាករ។</p>
+  `;
 }
+
+async function renderIndicators(){
+  content.innerHTML = `<div class="py-3">កំពុងទាញទិន្នន័យ...</div>`;
+  try{
+    // singular route on server → indicator
+    const { rows=[] } = await apiGet({ api:1, route:'indicator', op:'list', limit:1000 });
+    if(!rows.length){
+      content.innerHTML = `<div class="alert alert-warning">មិនមានទិន្នន័យ Indicators ទេ</div>`;
+      return;
+    }
+    const rowsHtml = rows.map((r,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${r.indicator_id}</td>
+        <td>${r.indicator_name||''}</td>
+        <td>${r.indicator_type||''}</td>
+        <td>${r.department_id||''}</td>
+      </tr>
+    `).join('');
+    content.innerHTML = `
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h3 class="mb-0">Indicators</h3>
+        <button class="btn btn-sm btn-outline-primary" id="btnRefreshInd">↻ Refresh</button>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle">
+          <thead class="table-light">
+            <tr><th>#</th><th>ID</th><th>សូចនាករ</th><th>ប្រភេទ</th><th>កូដការិយាល័យ</th></tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    `;
+    document.getElementById('btnRefreshInd').onclick = renderIndicators;
+  }catch(err){
+    console.error(err);
+    content.innerHTML = `<div class="alert alert-danger">ទាញទិន្នន័យបរាជ័យ</div>`;
+  }
+}
+
+async function renderPeriods(){
+  content.innerHTML = `<div class="py-3">កំពុងទាញ Periods...</div>`;
+  try{
+    const { rows=[] } = await apiGet({ api:1, route:'period', op:'list', limit:5000 });
+    const rowsHtml = rows.map((r,i)=>`
+      <tr><td>${i+1}</td><td>${r.period_id}</td><td>${r.period_name||''}</td><td>${r.year||''}</td><td>${r.month ?? ''}</td></tr>
+    `).join('');
+    content.innerHTML = `
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h3 class="mb-0">Periods</h3>
+        <button class="btn btn-sm btn-outline-primary" id="btnGenPer">Generate ${new Date().getFullYear()}</button>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle">
+          <thead class="table-light">
+            <tr><th>#</th><th>ID</th><th>ឈ្មោះ</th><th>ឆ្នាំ</th><th>ខែ</th></tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    `;
+    document.getElementById('btnGenPer').onclick = async ()=>{
+      await apiGet({ api:1, route:'period', op:'generate', year:new Date().getFullYear() });
+      await renderPeriods();
+    };
+  }catch(err){
+    console.error(err);
+    content.innerHTML = `<div class="alert alert-danger">ទាញ Periods បរាជ័យ</div>`;
+  }
+}
+
+// ====== Logout ======
+document.getElementById('btnLogout').addEventListener('click', (e)=>{
+  e.preventDefault(); clearProfile(); showLogin();
+});
 </script>
 </body>
 </html>
