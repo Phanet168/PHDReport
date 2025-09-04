@@ -1,52 +1,166 @@
 <!doctype html>
 <html lang="km">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PHD Report System — Dashboard</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;600;700&display=swap" rel="stylesheet">
-<style>
-:root{ --sidebar:#0f3d8a; --ink:#1f2937; --bg:#f6f7fb; --radius:16px; --shadow:0 10px 25px rgba(0,0,0,.06); }
-body{ background:var(--bg); font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
-.layout{ display:grid; grid-template-columns: 260px 1fr; min-height:100vh; }
-.sidebar{ background:var(--sidebar); color:#fff; padding:1rem; position:sticky; top:0; height:100vh; }
-.brand{ font-weight:700; letter-spacing:.3px }
-.menu a{ color:#dbeafe; text-decoration:none; display:block; padding:.6rem .8rem; border-radius:10px }
-.menu a.active, .menu a:hover{ background:rgba(255,255,255,.12) }
-.main{ padding:1rem; }
-.card{ border-radius:var(--radius); box-shadow:var(--shadow); }
-.topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem }
-.btn-ghost{ background:transparent; border:0; color:#fff }
-@media (max-width: 992px){ .layout{ grid-template-columns: 1fr } .sidebar{ position:fixed; left:-280px; width:260px; transition:left .25s } .sidebar.open{ left:0 } .topbar .menu-toggle{ display:inline-block } }
-@media (min-width: 992px){ .topbar .menu-toggle{ display:none } }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PHD Report System — Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body{background:#f0f2f5; font-family:"Noto Sans Khmer", Arial, sans-serif;}
+    .login-card{max-width:420px; margin:10vh auto; border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.1);}
+    .sidebar{width:220px; background:#0d6efd; color:#fff; height:100vh; position:fixed; top:0; left:0; padding:1rem;}
+    .sidebar .nav-link{color:#fff; margin:.3rem 0;}
+    .sidebar .nav-link.active{background:#0b5ed7; border-radius:8px;}
+    .main{margin-left:220px; padding:1rem;}
+  </style>
 </head>
 <body>
-<div class="layout">
-<aside class="sidebar" id="sidebar">
-<div class="d-flex align-items-center justify-content-between mb-3">
-<div class="brand">PHD</div>
-<button class="btn-ghost menu-toggle" onclick="toggleSidebar()">☰</button>
-</div>
-<div class="small mb-3" id="userBadge">—</div>
-<nav class="menu">
-<a href="#" data-tab="dashboard" class="active">📊 Dashboard</a>
-<a href="#" data-tab="reports">🧾 Reports</a>
-<a href="#" data-tab="indicators">🏷️ Indicators</a>
-<a href="#" data-tab="issues">🚧 Issues</a>
-<a href="#" data-tab="periods">🗓️ Periods</a>
-<hr class="border-light">
-<a href="#" id="btnLogout">🚪 Logout</a>
-</nav>
-<div class="mt-3">
-<label class="form-label text-white-50">API URL</label>
-<input id="apiBase" class="form-control form-control-sm" placeholder="https://.../exec">
-<button class="btn btn-outline-light btn-sm w-100 mt-2" id="btnSaveApi">Save</button>
-</div>
-</aside>
 
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="container">
+  <div class="card login-card p-4">
+    <h3 class="mb-3 text-center">PHD Report System</h3>
+    <form id="loginForm">
+      <div class="mb-3">
+        <label class="form-label">ឈ្មោះអ្នកប្រើប្រាស់</label>
+        <input type="text" id="username" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">ពាក្យសម្ងាត់</label>
+        <input type="password" id="password" class="form-control" required>
+      </div>
+      <button class="btn btn-primary w-100">ចូលប្រើប្រាស់</button>
+    </form>
+  </div>
+</div>
 
-<main class="main">
-<div class="topbar">
+<!-- MAIN DASHBOARD -->
+<div id="dashboardPage" class="d-none">
+  <div class="sidebar">
+    <h5 class="mb-4">📊 Dashboard</h5>
+    <nav class="nav flex-column">
+      <a href="#" class="nav-link active" data-tab="dashboard">Dashboard</a>
+      <a href="#" class="nav-link" data-tab="reports">Reports</a>
+      <a href="#" class="nav-link" data-tab="indicators">Indicators</a>
+      <a href="#" class="nav-link" data-tab="issues">Issues</a>
+      <a href="#" class="nav-link" data-tab="periods">Periods</a>
+      <hr class="border-light">
+      <a href="#" class="nav-link text-warning" id="btnLogout">Logout</a>
+    </nav>
+  </div>
+  <div class="main">
+    <div id="content">
+      <h2>សូមស្វាគមន៍ មកកាន់ផ្ទាំងគ្រប់គ្រង</h2>
+      <p>ជ្រើសរើសម៉ឺនុយពីខាងឆ្វេង។</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== CONFIG (Injected Apps Script URL) ======
+const API_BASE = "https://script.google.com/macros/s/AKfycbwcfq6wRE-d1TY1PRAobF3VhVbv0R6thDat7mB580AZIDnXrPiikn-fvKaIgcuPSMlJLA/exec";
+
+// ====== Elements ======
+const loginForm = document.getElementById('loginForm');
+const loginPage = document.getElementById('loginPage');
+const dashboardPage = document.getElementById('dashboardPage');
+const links = () => document.querySelectorAll('.sidebar .nav-link[data-tab]');
+
+// ====== Helpers ======
+async function sha256Hex(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function apiUrl(params){
+  const usp = new URLSearchParams(params);
+  return API_BASE + (API_BASE.includes('?')?'&':'?') + usp.toString();
+}
+async function apiGet(params){
+  const res = await fetch(apiUrl(params));
+  if(!res.ok) throw new Error('API GET failed');
+  return res.json();
+}
+function showDashboard(){
+  loginPage.classList.add('d-none');
+  dashboardPage.classList.remove('d-none');
+}
+function showLogin(){
+  dashboardPage.classList.add('d-none');
+  loginPage.classList.remove('d-none');
+}
+
+// ====== Auth State ======
+function getProfile(){ try{ return JSON.parse(localStorage.getItem('phdUserProfile')||'null'); }catch{ return null } }
+function setProfile(p){ localStorage.setItem('phdUserProfile', JSON.stringify(p)); }
+function clearProfile(){ localStorage.removeItem('phdUserProfile'); }
+
+// Auto-redirect if already logged in
+(function initAuth(){
+  const p = getProfile();
+  if(p) showDashboard();
+})();
+
+// ====== Login Flow (validate against Apps Script users.json) ======
+loginForm.addEventListener('submit', async function(e){
+  e.preventDefault();
+  const user = document.getElementById('username').value.trim();
+  const pass = document.getElementById('password').value;
+  if(!user || !pass){ alert('សូមបំពេញឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់'); return; }
+  try{
+    // fetch all users (MVP). You can add a server-side filter later.
+    const data = await apiGet({ api:1, route:'user', op:'list', limit:5000 });
+    const rows = data.rows || [];
+    const u = rows.find(r => String(r.user_name||'').toLowerCase() === user.toLowerCase());
+    if(!u){ alert('មិនមានអ្នកប្រើប្រាស់នេះ'); return; }
+
+    const stored = String(u.user_pass||'');
+    let ok = false;
+    if(stored && stored.length === 64){
+      // stored is SHA-256 hex
+      const hash = await sha256Hex(pass);
+      ok = (hash === stored);
+    } else {
+      // stored plaintext (for MVP/testing)
+      ok = (stored === pass);
+    }
+
+    if(!ok){ alert('ពាក់សំងាត់មិនត៊ីរំមាត'); return; }
+
+    const profile = {
+      user_id: u.user_id,
+      user_name: u.user_name,
+      user_type: u.user_type,
+      user_root: u.user_root,
+      department_id: u.department_id,
+      login_at: Date.now()
+    };
+    setProfile(profile);
+    showDashboard();
+  } catch(err){
+    console.error(err);
+    alert('Login បរាជ័យ (API)');
+  }
+});
+
+// ====== Sidebar navigation switch ======
+function wireNav(){
+  links().forEach(l=>{
+    l.addEventListener('click', e=>{
+      e.preventDefault();
+      links().forEach(x=>x.classList.remove('active'));
+      l.classList.add('active');
+      const tab=l.dataset.tab;
+      document.getElementById('content').innerHTML=`<h3 class="text-capitalize">${tab}</h3><p>គ្រប់គ្រង ${tab} នៅទីនេះ...</p>`;
+    });
+  });
+}
+wireNav();
+
+// ====== Logout ======
+const btnLogout = document.getElementById('btnLogout');
+if(btnLogout){
+  btnLogout.addEventListener('click', (e)=>{ e.preventDefault(); clearProfile(); showLogin(); });
+}
+</script>
+</body>
 </html>
