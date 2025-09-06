@@ -1,50 +1,55 @@
 <!doctype html>
 <html lang="km">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>PHD Report System</title>
 
-  <!-- Gull CSS (update paths to match your template) -->
+  <!-- ===== Gull CSS (update paths) ===== -->
   <link rel="stylesheet" href="assets/css/lite-purple.min.css">
   <link rel="stylesheet" href="assets/css/perfect-scrollbar.min.css">
-  <link rel="stylesheet" href="assets/fonts/icomoon/style.css"> <!-- for i-Home1, i-Bar-Chart ... -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/fonts/icomoon/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <!-- Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
   <style>
-    body{ font-family:"Noto Sans Khmer","Roboto","Nunito",sans-serif; }
-    .auth-layout-wrap{ min-height:100vh; background:#0d6efd linear-gradient(135deg,#0d6efd,#6610f2); }
-    .auth-content .card{ border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.12); }
-    .nav-text{ font-size:14px; }
-    .main-content .card{ border-radius:14px; }
-    .table-sm td,.table-sm th{ padding:.4rem .6rem; }
+    body{font-family:"Noto Sans Khmer","Nunito","Roboto",sans-serif}
+    .auth-layout-wrap{min-height:100vh;background:#5f4dee linear-gradient(135deg,#5f4dee,#a16ae8)}
+    .auth-content .card{border-radius:18px;box-shadow:0 10px 28px rgba(0,0,0,.15)}
+    .kpi-card .icon{font-size:40px;opacity:.65}
+    .kpi-card .value{font-size:36px;font-weight:700;color:#6d46f7}
+    .nav-text{font-size:14px}
+    .main-content .card{border-radius:16px}
+    .gull-breadcrumb{font-size:14px;color:#9aa0ac}
   </style>
 </head>
 <body>
 
-<!-- ===================== LOGIN (Gull Auth Layout) ===================== -->
+<!-- ================= LOGIN (Gull Auth) ================= -->
 <div id="loginPage" class="auth-layout-wrap">
   <div class="auth-content">
     <div class="card o-hidden">
       <div class="row">
         <div class="col-md-12">
           <div class="p-4 p-md-5">
-            <div class="text-center mb-3">
-              <h3 class="mb-1">PHD Report System</h3>
-              <div class="text-muted">ចូលប្រើប្រាស់</div>
+            <div class="d-flex align-items-center mb-3">
+              <img src="assets/images/logo.png" alt="" height="32" class="me-2">
+              <h3 class="mb-0">PHD Report System</h3>
             </div>
+            <p class="text-muted mb-4">ចូលប្រើប្រាស់គ្រប់គ្រងរបាយការណ៍</p>
             <form id="loginForm">
               <div class="form-group mb-3">
-                <label class="text-muted">ឈ្មោះអ្នកប្រើប្រាស់</label>
-                <input type="text" id="username" class="form-control form-control-rounded" required>
+                <label>ឈ្មោះអ្នកប្រើប្រាស់</label>
+                <input id="username" type="text" class="form-control form-control-rounded" required>
               </div>
               <div class="form-group mb-4">
-                <label class="text-muted">ពាក្យសម្ងាត់</label>
-                <input type="password" id="password" class="form-control form-control-rounded" required>
+                <label>ពាក្យសម្ងាត់</label>
+                <input id="password" type="password" class="form-control form-control-rounded" required>
               </div>
-              <button class="btn btn-rounded btn-primary btn-block mt-2">ចូលប្រើប្រាស់</button>
+              <button class="btn btn-rounded btn-primary btn-block">ចូលប្រើប្រាស់</button>
             </form>
-            <div id="loginMsg" class="text-danger small mt-2 d-none">Login មិនបាន</div>
+            <div id="loginMsg" class="text-danger mt-3 d-none">Login មិនបាន</div>
           </div>
         </div>
       </div>
@@ -52,41 +57,36 @@
   </div>
 </div>
 
-<!-- ===================== APP LAYOUT (Gull Admin) ===================== -->
+<!-- ================= APP (Gull Admin) ================= -->
 <div id="dashboardPage" class="app-admin-wrap layout-sidebar-large d-none">
   <!-- Sidebar -->
   <div class="sidebar-left open">
-    <div class="logo d-flex align-items-center px-3 py-2">
-      <span class="text-white fw-bold">PHD Report</span>
+    <div class="logo d-flex align-items-center px-3 py-3">
+      <img src="assets/images/logo.png" alt="" height="26" class="me-2">
+      <span class="text-white fw-bold">Gull</span>
     </div>
-    <div class="ps ps--active-y perfect-scrollbar">
-      <ul class="navigation-left">
-        <li class="nav-item active">
-          <a class="nav-item-hold" href="#" data-tab="dashboard">
-            <i class="nav-icon i-Home1"></i><span class="nav-text">Dashboard</span>
-          </a><div class="triangle"></div>
-        </li>
-        <li class="nav-item">
-          <a class="nav-item-hold" href="#" data-tab="reports">
-            <i class="nav-icon i-Bar-Chart"></i><span class="nav-text">Reports</span>
-          </a><div class="triangle"></div>
-        </li>
-        <li class="nav-item">
-          <a class="nav-item-hold" href="#" data-tab="indicators">
-            <i class="nav-icon i-Check"></i><span class="nav-text">Indicators</span>
-          </a><div class="triangle"></div>
-        </li>
-        <li class="nav-item">
-          <a class="nav-item-hold" href="#" data-tab="issues">
-            <i class="nav-icon i-Warning"></i><span class="nav-text">Issues</span>
-          </a><div class="triangle"></div>
-        </li>
-        <li class="nav-item">
-          <a class="nav-item-hold" href="#" data-tab="periods">
-            <i class="nav-icon i-Calendar-4"></i><span class="nav-text">Periods</span>
-          </a><div class="triangle"></div>
-        </li>
-      </ul>
+    <div class="ps perfect-scrollbar">
+      <div class="sidebar-left-content">
+        <ul class="navigation-left">
+          <li class="nav-item active">
+            <a class="nav-item-hold" href="#" data-tab="dashboard">
+              <i class="nav-icon i-Bar-Chart"></i><span class="nav-text">Version 1</span>
+            </a><div class="triangle"></div>
+          </li>
+          <li class="nav-item"><a class="nav-item-hold" href="#" data-tab="reports">
+            <i class="nav-icon i-Financial"></i><span class="nav-text">Reports</span></a><div class="triangle"></div>
+          </li>
+          <li class="nav-item"><a class="nav-item-hold" href="#" data-tab="indicators">
+            <i class="nav-icon i-Check"></i><span class="nav-text">Indicators</span></a><div class="triangle"></div>
+          </li>
+          <li class="nav-item"><a class="nav-item-hold" href="#" data-tab="issues">
+            <i class="nav-icon i-Warning"></i><span class="nav-text">Issues</span></a><div class="triangle"></div>
+          </li>
+          <li class="nav-item"><a class="nav-item-hold" href="#" data-tab="periods">
+            <i class="nav-icon i-Calendar-4"></i><span class="nav-text">Periods</span></a><div class="triangle"></div>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 
@@ -95,16 +95,20 @@
     <!-- Header -->
     <div class="main-header d-flex align-items-center justify-content-between">
       <div class="d-flex align-items-center">
-        <div class="menu-toggle">
-          <div></div><div></div><div></div>
+        <div class="menu-toggle"><div></div><div></div><div></div></div>
+        <div class="d-none d-sm-inline gull-breadcrumb ms-3">
+          Dashboard <span class="text-muted">| Version 1</span>
         </div>
-        <h4 class="ms-3 mb-0">ផ្ទាំងគ្រប់គ្រង</h4>
       </div>
       <div class="header-part-right d-flex align-items-center">
-        <div class="user col align-self-end pe-3">
+        <div class="search-bar d-none d-md-flex align-items-center">
+          <input class="form-control" type="text" placeholder="Search" style="width:260px">
+          <i class="i-Magnifi-Glass1 mx-2"></i>
+        </div>
+        <div class="user col align-self-end ps-3">
           <span id="topUser" class="text-muted small"></span>
         </div>
-        <button id="btnLogout" class="btn btn-outline-danger btn-sm">Logout</button>
+        <button id="btnLogout" class="btn btn-outline-danger btn-sm ms-2">Logout</button>
       </div>
     </div>
 
@@ -117,83 +121,52 @@
   </div>
 </div>
 
-<!-- ===================== JS ===================== -->
+<!-- ===== Gull JS (update paths) ===== -->
 <script src="assets/js/perfect-scrollbar.min.js"></script>
+
 <script>
-// ========== CONFIG ==========
+/* ========= CONFIG ========= */
 const API_BASE = "https://script.google.com/macros/s/AKfycbwcfq6wRE-d1TY1PRAobF3VhVbv0R6thDat7mB580AZIDnXrPiikn-fvKaIgcuPSMlJLA/exec";
 
-// ========== Elements ==========
-const loginPage = document.getElementById('loginPage');
-const dashboardPage = document.getElementById('dashboardPage');
-const loginForm = document.getElementById('loginForm');
-const loginMsg = document.getElementById('loginMsg');
-const content = document.getElementById('content');
-const topUser = document.getElementById('topUser');
+/* ========= Helpers ========= */
+const $ = (s,p=document)=>p.querySelector(s);
+const $$ = (s,p=document)=>Array.from(p.querySelectorAll(s));
+function apiUrl(p){const u=new URLSearchParams(p);return API_BASE+(API_BASE.includes('?')?'&':'?')+u.toString()}
+async function apiGet(p){const r=await fetch(apiUrl(p),{cache:'no-store'}); if(!r.ok) throw new Error('api'); return r.json()}
+async function sha256Hex(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(b=>b.toString(16).padStart(2,'0')).join('')}
 
-// ========== Helpers ==========
-function apiUrl(params){
-  const usp = new URLSearchParams(params);
-  return API_BASE + (API_BASE.includes('?')?'&':'?') + usp.toString();
-}
-async function apiGet(params){
-  const res = await fetch(apiUrl(params), { cache: 'no-store' });
-  if(!res.ok) throw new Error('API GET failed');
-  return res.json();
-}
-async function sha256Hex(str){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
+/* ========= State ========= */
+function getProfile(){try{return JSON.parse(localStorage.getItem('phdUserProfile')||'null')}catch{return null}}
+function setProfile(p){localStorage.setItem('phdUserProfile',JSON.stringify(p)); $('#topUser').textContent=p.user_name}
+function clearProfile(){localStorage.removeItem('phdUserProfile'); $('#topUser').textContent=''}
 
-// auth state
-function getProfile(){ try{ return JSON.parse(localStorage.getItem('phdUserProfile')||'null'); }catch{ return null } }
-function setProfile(p){ localStorage.setItem('phdUserProfile', JSON.stringify(p)); topUser.textContent = p.user_name; }
-function clearProfile(){ localStorage.removeItem('phdUserProfile'); topUser.textContent = ''; }
+/* ========= Views ========= */
+function showLogin(){ $('#dashboardPage').classList.add('d-none'); $('#loginPage').classList.remove('d-none') }
+function showApp(){ $('#loginPage').classList.add('d-none'); $('#dashboardPage').classList.remove('d-none') }
 
-function showDashboard(){ loginPage.classList.add('d-none'); dashboardPage.classList.remove('d-none'); }
-function showLogin(){ dashboardPage.classList.add('d-none'); loginPage.classList.remove('d-none'); }
-
-// init: keep session
-(function(){
-  const p = getProfile();
-  if(p){ setProfile(p); showDashboard(); renderDashboard(); }
-})();
-
-// ========== Login ==========
-loginForm.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  loginMsg.classList.add('d-none');
-  const user = document.getElementById('username').value.trim();
-  const pass = document.getElementById('password').value;
-  if(!user || !pass){ loginMsg.textContent='សូមបំពេញឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់'; loginMsg.classList.remove('d-none'); return; }
+/* ========= Login ========= */
+$('#loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault(); $('#loginMsg').classList.add('d-none');
+  const user=$('#username').value.trim(); const pass=$('#password').value;
+  if(!user||!pass){$('#loginMsg').textContent='សូមបំពេញឈ្មោះ និង ពាក្យសម្ងាត់';$('#loginMsg').classList.remove('d-none');return}
   try{
-    const data = await apiGet({ api:1, route:'user', op:'list', limit:5000 });
-    const rows = data.rows || [];
-    const u = rows.find(r => String(r.user_name||'').toLowerCase() === user.toLowerCase());
-    if(!u){ loginMsg.textContent='មិនមានអ្នកប្រើប្រាស់នេះ'; loginMsg.classList.remove('d-none'); return; }
-    const stored = String(u.user_pass||'');
-    let ok=false;
-    if(stored.length===64){ ok=(await sha256Hex(pass))===stored; } else { ok = stored===pass; }
-    if(!ok){ loginMsg.textContent='ពាក្យសម្ងាត់មិនត្រឹមត្រូវ'; loginMsg.classList.remove('d-none'); return; }
-
-    const profile = { user_id:u.user_id, user_name:u.user_name, user_type:u.user_type, user_root:u.user_root, department_id:u.department_id, login_at:Date.now() };
-    setProfile(profile);
-    showDashboard();
-    renderDashboard();
-  }catch(err){
-    console.error(err);
-    loginMsg.textContent='Login បរាជ័យ (API)'; loginMsg.classList.remove('d-none');
-  }
+    const {rows=[]}=await apiGet({api:1,route:'user',op:'list',limit:5000});
+    const u=rows.find(r=>String(r.user_name||'').toLowerCase()===user.toLowerCase());
+    if(!u){$('#loginMsg').textContent='មិនមានអ្នកប្រើប្រាស់នេះ';$('#loginMsg').classList.remove('d-none');return}
+    const s=String(u.user_pass||''); let ok=false;
+    ok = (s.length===64) ? (await sha256Hex(pass))===s : (s===pass);
+    if(!ok){$('#loginMsg').textContent='ពាក្យសម្ងាត់មិនត្រឹមត្រូវ';$('#loginMsg').classList.remove('d-none');return}
+    setProfile({user_id:u.user_id,user_name:u.user_name,user_type:u.user_type,user_root:u.user_root,department_id:u.department_id,login_at:Date.now()});
+    showApp(); renderDashboard();
+  }catch(err){console.error(err);$('#loginMsg').textContent='Login បរាជ័យ (API)';$('#loginMsg').classList.remove('d-none')}
 });
 
-// ========== Sidebar actions ==========
-document.querySelectorAll('.navigation-left .nav-item a[data-tab]').forEach(a=>{
+/* ========= Sidebar Actions ========= */
+$$('.navigation-left .nav-item a[data-tab]').forEach(a=>{
   a.addEventListener('click', async (e)=>{
-    e.preventDefault();
-    document.querySelectorAll('.navigation-left .nav-item').forEach(li=>li.classList.remove('active'));
+    e.preventDefault(); $$('.navigation-left .nav-item').forEach(li=>li.classList.remove('active'));
     a.closest('.nav-item').classList.add('active');
-    const tab = a.dataset.tab;
+    const tab=a.dataset.tab;
     if(tab==='dashboard') renderDashboard();
     else if(tab==='indicators') await renderIndicators();
     else if(tab==='periods') await renderPeriods();
@@ -202,124 +175,158 @@ document.querySelectorAll('.navigation-left .nav-item a[data-tab]').forEach(a=>{
   });
 });
 
-// ========== Views ==========
-function renderDashboard(){
-  const p = getProfile();
-  content.innerHTML = `
+/* ========= Dashboard (Version 1 style) ========= */
+async function renderDashboard(){
+  const year=(new Date()).getFullYear();
+  $('#content').innerHTML = `
+    <h3 class="mb-3">Version 1 <span class="gull-breadcrumb">| Dashboard | Version 1</span></h3>
     <div class="row">
-      <div class="col-lg-4">
-        <div class="card mb-3">
-          <div class="card-body">
-            <h5 class="card-title mb-2">សូមស្វាគមន៍</h5>
-            <div class="text-muted">អ្នកប្រើ: <b>${p?.user_name||'-'}</b></div>
-            <div class="text-muted">Department: <b>${p?.department_id ?? '-'}</b></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-8">
-        <div class="card mb-3">
-          <div class="card-body">
-            <h5 class="card-title mb-2">Quick Links</h5>
-            <div class="d-flex gap-2 flex-wrap">
-              <button class="btn btn-primary btn-sm" onclick="renderIndicators()">📌 Indicators</button>
-              <button class="btn btn-success btn-sm" onclick="renderPeriods()">🗓️ Periods</button>
-              <button class="btn btn-info btn-sm" onclick="renderReports()">📈 Reports</button>
-              <button class="btn btn-warning btn-sm" onclick="renderIssues()">⚠️ Issues</button>
+      <div class="col-lg-3 col-md-6">
+        <div class="card kpi-card mb-4">
+          <div class="card-body d-flex align-items-center">
+            <i class="i-Add-UserStar icon text-primary me-3"></i>
+            <div>
+              <div class="text-muted">New Leads</div>
+              <div id="kpi1" class="value">—</div>
             </div>
           </div>
         </div>
       </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="card kpi-card mb-4"><div class="card-body d-flex align-items-center">
+          <i class="i-Money-2 icon text-primary me-3"></i>
+          <div><div class="text-muted">Sales</div><div id="kpi2" class="value">$—</div></div>
+        </div></div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="card kpi-card mb-4"><div class="card-body d-flex align-items-center">
+          <i class="i-Basket-Coins icon text-primary me-3"></i>
+          <div><div class="text-muted">Orders</div><div id="kpi3" class="value">—</div></div>
+        </div></div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="card kpi-card mb-4"><div class="card-body d-flex align-items-center">
+          <i class="i-Wallet icon text-primary me-3"></i>
+          <div><div class="text-muted">Expense</div><div id="kpi4" class="value">$—</div></div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-xl-8">
+        <div class="card mb-4"><div class="card-body">
+          <h5 class="mb-3">This Year Sales</h5>
+          <canvas id="salesChart" height="120"></canvas>
+        </div></div>
+      </div>
+      <div class="col-xl-4">
+        <div class="card mb-4"><div class="card-body">
+          <h5 class="mb-3">Sales by Countries</h5>
+          <canvas id="countryChart" height="220"></canvas>
+        </div></div>
+      </div>
     </div>`;
+
+  // Load some numbers from reports (demo: sum value/plan by month)
+  try{
+    const {rows=[]}=await apiGet({api:1,route:'report',op:'list',year});
+    const monthly = Array.from({length:12},()=>({val:0,plan:0}));
+    rows.forEach(r=>{
+      // assume period_id like 2025M06
+      const m = /M(\d{2})/.exec(String(r.period_id||'')); const mi = m ? (Number(m[1])-1) : 0;
+      monthly[mi].val  += Number(r.value||0);
+      monthly[mi].plan += Number(r.plan_value||0);
+    });
+    // fake KPIs from data
+    $('#kpi1').textContent = (rows.length*2 + 205).toString();
+    $('#kpi2').textContent = '$' + monthly.reduce((a,b)=>a+b.val,0);
+    $('#kpi3').textContent = rows.length || 80;
+    $('#kpi4').textContent = '$' + monthly.reduce((a,b)=>a+b.plan,0);
+
+    const labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const ctx1 = document.getElementById('salesChart');
+    new Chart(ctx1,{type:'bar',data:{labels,
+      datasets:[
+        {label:'Online',  data:monthly.map(m=>m.val),  borderWidth:1},
+        {label:'Offline', data:monthly.map(m=>m.plan), borderWidth:1}
+      ]},
+      options:{responsive:true,plugins:{legend:{position:'top'}}}
+    });
+
+    const ctx2 = document.getElementById('countryChart');
+    new Chart(ctx2,{type:'pie',data:{
+      labels:['USA','India','UK','KH','Other'],
+      datasets:[{data:[35,22,15,8,20]}]
+    }});
+  }catch(e){ console.warn('Chart data fallback', e); }
 }
 
+/* ========= Indicators ========= */
 async function renderIndicators(){
-  content.innerHTML = `<div class="card"><div class="card-body">កំពុងទាញទិន្នន័យ...</div></div>`;
+  $('#content').innerHTML = `<h3 class="mb-3">Indicators</h3>
+    <div class="card"><div class="card-body">កំពុងទាញទិន្នន័យ...</div></div>`;
   try{
-    const { rows=[] } = await apiGet({ api:1, route:'indicator', op:'list', limit:1000 });
-    if(!rows.length){ content.innerHTML = `<div class="alert alert-warning m-2">មិនមានទិន្នន័យ Indicators</div>`; return; }
-    const rowsHtml = rows.map((r,i)=>`
-      <tr>
-        <td>${i+1}</td><td>${r.indicator_id}</td>
-        <td>${r.indicator_name||''}</td><td>${r.indicator_type||''}</td>
-        <td>${r.department_id||''}</td>
-      </tr>`).join('');
-    content.innerHTML = `
-      <div class="card">
-        <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <h5 class="mb-0">📌 Indicators</h5>
-            <button class="btn btn-outline-primary btn-sm" onclick="renderIndicators()">↻ Refresh</button>
-          </div>
-          <div class="table-responsive">
-            <table class="table table-sm table-striped">
-              <thead class="table-light"><tr>
-                <th>#</th><th>ID</th><th>សូចនាករ</th><th>ប្រភេទ</th><th>កូដការិយាល័យ</th>
-              </tr></thead>
-              <tbody>${rowsHtml}</tbody>
-            </table>
-          </div>
+    const {rows=[]}=await apiGet({api:1,route:'indicator',op:'list',limit:1000});
+    const body = rows.map((r,i)=>`
+      <tr><td>${i+1}</td><td>${r.indicator_id}</td><td>${r.indicator_name||''}</td>
+      <td>${r.indicator_type||''}</td><td>${r.department_id||''}</td></tr>`).join('');
+    $('#content').innerHTML = `
+      <h3 class="mb-3">Indicators</h3>
+      <div class="card"><div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm table-striped">
+            <thead class="table-light"><tr>
+              <th>#</th><th>ID</th><th>សូចនាករ</th><th>ប្រភេទ</th><th>ការិយាល័យ</th>
+            </tr></thead>
+            <tbody>${body}</tbody>
+          </table>
         </div>
-      </div>`;
-  }catch(err){
-    console.error(err);
-    content.innerHTML = `<div class="alert alert-danger m-2">ទាញទិន្នន័យបរាជ័យ</div>`;
-  }
+      </div></div>`;
+  }catch(err){ console.error(err); $('#content').innerHTML=`<div class="alert alert-danger">ទាញទិន្នន័យបរាជ័យ</div>`; }
 }
 
+/* ========= Periods ========= */
 async function renderPeriods(){
-  content.innerHTML = `<div class="card"><div class="card-body">កំពុងទាញ Periods...</div></div>`;
+  $('#content').innerHTML = `<h3 class="mb-3">Periods</h3>
+    <div class="card"><div class="card-body">កំពុងទាញ...</div></div>`;
   try{
-    const { rows=[] } = await apiGet({ api:1, route:'period', op:'list', limit:5000 });
-    const rowsHtml = rows.map((r,i)=>`
-      <tr><td>${i+1}</td><td>${r.period_id}</td><td>${r.period_name||''}</td><td>${r.year||''}</td><td>${r.month ?? ''}</td></tr>
-    `).join('');
-    content.innerHTML = `
-      <div class="card">
-        <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <h5 class="mb-0">🗓️ Periods</h5>
-            <button class="btn btn-outline-primary btn-sm" id="btnGenPer">Generate ${new Date().getFullYear()}</button>
-          </div>
-          <div class="table-responsive">
-            <table class="table table-sm table-striped">
-              <thead class="table-light">
-                <tr><th>#</th><th>ID</th><th>ឈ្មោះ</th><th>ឆ្នាំ</th><th>ខែ</th></tr>
-              </thead>
-              <tbody>${rowsHtml}</tbody>
-            </table>
-          </div>
+    const {rows=[]}=await apiGet({api:1,route:'period',op:'list',limit:5000});
+    const body = rows.map((r,i)=>`
+      <tr><td>${i+1}</td><td>${r.period_id}</td><td>${r.period_name||''}</td>
+      <td>${r.year||''}</td><td>${r.month??''}</td></tr>`).join('');
+    $('#content').innerHTML = `
+      <h3 class="mb-3">Periods</h3>
+      <div class="card"><div class="card-body">
+        <div class="d-flex justify-content-end mb-2">
+          <button id="btnGen" class="btn btn-outline-primary btn-sm">Generate ${(new Date).getFullYear()}</button>
         </div>
-      </div>`;
-    document.getElementById('btnGenPer').onclick = async ()=>{
-      await apiGet({ api:1, route:'period', op:'generate', year:new Date().getFullYear() });
-      await renderPeriods();
-    };
-  }catch(err){
-    console.error(err);
-    content.innerHTML = `<div class="alert alert-danger m-2">ទាញ Periods បរាជ័យ</div>`;
-  }
+        <div class="table-responsive">
+          <table class="table table-sm table-striped">
+            <thead class="table-light"><tr><th>#</th><th>ID</th><th>ឈ្មោះ</th><th>ឆ្នាំ</th><th>ខែ</th></tr></thead>
+            <tbody>${body}</tbody>
+          </table>
+        </div>
+      </div></div>`;
+    $('#btnGen').onclick = async ()=>{
+      await apiGet({api:1,route:'period',op:'generate',year:(new Date).getFullYear()});
+      renderPeriods();
+    }
+  }catch(err){ console.error(err); $('#content').innerHTML=`<div class="alert alert-danger">Error</div>`; }
 }
 
-async function renderReports(){
-  content.innerHTML = `
-    <div class="card"><div class="card-body">
-      <h5 class="mb-2">📈 Reports</h5>
-      <div class="text-muted">UI ជាអាទិភាពក្រោយ — នឹងភ្ជាប់ CRUD & Filter (period, indicator, department)...</div>
-    </div></div>`;
-}
+/* ========= Reports/Issues placeholder ========= */
+async function renderReports(){ $('#content').innerHTML = `
+  <h3 class="mb-3">Reports</h3>
+  <div class="card"><div class="card-body text-muted">UI CRUD និង Filter នឹងដាក់បន្ត។</div></div>`; }
+async function renderIssues(){ $('#content').innerHTML = `
+  <h3 class="mb-3">Issues</h3>
+  <div class="card"><div class="card-body text-muted">UI CRUD នឹងដាក់បន្ត។</div></div>`; }
 
-async function renderIssues(){
-  content.innerHTML = `
-    <div class="card"><div class="card-body">
-      <h5 class="mb-2">⚠️ Issues</h5>
-      <div class="text-muted">UI ដាក់បន្ត — បន្ថែមបញ្ជី បញ្ហា និង Actions ជាមួយ CRUD</div>
-    </div></div>`;
-}
+/* ========= Logout ========= */
+$('#btnLogout').addEventListener('click',(e)=>{e.preventDefault();clearProfile();showLogin()});
 
-// ========== Logout ==========
-document.getElementById('btnLogout').addEventListener('click', (e)=>{
-  e.preventDefault(); clearProfile(); showLogin();
-});
+/* ========= Keep session if exist ========= */
+(function(){ const p=getProfile(); if(p){ setProfile(p); showApp(); renderDashboard(); }})();
 </script>
 </body>
 </html>
