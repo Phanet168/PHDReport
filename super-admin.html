@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="km">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Super Admin — PHD Report System</title>
+
+  <!-- ប្រើ theme ទាំងឡាយក្នុង project របស់អ្នក -->
+  <link rel="stylesheet" href="assets/css/themes/lite-purple.min.css">
+  <link rel="stylesheet" href="assets/css/third-party.bundle.css">
+  <link rel="stylesheet" href="assets/fonts/icomoon/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{ --sb: 240px; }
+    body{ font-family:"Noto Sans Khmer", system-ui,-apple-system,"Segoe UI",Roboto,Arial; background:#f6f7fb; }
+    .layout{ display:grid; grid-template-columns: var(--sb) 1fr; min-height:100dvh; }
+    .sidebar{ background:#eef1f5; border-right:1px solid #e5e7eb; padding:14px 10px; }
+    .brand{ font-weight:700; margin:6px 8px 14px; display:flex; align-items:center; gap:8px }
+    .brand small{ color:#6b7280 }
+    .nav .item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#111; text-decoration:none }
+    .nav .item.active, .nav .item:hover{ background:#fff; box-shadow:0 1px 0 #e5e7eb inset }
+    .topbar{ background:#fff; border-bottom:1px solid #e5e7eb; height:62px; display:flex; align-items:center; justify-content:space-between; padding:0 16px }
+    .chip{ background:#111; color:#fff; border-radius:999px; padding:6px 10px; font-size:12px }
+    .content{ padding:18px }
+    .grid{ display:grid; gap:14px }
+    .g-3{ grid-template-columns: repeat(3, minmax(0,1fr)); }
+    @media (max-width:1100px){ .g-3{ grid-template-columns:1fr } :root{ --sb: 84px } .nav .label{ display:none } }
+    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:16px; padding:16px }
+    .kpi{ display:flex; justify-content:space-between; align-items:flex-end }
+    .kpi h3{ margin:0; font-size:15px; color:#374151 }
+    .kpi b{ font-size:28px }
+    .muted{ color:#6b7280 }
+    .table-sm td,.table-sm th{ padding:.55rem }
+    .section-title{ font-weight:600; margin-bottom:8px }
+    .btn{ border-radius:10px }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">@ <span>Your Company</span><small class="ms-auto"></small></div>
+    <div class="mb-2 px-2">
+      <input id="searchNav" class="form-control form-control-sm" placeholder="Search"/>
+    </div>
+    <nav class="nav">
+      <a class="item active" data-goto="dash"><span>🏠</span><span class="label">Dashboard</span></a>
+      <a class="item" data-goto="reports"><span>🏳️</span><span class="label">Reports</span></a>
+      <a class="item" data-goto="users"><span>👥</span><span class="label">ការគ្រប់គ្រងអ្នកប្រើប្រាស់</span></a>
+      <a class="item" data-goto="indicators"><span>➕</span><span class="label">ការគ្រប់គ្រងសូចនាករ</span></a>
+      <a class="item" data-goto="periods"><span>🗓️</span><span class="label">ការគ្រប់គ្រងរយៈពេល</span></a>
+      <a class="item" data-goto="departments"><span>🏢</span><span class="label">ការគ្រប់គ្រងផ្នែក</span></a>
+      <a class="item" data-goto="units"><span>🏷️</span><span class="label">ការគ្រប់គ្រងអង្គភាព</span></a>
+      <a class="item" data-goto="settings"><span>⚙️</span><span class="label">Settings</span></a>
+    </nav>
+  </aside>
+
+  <div style="display:flex; flex-direction:column">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="fw-bold">Super Admin</div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="chip" id="who">—</span>
+        <button id="btnLogout" class="btn btn-outline-primary btn-sm">Logout</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <main class="content">
+      <!-- DASHBOARD -->
+      <section id="view-dash">
+        <div class="grid g-3">
+          <div class="card kpi">
+            <div>
+              <h3>សកម្មភាពប្រព័ន្ធក្នុងខែនេះ</h3>
+              <div class="muted small">+2 031</div>
+            </div>
+            <b id="kpi1">21 324</b>
+          </div>
+          <div class="card kpi">
+            <div>
+              <h3>ចំណូលសរុប (ឧទាហរណ៍)</h3>
+              <div class="muted small">-$2,201</div>
+            </div>
+            <b id="kpi2">221,324.50</b>
+          </div>
+          <div class="card">
+            <div class="section-title">Popular Categories</div>
+            <canvas id="donut" height="160"></canvas>
+          </div>
+        </div>
+
+        <div class="card mt-3">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="section-title mb-0">Indicators</div>
+            <div class="d-flex align-items-center gap-2">
+              <select id="selInd" class="form-select form-select-sm" style="width:180px">
+                <option>All</option>
+              </select>
+              <button class="btn btn-outline-secondary btn-sm" id="cfgChart">⚙️</button>
+            </div>
+          </div>
+          <canvas id="line" height="110"></canvas>
+        </div>
+
+        <div class="card mt-3">
+          <div class="section-title">បញ្ជីប្រតិបត្តិ និង តម្លាភាព</div>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped">
+              <thead><tr><th>សុចនាករ</th><th>ត្រីមាស</th><th>តម្លៃ</th><th>ផែនការ</th></tr></thead>
+              <tbody id="tblSum"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- USERS (Admin account editor) -->
+      <section id="view-users" hidden>
+        <div class="card">
+          <div class="section-title">កែប្រែគណនី Admin (Current)</div>
+          <form id="formAdmin" class="row g-2">
+            <div class="col-md-3">
+              <label class="form-label">User ID</label>
+              <input id="a_id" class="form-control" readonly/>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Username</label>
+              <input id="a_name" class="form-control" required/>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">New Password</label>
+              <input id="a_pass" type="password" class="form-control" placeholder="ទុកទទេ = មិនប្តូរ"/>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Save password as</label>
+              <select id="a_mode" class="form-select">
+                <option value="plain">Plaintext (match server demo)</option>
+                <option value="sha256">SHA-256 (hash before save)</option>
+              </select>
+            </div>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary">Save</button>
+              <button class="btn btn-outline-secondary" type="button" id="a_reload">Reload</button>
+              <a class="btn btn-outline-dark" href="admin.html" target="_blank">Open Full Management</a>
+            </div>
+          </form>
+        </div>
+
+        <div class="card mt-3">
+          <div class="section-title">Users Snapshot</div>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped" id="tblUsers">
+              <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Root</th><th>Dept</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="text-muted small mt-2">ចង់ CRUD ពេញលេញ សូមចូលទៅ “Open Full Management”.</div>
+        </div>
+      </section>
+
+      <!-- INDICATORS / PERIODS / DEPTS / UNITS just show links (keep light) -->
+      <section id="view-indicators" hidden>
+        <div class="card">
+          <div class="section-title">Indicators</div>
+          <p class="muted mb-2">សម្រាប់ CRUD ពេញលេញ ចូល <a href="admin.html" target="_blank">Admin Management</a>.</p>
+          <button class="btn btn-outline-secondary btn-sm" id="btnLoadInds">Reload list</button>
+          <div class="table-responsive mt-2">
+            <table class="table table-sm" id="tblInds"><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Dept</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-periods" hidden>
+        <div class="card">
+          <div class="section-title">Periods</div>
+          <div class="d-flex gap-2 align-items-end">
+            <div><label class="form-label">Generate for year</label><input id="yearGen" type="number" class="form-control" placeholder="2025"></div>
+            <button class="btn btn-primary" id="genPeriods">Generate</button>
+            <button class="btn btn-outline-secondary" id="reloadPeriods">Reload</button>
+          </div>
+          <div class="table-responsive mt-2">
+            <table class="table table-sm" id="tblPeriods"><thead><tr><th>ID</th><th>Name</th><th>Year</th><th>Month</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-departments" hidden>
+        <div class="card">
+          <div class="section-title">Departments (view)</div>
+          <button class="btn btn-outline-secondary btn-sm" id="reloadDepts">Reload</button>
+          <div class="table-responsive mt-2"><table class="table table-sm" id="tblDepts"><thead><tr><th>ID</th><th>Name</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="view-units" hidden>
+        <div class="card">
+          <div class="section-title">Units (view)</div>
+          <button class="btn btn-outline-secondary btn-sm" id="reloadUnits">Reload</button>
+          <div class="table-responsive mt-2"><table class="table table-sm" id="tblUnits"><thead><tr><th>ID</th><th>Name</th><th>Dept</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="view-settings" hidden>
+        <div class="card">
+          <div class="section-title">Settings</div>
+          <div>API BASE: <code id="apiBaseLabel">—</code></div>
+          <div class="mt-2">
+            <a class="btn btn-outline-primary btn-sm" href="login.html">Switch account</a>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+  // ===== Auth & API helpers =====
+  const ls = window.localStorage;
+  function getProfile(){ try{ return JSON.parse(ls.getItem('AUTH')||'null'); }catch{ return null; } }
+  function clearAuth(){ ls.removeItem('AUTH'); }
+  function getApiBase(){ return (ls.getItem('API_BASE')||'').trim(); }
+  function isSuper(a){ return a && (String(a.user_type).toLowerCase()==='superuser' || String(a.user_root).toLowerCase()==='all'); }
+  const auth = getProfile();
+  if(!auth || !isSuper(auth)){ location.href='login.html'; }
+
+  const $ = (s,el=document)=>el.querySelector(s);
+  function apiUrl(params){ const base=getApiBase(); if(!base) throw new Error('API_BASE not set'); return base + (base.includes('?')?'&':'?') + new URLSearchParams(params).toString(); }
+  async function getJSON(params){ const r=await fetch(apiUrl(params),{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
+  async function postJSON(params, body){ const r=await fetch(apiUrl(params),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
+  async function sha256Hex(text){ const enc=new TextEncoder().encode(text); const buf=await crypto.subtle.digest("SHA-256",enc); return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join(""); }
+
+  // ===== UI basic =====
+  $("#who").textContent = `${auth.user_name||''} • ${auth.user_type||''}`;
+  $("#apiBaseLabel").textContent = getApiBase() || 'N/A';
+  $("#btnLogout").onclick = ()=>{ clearAuth(); location.href='login.html'; };
+
+  // Sidebar nav
+  document.querySelectorAll('.nav .item').forEach(a=>{
+    a.onclick = ()=>{
+      document.querySelectorAll('.nav .item').forEach(x=>x.classList.remove('active'));
+      a.classList.add('active');
+      const id = a.dataset.goto;
+      document.querySelectorAll('main section').forEach(s=>s.hidden=true);
+      $("#view-"+id).hidden=false;
+    };
+  });
+
+  // ===== Dashboard mock charts & summary =====
+  let lineChart, donutChart;
+  function drawCharts(){
+    const ctx1 = document.getElementById('line');
+    const ctx2 = document.getElementById('donut');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const data1 = months.map((_,i)=> Math.round(40+30*Math.sin(i/1.3)+Math.random()*10));
+    const data2 = months.map((_,i)=> Math.round(35+25*Math.cos(i/1.7)+Math.random()*8));
+    if(lineChart) lineChart.destroy();
+    lineChart = new Chart(ctx1,{type:'line',data:{labels:months,datasets:[{label:'Laptops',data:data1, tension:.3, borderWidth:2, fill:false},{label:'Phones',data:data2, tension:.3, borderWidth:2, fill:false}]} ,options:{responsive:true, plugins:{legend:{display:true}}});
+    if(donutChart) donutChart.destroy();
+    donutChart = new Chart(ctx2,{type:'doughnut',data:{labels:['Electronics','Furniture','Toys'],datasets:[{data:[40,32,28]}] },options:{cutout:'60%'}});
+  }
+
+  async function paintSummary(){
+    try{
+      // call your analytics summary if you want real data:
+      // const out = await getJSON({api:1, route:'analytics', op:'summary', year:new Date().getFullYear(), by:'indicator_id'});
+      // fill tblSum from out.rows
+      const tbody = $("#tblSum");
+      tbody.innerHTML = [['ANC coverage','Q1','75','80'],['OPD visits','Q1','120','110']].map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
+    }catch(e){ console.warn(e); }
+  }
+
+  // ===== Admin account editor =====
+  async function loadAdminProfile(){
+    $("#a_id").value = auth.user_id || '';
+    $("#a_name").value = auth.user_name || '';
+    $("#a_pass").value = '';
+  }
+  $("#a_reload").onclick = loadAdminProfile;
+
+  document.getElementById('formAdmin').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const payload = {
+      user_id: $("#a_id").value,
+      user_name: $("#a_name").value.trim(),
+      user_type: 'superuser',
+      user_root: 'all',
+      department_id: auth.department_id || 1
+    };
+    const newPass = $("#a_pass").value;
+    const mode = $("#a_mode").value; // plain or sha256
+    if(newPass){
+      payload.user_pass = (mode==='sha256') ? (await sha256Hex(newPass)) : newPass;
+    }
+    await postJSON({api:1, route:'users', op:'upsert'}, payload);
+    alert('Saved. Please re-login to refresh topbar if you changed username.');
+  });
+
+  // ===== Users snapshot =====
+  async function loadUsers(){
+    const data = await getJSON({api:1,route:'users',op:'list',limit:1000});
+    const rows = data.rows || data || [];
+    $("#tblUsers tbody").innerHTML = rows.map(r=>`<tr><td>${r.user_id||''}</td><td>${r.user_name||''}</td><td>${r.user_type||''}</td><td>${r.user_root||''}</td><td>${r.department_id||''}</td></tr>`).join('');
+  }
+
+  // ===== Indicators/Periods/Depts/Units (view) =====
+  document.getElementById('btnLoadInds').onclick = async ()=>{
+    const d = await getJSON({api:1,route:'indicators',op:'list',limit:2000});
+    const rows = d.rows || d || [];
+    $("#tblInds tbody").innerHTML = rows.map(r=>`<tr><td>${r.indicator_id}</td><td>${r.indicator_name}</td><td>${r.indicator_type||''}</td><td>${r.department_id||''}</td></tr>`).join('');
+  };
+  document.getElementById('genPeriods').onclick = async ()=>{
+    const y = Number($("#yearGen").value || new Date().getFullYear());
+    const r = await getJSON({api:1, route:'period', op:'generate', year:y});
+    alert('Generate periods: added '+(r.added||0));
+    document.getElementById('reloadPeriods').click();
+  };
+  document.getElementById('reloadPeriods').onclick = async ()=>{
+    const d = await getJSON({api:1,route:'periods',op:'list',limit:2000});
+    const rows = d.rows || d || [];
+    $("#tblPeriods tbody").innerHTML = rows.map(r=>`<tr><td>${r.period_id}</td><td>${r.period_name||''}</td><td>${r.year||''}</td><td>${r.month||''}</td></tr>`).join('');
+  };
+  document.getElementById('reloadDepts').onclick = async ()=>{
+    const d = await getJSON({api:1,route:'departments',op:'list',limit:2000});
+    const rows = d.rows || d || [];
+    $("#tblDepts tbody").innerHTML = rows.map(r=>`<tr><td>${r.department_id}</td><td>${r.department_name||''}</td></tr>`).join('');
+  };
+  document.getElementById('reloadUnits').onclick = async ()=>{
+    const d = await getJSON({api:1,route:'units',op:'list',limit:2000});
+    const rows = d.rows || d || [];
+    $("#tblUnits tbody").innerHTML = rows.map(r=>`<tr><td>${r.unit_id}</td><td>${r.unit_name||''}</td><td>${r.department_id||''}</td></tr>`).join('');
+  };
+
+  // ===== Init =====
+  (async function init(){
+    drawCharts();
+    paintSummary();
+    loadAdminProfile();
+    loadUsers();
+  })();
+</script>
+</body>
+</html>
