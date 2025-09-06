@@ -1,11 +1,19 @@
 <script>
-  const DASHBOARD_PAGE = "index.html";
+  const DASHBOARD_PAGE    = "index.html";
+  const SUPER_ADMIN_PAGE  = "super-admin.html";   // ⬅️ ទំព័រ Super Admin
   const ls = window.localStorage;
   const $ = (s,el=document)=>el.querySelector(s);
 
   function saveApiBase(v){ v ? ls.setItem("API_BASE", v) : ls.removeItem("API_BASE"); }
   function getApiBase(){ return (ls.getItem("API_BASE")||"").trim(); }
   function setAuth(profile){ ls.setItem("AUTH", JSON.stringify(profile)); }
+  function getAuth(){ try{ return JSON.parse(ls.getItem("AUTH")||"null"); }catch{ return null; } }
+  function isSuper(p){
+    return p && (
+      String(p.user_type||"").toLowerCase()==="superuser" ||
+      String(p.user_root||"").toLowerCase()==="all"
+    );
+  }
 
   async function sha256Hex(text){
     const enc = new TextEncoder().encode(text);
@@ -18,12 +26,12 @@
     return res.json();
   }
 
-  // === NEW: detect Apps Script style ===
+  // Detect Apps Script
   function looksLikeAppsScript(url){
     return /script\.google\.com\/macros\/s\/.+\/exec/.test(url);
   }
 
-  // === NEW: login via GAS auth route (plaintext as in your server) ===
+  // Login via Apps Script (plaintext per your server)
   async function loginViaAppsScript(apiBase, username, password){
     const url = apiBase + (apiBase.includes("?") ? "&" : "?") + "api=1&route=auth&op=login";
     const res = await fetch(url, {
@@ -34,7 +42,6 @@
     if(!res.ok) throw new Error("HTTP "+res.status);
     const json = await res.json();
     if(json && !json.error){
-      // server already strips user_pass; use what it returns
       const profile = {
         user_id: json.user_id,
         user_name: json.user_name,
@@ -50,12 +57,12 @@
     }
   }
 
-  // === fallback: read users JSON directly and compare SHA256 (old behavior) ===
+  // Fallback: users.json / GitHub raw (compare SHA-256)
   async function resolveUsers(url){
     const j = await fetchJson(url);
-    if (Array.isArray(j)) return j;        // users array
-    if (Array.isArray(j.users)) return j.users; // {users:[...]}
-    if (j.rows && Array.isArray(j.rows)) return j.rows; // {rows:[...]} (e.g. /users&op=list)
+    if (Array.isArray(j)) return j;               // users array
+    if (Array.isArray(j.users)) return j.users;   // {users:[...]}
+    if (j.rows && Array.isArray(j.rows)) return j.rows; // {rows:[...]}
     throw new Error("Unsupported JSON schema");
   }
   async function loginViaUsersJson(sourceUrl, username, password){
@@ -73,19 +80,15 @@
     return { ok:true, profile };
   }
 
-  // === combine flow ===
+  // Combine flow
   async function doLogin(username, password, sourceUrl){
     const api = sourceUrl.trim();
     if(!api) throw new Error("Empty API/JSON URL");
-    // 1) GAS auth route
-    if (looksLikeAppsScript(api)) {
-      return loginViaAppsScript(api, username, password);
-    }
-    // 2) users.json / raw GitHub / or /users&op=list
+    if (looksLikeAppsScript(api)) return loginViaAppsScript(api, username, password);
     return loginViaUsersJson(api, username, password);
   }
 
-  // === API dialog handlers (ប្រើដដែល) ===
+  // === API dialog handlers (ដដែល) ===
   const apiDialog = document.getElementById("apiDialog");
   const apiForm   = document.getElementById("apiForm");
   const apiInput  = document.getElementById("apiInput");
@@ -102,13 +105,10 @@
     apiMsg.classList.add("d-none");
     try{
       const v = apiInput.value.trim();
-      // quick probe:
       if (looksLikeAppsScript(v)) {
-        // ping lightweight endpoint: users list (GET)
         const url = v + (v.includes("?") ? "&" : "?") + "api=1&route=users&op=list&limit=1";
         await fetchJson(url);
       } else {
-        // expect to be users.json or {users:[...]} or {rows:[...]}
         await resolveUsers(v);
       }
       saveApiBase(v);
@@ -140,12 +140,18 @@
     }
     try{
       const res = await doLogin(username, password, apiBase);
-      if(res.ok) location.href = DASHBOARD_PAGE;
-      else { msg.textContent = "Login បរាជ័យ: " + (res.reason||""); msg.classList.remove("d-none"); }
+      if(res.ok){
+        // ✅ Redirect by role
+        const p = getAuth() || res.profile;
+        const target = isSuper(p) ? SUPER_ADMIN_PAGE : DASHBOARD_PAGE;
+        location.href = target;
+      }else{
+        msg.textContent = "Login បរាជ័យ: " + (res.reason||"");
+        msg.classList.remove("d-none");
+      }
     }catch(err){
       msg.textContent = "អានពី API បរាជ័យ: " + err.message;
       msg.classList.remove("d-none");
-      // ដោយស្វ័យប្រវត្តិ បើក dialog ឲ្យកែ URL
       openApiDialog();
     }
   });
