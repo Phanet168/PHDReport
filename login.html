@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="assets/css/third-party.bundle.css">
   <link rel="stylesheet" href="assets/fonts/icomoon/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600&display=swap" rel="stylesheet">
+
   <style>
     :root{ --radius:16px }
     body{ font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:#f6f7fb }
@@ -17,6 +18,9 @@
     .card{ width:min(460px, 94vw); border-radius:var(--radius) }
     .brand{ color:#4f46e5; font-weight:700; font-size:20px }
     .muted{ color:#6b7280 }
+    dialog{ border:none; border-radius:16px; padding:0 }
+    dialog::backdrop{ background:rgba(0,0,0,.35) }
+    .api-card{ width:min(560px, 96vw); }
     .divider{ height:1px; background:#e5e7eb; margin:16px 0 }
   </style>
 </head>
@@ -37,58 +41,132 @@
           <label class="form-label">ពាក្យសម្ងាត់</label>
           <input id="password" type="password" class="form-control" required>
         </div>
-        <small class="muted">ពាក្យសម្ងាត់នឹងត្រូវបំលែងជា SHA-256 ហើយប្រៀបធៀបទៅនឹង hash ក្នុង JSON។</small>
+        <small class="muted">ពាក្យសម្ងាត់នឹងបំលែងជា SHA-256 ហើយប្រៀបធៀបទៅនឹង hash ក្នុង JSON។</small>
 
         <div class="divider"></div>
 
-        <div class="mb-2">
-          <label class="form-label">API Base (Google Apps Script Web App)</label>
-          <input id="apiBase" class="form-control"
-                 value="https://script.google.com/macros/s/AKfycbwnxRudS_il7Dvcdh7-QB36NJaP-6-hl5nMniXrbuKhMpHPK8CCEGkRIc9-okB-P0Z6Zw/exec"
-                 placeholder="https://script.google.com/macros/s/XXXX/exec">
-          <small class="muted">បើទុក URL ត្រឹមត្រូវ នឹងទាញ users JSON ពី Drive តាម Apps Script Web App។</small>
-        </div>
-
-        <div class="d-grid gap-2 mt-3">
+        <div class="d-grid gap-2">
           <button class="btn btn-primary">ចូលប្រើប្រាស់</button>
+          <button type="button" id="btnOpenApi" class="btn btn-outline-primary">កំណត់ API / GitHub JSON</button>
         </div>
         <div id="msg" class="alert alert-danger d-none mt-3"></div>
+        <div id="hint" class="alert alert-warning d-none mt-3"></div>
       </form>
     </div>
   </div>
 
+  <!-- API / Config Dialog -->
+  <dialog id="apiDialog">
+    <form id="apiForm" method="dialog" class="card api-card p-3 shadow-lg">
+      <h5 class="mb-2">កំណត់ API</h5>
+      <p class="text-muted mb-3">
+        អ្នកអាចបញ្ចូល <b>API URL ត្រង់ៗ</b> (Apps Script Web App) ឬ <b>GitHub JSON Config</b> (raw JSON)។
+      </p>
+      <div class="mb-3">
+        <label class="form-label">API URL ឬ GitHub JSON URL</label>
+        <input id="apiInput" class="form-control"
+               placeholder="https://script.google.com/macros/s/XXXX/exec ឬ https://raw.githubusercontent.com/you/repo/main/config.json"
+               required>
+      </div>
+
+      <details class="mb-3">
+        <summary class="mb-2"><b>គំរូ GitHub JSON (config)</b></summary>
+<pre class="bg-light p-2 small" style="border:1px solid #eee;border-radius:8px;overflow:auto">
+{
+  "api_base": "https://script.google.com/macros/s/XXXX/exec",
+  "users_url": "https://script.google.com/macros/s/XXXX/exec"
+  // ឬប្រើ users ដោយផ្ទាល់:
+  // "users": [
+  //   {"user_id":"u1","user_name":"phanet","user_pass":"&lt;sha256&gt;","user_type":"admin","user_root":"admin","department_id":"PHD"}
+  // ]
+}
+</pre>
+      </details>
+
+      <div class="d-flex justify-content-end gap-2">
+        <button value="cancel" class="btn btn-link">បោះបង់</button>
+        <button value="confirm" class="btn btn-primary">រក្សាទុក</button>
+      </div>
+      <div id="apiMsg" class="alert alert-danger d-none mt-2"></div>
+    </form>
+  </dialog>
+
   <script>
-    // ====== Config & helpers ======
+    // ===== Config =====
     const DASHBOARD_PAGE = "index.html";
     const ls = window.localStorage;
-
     const $ = (sel, el=document) => el.querySelector(sel);
 
+    // ===== LocalStorage helpers =====
     function saveApiBase(v){ v ? ls.setItem("API_BASE", v) : ls.removeItem("API_BASE"); }
     function getApiBase(){ return (ls.getItem("API_BASE")||"").trim(); }
     function setAuth(profile){ ls.setItem("AUTH", JSON.stringify(profile)); }
 
+    // ===== Crypto =====
     async function sha256Hex(text) {
       const enc = new TextEncoder().encode(text);
       const buf = await crypto.subtle.digest("SHA-256", enc);
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
     }
 
-    async function fetchUsersJson(apiBase){
-      const res = await fetch(apiBase, { cache:"no-store" });
+    // ===== Fetch helpers =====
+    async function fetchJson(url){
+      const res = await fetch(url, { cache:"no-store" });
       if(!res.ok) throw new Error("HTTP "+res.status);
-      return res.json(); // expect: array of users
+      return res.json();
     }
 
-    async function loginWithDriveJson(username, password, apiBase) {
-      const users = await fetchUsersJson(apiBase);
-      // users: [{user_id,user_name,user_pass(user_pass_sha256),user_type,user_root,department_id}, ...]
-      const u = users.find(x => (x.user_name||"").toLowerCase() === username.toLowerCase());
+    // Resolve API from possible GitHub config JSON or direct API URL
+    // Return: { users, users_url, api_base }
+    async function resolveApiSource(inputUrl){
+      const url = (inputUrl||"").trim();
+      if(!url) throw new Error("Empty URL");
+
+      // Heuristic: if ends with .json (or looks like raw GitHub), treat as config
+      if (/\.json(\?.*)?$/i.test(url) || url.includes("raw.githubusercontent.com")) {
+        const cfg = await fetchJson(url);
+
+        // Direct users array supplied?
+        if (Array.isArray(cfg.users) && cfg.users.length) {
+          return { users: cfg.users, users_url: null, api_base: cfg.api_base || getApiBase() || "" };
+        }
+
+        // Or URLs inside config
+        const users_url = cfg.users_url || cfg.api_base || cfg.api || "";
+        const api_base  = cfg.api_base || cfg.api || users_url || "";
+        if (!users_url && !api_base) {
+          throw new Error("Config JSON missing users_url/api_base");
+        }
+        return { users: null, users_url, api_base };
+      }
+
+      // Otherwise it's treated as direct API returning users JSON
+      return { users: null, users_url: url, api_base: url };
+    }
+
+    async function loadUsersFromResolved(resolved){
+      // If users embedded:
+      if (Array.isArray(resolved.users)) return resolved.users;
+
+      // Otherwise fetch from users_url/api_base
+      const u = resolved.users_url || resolved.api_base;
+      if (!u) throw new Error("No users URL");
+      return fetchJson(u);
+    }
+
+    async function loginFromAnySource(username, password, sourceUrl){
+      const resolved = await resolveApiSource(sourceUrl);
+      // Save api_base if available
+      if (resolved.api_base) saveApiBase(resolved.api_base);
+
+      const users = await loadUsersFromResolved(resolved);
+
+      const u = users.find(x => (String(x.user_name||"").toLowerCase()) === username.toLowerCase());
       if(!u) return { ok:false, reason:"រកមិនឃើញអ្នកប្រើ" };
 
-      const hash = await sha256Hex(password);
+      const given = await sha256Hex(password);
       const stored = String(u.user_pass || u.user_pass_sha256 || "").toLowerCase();
-      if(hash !== stored) return { ok:false, reason:"ពាក្យសម្ងាត់មិនត្រឹមត្រូវ" };
+      if(given !== stored) return { ok:false, reason:"ពាក្យសម្ងាត់មិនត្រឹមត្រូវ" };
 
       const profile = {
         user_id: u.user_id,
@@ -102,34 +180,72 @@
       return { ok:true, profile };
     }
 
-    // ====== Submit handler ======
+    // ===== UI logic =====
+    const apiDialog = $("#apiDialog");
+    const apiForm   = $("#apiForm");
+    const apiInput  = $("#apiInput");
+    const apiMsg    = $("#apiMsg");
+    const msg       = $("#msg");
+    const hint      = $("#hint");
+
+    // Open dialog manually
+    $("#btnOpenApi").onclick = () => {
+      apiMsg.classList.add("d-none"); apiMsg.textContent = "";
+      apiInput.value = getApiBase() || "";
+      apiDialog.showModal();
+    };
+
+    // Save in dialog
+    apiForm.addEventListener("submit", async (e) => {
+      if (e.submitter?.value !== "confirm") return; // cancel
+      e.preventDefault();
+      apiMsg.classList.add("d-none");
+      try{
+        const inputUrl = apiInput.value.trim();
+        const resolved = await resolveApiSource(inputUrl);
+        // Validate by a light fetch (if not embedded users)
+        if (!Array.isArray(resolved.users)) {
+          await fetchJson(resolved.users_url || resolved.api_base);
+        }
+        if (resolved.api_base) saveApiBase(resolved.api_base);
+        else if (resolved.users_url) saveApiBase(resolved.users_url);
+        apiDialog.close();
+        showHint("រក្សាទុក API សម្រេច — សាកល្បង Login ម្តងទៀត។");
+      }catch(err){
+        apiMsg.textContent = "រក្សាទុក API បរាជ័យ: " + err.message;
+        apiMsg.classList.remove("d-none");
+      }
+    });
+
+    function showError(t){ msg.textContent = t; msg.classList.remove("d-none"); }
+    function showHint(t){ hint.textContent = t; hint.classList.remove("d-none"); }
+
+    // Submit login
     $("#loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
+      msg.classList.add("d-none");
+      hint.classList.add("d-none");
+
       const username = $("#username").value.trim();
       const password = $("#password").value;
-      const apiBase  = $("#apiBase").value.trim();
-      const msg = $("#msg");
-
-      msg.classList.add("d-none");
-      if(!username || !password || !apiBase){
-        msg.textContent = "សូមបញ្ចូលព័ត៍មានអស់ទាំងអស់ (មានទាំង API Base)"; 
-        msg.classList.remove("d-none"); 
-        return;
-      }
+      let sourceUrl  = getApiBase();
 
       try{
-        saveApiBase(apiBase);
-        const res = await loginWithDriveJson(username, password, apiBase);
-        if(res.ok){
-          location.href = DASHBOARD_PAGE;
-        }else{
-          msg.textContent = "Login បរាជ័យ: " + res.reason;
-          msg.classList.remove("d-none");
+        if (!sourceUrl) {
+          // No API saved → prompt user
+          showHint("មិនទាន់កំណត់ API ទេ — សូមបញ្ចូល API/GitHub JSON។");
+          apiInput.value = "";
+          apiDialog.showModal();
+          return;
         }
+        const res = await loginFromAnySource(username, password, sourceUrl);
+        if(res.ok){ location.href = DASHBOARD_PAGE; }
+        else { showError("Login បរាជ័យ: " + res.reason); }
       }catch(err){
-        console.error(err);
-        msg.textContent = "មានបញ្ហាភ្ជាប់ទៅ API (Apps Script) — សូមពិនិត្យ URL ឬ Access";
-        msg.classList.remove("d-none");
+        // Fetch failed → open API dialog automatically
+        showError("អានទិន្នន័យពី API បរាជ័យ — សូមកំណត់ API ឡើងវិញ។");
+        apiInput.value = "";
+        apiDialog.showModal();
       }
     });
   </script>
