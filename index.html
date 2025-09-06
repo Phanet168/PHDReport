@@ -18,42 +18,22 @@
 <body>
 <div class="app-admin-wrap layout-sidebar-large d-flex">
   <!-- Sidebar -->
-  <div class="sidebar-left open">
-    <div class="logo d-flex align-items-center px-3 py-3">
-      <h4 class="text-white mb-0">PHD Report</h4>
-    </div>
-    <div class="ps perfect-scrollbar">
-      <div class="sidebar-left-content">
-        <ul class="navigation-left">
-          <li class="nav-item active">
-            <a class="nav-item-hold" href="#" data-tab="dashboard">
-              <i class="nav-icon i-Bar-Chart"></i><span class="nav-text">Dashboard</span>
-            </a><div class="triangle"></div>
-          </li>
-          <li class="nav-item">
-            <a class="nav-item-hold" href="#" data-tab="reports">
-              <i class="nav-icon i-Financial"></i><span class="nav-text">Reports</span>
-            </a><div class="triangle"></div>
-          </li>
-          <li class="nav-item">
-            <a class="nav-item-hold" href="#" data-tab="indicators">
-              <i class="nav-icon i-Check"></i><span class="nav-text">Indicators</span>
-            </a><div class="triangle"></div>
-          </li>
-          <li class="nav-item">
-            <a class="nav-item-hold" href="#" data-tab="periods">
-              <i class="nav-icon i-Calendar-4"></i><span class="nav-text">Periods</span>
-            </a><div class="triangle"></div>
-          </li>
-          <li class="nav-item">
-            <a class="nav-item-hold text-warning" href="#" id="btnLogout">
-              <i class="nav-icon i-Power-2"></i><span class="nav-text">Logout</span>
-            </a>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </div>
+<nav class="sidebar">
+  <ul>
+    <li><a href="#" data-tab="dashboard"><i class="i-Bar-Chart"></i> Dashboard</a></li>
+    <li><a href="#" data-tab="reports"><i class="i-File-Clipboard-File--Text"></i> Reports</a></li>
+    <li><a href="#" data-tab="indicators"><i class="i-Bulb"></i> Indicators</a></li>
+    <li><a href="#" data-tab="periods"><i class="i-Calendar"></i> Periods</a></li>
+    <li><a href="#" data-tab="issues"><i class="i-Warning"></i> Issues</a></li>
+    <li><a href="#" data-tab="actions"><i class="i-Gear"></i> Actions</a></li>
+    <li><a href="#" data-tab="users" class="admin-only"><i class="i-Administrator"></i> Users</a></li>
+    <li><a href="#" data-tab="departments" class="admin-only"><i class="i-Building"></i> Departments</a></li>
+    <li><a href="#" data-tab="units" class="admin-only"><i class="i-Structure"></i> Units</a></li>
+    <li><a href="#" data-tab="profile"><i class="i-Checked-User"></i> Profile</a></li>
+    <li><a href="#" id="btnLogout"><i class="i-Power-2"></i> Logout</a></li>
+  </ul>
+</nav>
+
 
   <!-- Main -->
   <div class="main-content-wrap sidenav-open d-flex flex-column">
@@ -229,3 +209,4 @@
 </script>
 </body>
 </html>
+
