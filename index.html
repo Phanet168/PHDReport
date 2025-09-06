@@ -5,388 +5,117 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>PHD Report System</title>
 
-  <!-- Gull theme (match your repo) -->
+  <!-- Theme CSS in your repo -->
   <link rel="stylesheet" href="assets/css/themes/lite-purple.min.css">
   <link rel="stylesheet" href="assets/css/third-party.bundle.css">
   <link rel="stylesheet" href="assets/fonts/icomoon/style.css">
-
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
   <style>
-    body{font-family:"Noto Sans Khmer","Roboto",sans-serif;background:#fafbff}
-    /* Sidebar hover-expand */
-    .sidebar{position:fixed;left:0;top:0;height:100vh;width:72px;background:#2d2a53;color:#fff;
-             transition:width .25s ease;z-index:1000;box-shadow:0 5px 18px rgba(31,28,65,.25);overflow-x:hidden}
-    .sidebar:hover{width:230px}
-    .sidebar .brand{height:60px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,.08)}
-    .sidebar .brand .hamb{width:22px;height:16px;position:relative}
-    .sidebar .brand .hamb span{position:absolute;left:0;right:0;height:2px;background:#fff;border-radius:2px}
-    .sidebar .brand .hamb span:nth-child(1){top:0}.sidebar .brand .hamb span:nth-child(2){top:7px}.sidebar .brand .hamb span:nth-child(3){bottom:0}
-    .sidebar .nav{padding:10px 6px 14px}
-    .sidebar .nav a{display:flex;align-items:center;gap:12px;color:#cfd1d8;padding:10px 12px;border-radius:10px;text-decoration:none;white-space:nowrap}
-    .sidebar .nav a .nav-icon{font-size:20px;min-width:20px}
-    .sidebar .nav a.active,.sidebar .nav a:hover{background:rgba(255,255,255,.08);color:#fff}
-    .sidebar .section{height:1px;background:rgba(255,255,255,.07);margin:8px}
-    .main{margin-left:72px;transition:margin-left .25s ease;min-height:100vh;display:flex;flex-direction:column}
-    .sidebar:hover + .main{margin-left:230px}
-    .topbar{height:60px;display:flex;align-items:center;justify-content:space-between;background:#fff;padding:0 18px;border-bottom:1px solid #eef0f6;position:sticky;top:0;z-index:10}
-    .content{padding:18px}
-    .card{border-radius:14px;box-shadow:0 10px 25px rgba(31,28,65,.06);border:0}
-    .kpi .title{color:#6b6f80;font-size:.9rem}.kpi .value{font-size:1.6rem;font-weight:700}
+    body{ font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial }
+    .topbar{ border-bottom:1px solid #e5e7eb; }
   </style>
 </head>
 <body>
-
-  <!-- Sidebar -->
-  <aside class="sidebar" id="sidebar">
-    <div class="brand">
-      <div class="hamb"><span></span><span></span><span></span></div>
-      <strong>PHD Report</strong>
+  <!-- Simple topbar -->
+  <div class="topbar py-2 px-3 d-flex align-items-center justify-content-between">
+    <div class="fw-bold">PHD Report Dashboard</div>
+    <div class="d-flex align-items-center gap-2">
+      <span id="topUser" class="text-muted small"></span>
+      <button id="btnLogout" class="btn btn-outline-primary btn-sm">Logout</button>
     </div>
-    <nav class="nav" id="sideNav"><!-- built by JS --></nav>
-  </aside>
+  </div>
 
-  <!-- Main -->
-  <section class="main">
-    <header class="topbar">
-      <h6 class="mb-0">សូមស្វាគមន៍ <span id="topUser"></span></h6>
-      <div class="d-flex gap-2">
-        <button id="btnProfile" class="btn btn-outline-secondary btn-sm">Profile</button>
-        <button id="btnLogoutTop" class="btn btn-outline-danger btn-sm">Logout</button>
+  <div class="container mt-4">
+    <div class="row">
+      <div class="col-lg-8">
+        <div class="card p-3 mb-3">
+          <h5 class="mb-2">សេចក្ដីផ្ដើម</h5>
+          <p class="text-muted mb-0">ទំព័រនេះត្រូវការការចូលប្រើ (Login) មុន — ប្រើ LocalStorage ដើម្បីរក្សាទុកប្រវត្តិនៃអ្នកប្រើ។</p>
+        </div>
+
+        <div class="card p-3">
+          <h5 class="mb-2">Report Actions</h5>
+          <div class="d-flex gap-2">
+            <button id="btnGen" class="btn btn-primary btn-sm">Generate Report</button>
+            <button id="btnExport" class="btn btn-outline-primary btn-sm">Export CSV</button>
+          </div>
+          <div class="text-muted small mt-2">API Base: <span id="apiVal">—</span></div>
+        </div>
       </div>
-    </header>
-    <main class="content"><div id="view"></div></main>
-  </section>
 
-  <!-- JS -->
-  <script src="assets/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/js/plugins/perfect-scrollbar.min.js"></script>
+      <div class="col-lg-4">
+        <div class="card p-3">
+          <h6 class="mb-2">ព័ត៌មានអ្នកប្រើ</h6>
+          <div id="profileBox" class="small text-muted">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
-  /* ------------------- Auth + API helpers ------------------- */
-  const ls = window.localStorage;
-  function getProfile(){ try{ return JSON.parse(ls.getItem('AUTH')||'null'); }catch{ return null } }
-  function clearAuth(){ ls.removeItem('AUTH'); }
-  function getApiBase(){ return (ls.getItem('API_BASE')||'').trim(); }
-  async function apiGet(params){
-    const base = getApiBase();
-    const url  = base + (base.includes('?')?'&':'?') + new URLSearchParams(params).toString();
-    const res  = await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('API'); return res.json();
-  }
+    // ===== Auth guard & helpers =====
+    const ls = window.localStorage;
 
-  // Guard
-  const auth = getProfile();
-  if(!auth){ location.href='login.html'; }
+    function getProfile(){ try{ return JSON.parse(ls.getItem('AUTH')||'null'); }catch{ return null; } }
+    function clearAuth(){ ls.removeItem('AUTH'); }
+    function getApiBase(){ return (ls.getItem('API_BASE')||'').trim(); }
 
-  document.getElementById('topUser').textContent = `${auth.user_name} (${auth.user_type||'user'})`;
+    // Guard: redirect if no auth
+    const auth = getProfile();
+    if(!auth){ location.href = 'login.html'; }
 
-  /* ------------------- Role → Menu mapping ------------------- */
-  // department_id example:
-  // 1=បុគ្គលិក, 2=បង្ការនិងគ្រប់គ្រងជំងឺ, 3=ហរិញ្ញវត្ថុ, 4=និយ័តកម្មសុខាភិបាល (បងកែតាមទិន្នន័យពិត)
-  const ROLE_MENU = {
-    admin: [
-      {id:'dashboard', icon:'i-Bar-Chart', text:'Dashboard'},
-      {id:'gen',       icon:'i-Gear',      text:'Generate Report'},
-      {id:'export',    icon:'i-File-Download', text:'Export Report'},
-      {divider:true},
-      {id:'reportCrud', icon:'i-File-Clipboard-File--Text', text:'Reports (CRUD)'},
-      {id:'indicatorCrud', icon:'i-Bulb', text:'Indicators (CRUD)'},
-      {id:'periodCrud',    icon:'i-Calendar-4', text:'Periods (CRUD)'},
-      {id:'deptCrud',      icon:'i-Building', text:'Departments (CRUD)'},
-      {id:'unitCrud',      icon:'i-Structure', text:'Units (CRUD)'},
-      {id:'userCrud',      icon:'i-Administrator', text:'Users (CRUD)'},
-      {divider:true},
-      {id:'profile',       icon:'i-Checked-User', text:'User profile'},
-      {id:'logout',        icon:'i-Power-2', text:'Logout', class:'text-warning'}
-    ],
-    // staff office
-    dep1: [
-      {id:'dashboard', icon:'i-Bar-Chart', text:'Dashboard'},
-      {id:'gen',       icon:'i-Gear', text:'Generate Report'},
-      {id:'export',    icon:'i-File-Download', text:'Export Report'},
-      {id:'reportCrudDep', icon:'i-File-Clipboard-File--Text', text:'Reports (បុគ្គលិក)'},
-      {id:'indicatorCrud', icon:'i-Bulb', text:'Indicators (CRUD)'},
-      {divider:true},
-      {id:'profile', icon:'i-Checked-User', text:'User profile'},
-      {id:'logout',  icon:'i-Power-2', text:'Logout', class:'text-warning'}
-    ],
-    // disease control
-    dep2: [
-      {id:'dashboard', icon:'i-Bar-Chart', text:'Dashboard'},
-      {id:'gen',       icon:'i-Gear', text:'Generate Report'},
-      {id:'export',    icon:'i-File-Download', text:'Export Report'},
-      {id:'reportCrudDep', icon:'i-File-Clipboard-File--Text', text:'Reports (បង្ការ/គ្រប់គ្រងជំងឺ)'},
-      {id:'indicatorCrud', icon:'i-Bulb', text:'Indicators (CRUD)'},
-      {divider:true},
-      {id:'profile', icon:'i-Checked-User', text:'User profile'},
-      {id:'logout',  icon:'i-Power-2', text:'Logout', class:'text-warning'}
-    ],
-    // finance
-    dep3: [
-      {id:'dashboard', icon:'i-Bar-Chart', text:'Dashboard'},
-      {id:'gen',       icon:'i-Gear', text:'Generate Report'},
-      {id:'export',    icon:'i-File-Download', text:'Export Report'},
-      {id:'reportCrudDep', icon:'i-File-Clipboard-File--Text', text:'Reports (ហរិញ្ញវត្ថុ)'},
-      {id:'indicatorCrud', icon:'i-Bulb', text:'Indicators (CRUD)'},
-      {divider:true},
-      {id:'profile', icon:'i-Checked-User', text:'User profile'},
-      {id:'logout',  icon:'i-Power-2', text:'Logout', class:'text-warning'}
-    ],
-    // regulator
-    dep4: [
-      {id:'dashboard', icon:'i-Bar-Chart', text:'Dashboard'},
-      {id:'gen',       icon:'i-Gear', text:'Generate Report'},
-      {id:'export',    icon:'i-File-Download', text:'Export Report'},
-      {id:'reportCrudDep', icon:'i-File-Clipboard-File--Text', text:'Reports (និយ័តកម្មសុខាភិបាល)'},
-      {id:'indicatorCrud', icon:'i-Bulb', text:'Indicators (CRUD)'},
-      {divider:true},
-      {id:'profile', icon:'i-Checked-User', text:'User profile'},
-      {id:'logout',  icon:'i-Power-2', text:'Logout', class:'text-warning'}
-    ],
-  };
+    // Paint topbar & profile
+    document.addEventListener('DOMContentLoaded', () => {
+      const topUser = document.getElementById('topUser');
+      if(topUser && auth){
+        topUser.textContent = `${auth.user_name||''} (${auth.user_type||''})`;
+      }
+      const profileBox = document.getElementById('profileBox');
+      if(profileBox){
+        profileBox.innerHTML = `
+          <div><strong>ID:</strong> ${auth.user_id||''}</div>
+          <div><strong>Type:</strong> ${auth.user_type||''}</div>
+          <div><strong>Root:</strong> ${auth.user_root||''}</div>
+          <div><strong>Dept:</strong> ${auth.department_id||''}</div>
+          <div><strong>Login at:</strong> ${new Date(auth.login_at||Date.now()).toLocaleString()}</div>
+        `;
+      }
+      document.getElementById('apiVal').textContent = getApiBase() || 'N/A';
 
-  // choose menu by role
-  const menu = (() => {
-    if((auth.user_type||'').toLowerCase()==='admin' || (auth.user_root||'')==='all') return ROLE_MENU.admin;
-    const d = String(auth.department_id||'');
-    if(d==='1') return ROLE_MENU.dep1;
-    if(d==='2') return ROLE_MENU.dep2;
-    if(d==='3') return ROLE_MENU.dep3;
-    return ROLE_MENU.dep4;
-  })();
+      document.getElementById('btnLogout').addEventListener('click', () => {
+        clearAuth();
+        location.href = 'login.html';
+      });
 
-  // build sidebar
-  const nav = document.getElementById('sideNav');
-  nav.innerHTML = menu.map(m=>{
-    if(m.divider) return `<div class="section"></div>`;
-    return `<a href="#" class="${m.class||''}" data-id="${m.id}">
-              <i class="nav-icon ${m.icon}"></i><span>${m.text}</span>
-            </a>`;
-  }).join('');
-
-  // simple router
-  function activate(id){
-    document.querySelectorAll('#sideNav a[data-id]').forEach(a=>a.classList.toggle('active', a.dataset.id===id));
-  }
-  nav.querySelectorAll('a[data-id]').forEach(a=>{
-    a.addEventListener('click',e=>{
-      e.preventDefault(); const id=a.dataset.id; route(id);
+      // Demo handlers
+      document.getElementById('btnGen').addEventListener('click', () => {
+        alert('Generate Report (demo) at ' + new Date().toLocaleString());
+      });
+      document.getElementById('btnExport').addEventListener('click', () => {
+        const rows = [
+          ["Indicator","Unit"],
+          ["ANC coverage","%"],
+          ["OPD visits","count"]
+        ];
+        const csv = rows.map(r => r.map(x => `"${String(x).replace(/"/g,'""')}"`).join(",")).join("\n");
+        const blob = new Blob([csv], {type:"text/csv"});
+        const url  = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "report.csv"; a.click();
+        URL.revokeObjectURL(url);
+      });
     });
-  });
 
-  document.getElementById('btnProfile').onclick = ()=> route('profile');
-  document.getElementById('btnLogoutTop').onclick =
-  nav.querySelector('a[data-id="logout"]')?.onclick = (e)=>{ e?.preventDefault?.(); clearAuth(); location.href='login.html'; };
-
-  // view switcher
-  async function route(id){
-    if(id==='logout'){ clearAuth(); location.href='login.html'; return; }
-    activate(id);
-    if(id==='dashboard') return renderDashboard();
-    if(id==='gen')       return renderGenerate();
-    if(id==='export')    return renderExport();
-    if(id==='reportCrud')    return renderReportCrud();
-    if(id==='reportCrudDep') return renderReportCrud({department_id: auth.department_id});
-    if(id==='indicatorCrud') return renderIndicatorCrud();
-    if(id==='periodCrud')    return renderPeriodCrud();
-    if(id==='deptCrud')      return renderDeptCrud();
-    if(id==='unitCrud')      return renderUnitCrud();
-    if(id==='userCrud')      return renderUserCrud();
-    if(id==='profile')       return renderProfile();
-    // default
-    return renderDashboard();
-  }
-
-  /* ------------------- Pages (stubs ready-to-wire) ------------------- */
-  const view = document.getElementById('view');
-
-  // Dashboard (same as before, small demo)
-  async function renderDashboard(){
-    view.innerHTML = `
-      <div class="row g-3 mb-3 kpi">
-        <div class="col-sm-6 col-xl-3"><div class="card p-3"><div class="title">New Leads</div><div id="k1" class="value">—</div></div></div>
-        <div class="col-sm-6 col-xl-3"><div class="card p-3"><div class="title">Sales</div><div id="k2" class="value">$—</div></div></div>
-        <div class="col-sm-6 col-xl-3"><div class="card p-3"><div class="title">Orders</div><div id="k3" class="value">—</div></div></div>
-        <div class="col-sm-6 col-xl-3"><div class="card p-3"><div class="title">Expense</div><div id="k4" class="value">$—</div></div></div>
-      </div>
-      <div class="row g-3">
-        <div class="col-xl-8"><div class="card p-3"><h6>Sales</h6><canvas id="salesChart" height="120"></canvas></div></div>
-        <div class="col-xl-4"><div class="card p-3"><h6>Sales by Countries</h6><canvas id="countryChart" height="220"></canvas></div></div>
-      </div>`;
-    try{
-      const year=(new Date()).getFullYear();
-      const {rows=[]}=await apiGet({api:1,route:'report',op:'list',year});
-      const monthly=Array.from({length:12},()=>({v:0,p:0}));
-      rows.forEach(r=>{ const m=/M(\d{2})/.exec(String(r.period_id||'')); const i=m?+m[1]-1:0;
-        monthly[i].v+=+r.value||0; monthly[i].p+=+r.plan_value||0; });
-      document.getElementById('k1').textContent=rows.length*2+205;
-      document.getElementById('k2').textContent='$'+monthly.reduce((a,b)=>a+b.v,0);
-      document.getElementById('k3').textContent=rows.length||80;
-      document.getElementById('k4').textContent='$'+monthly.reduce((a,b)=>a+b.p,0);
-      const L=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      new Chart(document.getElementById('salesChart'),{type:'bar',data:{labels:L,datasets:[
-        {label:'Online',data:monthly.map(m=>m.v)},{label:'Offline',data:monthly.map(m=>m.p)}
-      ]}});
-      new Chart(document.getElementById('countryChart'),{type:'pie',data:{labels:['USA','India','UK','KH','Other'],datasets:[{data:[35,22,15,8,20]}]}})
-    }catch(e){}
-  }
-
-  // Generate Report (monthly/quarterly/yearly)
-  function renderGenerate(){
-    view.innerHTML = `
-      <div class="card p-3">
-        <h6 class="mb-3">Generate Report</h6>
-        <div class="row g-2">
-          <div class="col-auto">
-            <select id="genType" class="form-select form-select-sm">
-              <option value="M">Monthly</option>
-              <option value="Q">Quarterly</option>
-              <option value="H">Half-year</option>
-              <option value="Y">Yearly</option>
-            </select>
-          </div>
-          <div class="col-auto"><input id="genYear" type="number" class="form-control form-control-sm" value="${(new Date()).getFullYear()}"></div>
-          <div class="col-auto"><button id="btnGen" class="btn btn-primary btn-sm">Generate</button></div>
-        </div>
-        <div id="genMsg" class="mt-2 text-muted small">បញ្ចូល parameter រួចចុច Generate</div>
-      </div>`;
-    document.getElementById('btnGen').onclick = async ()=>{
-      const y=+document.getElementById('genYear').value|| (new Date()).getFullYear();
-      // server has period generate; for report you’ll add server op later
-      const r=await apiGet({api:1,route:'period',op:'generate',year:y});
-      document.getElementById('genMsg').textContent = `Generated periods for ${y} (added: ${r.added||0}).`;
-    };
-  }
-
-  // Export report (stub – implement server export later)
-  function renderExport(){
-    view.innerHTML = `
-      <div class="card p-3">
-        <h6 class="mb-3">Export Report</h6>
-        <div class="row g-2">
-          <div class="col-auto">
-            <select id="expType" class="form-select form-select-sm">
-              <option value="M">Monthly</option>
-              <option value="Q">Quarterly</option>
-              <option value="Y">Yearly</option>
-            </select>
-          </div>
-          <div class="col-auto"><input id="expYear" type="number" class="form-control form-control-sm" value="${(new Date()).getFullYear()}"></div>
-          <div class="col-auto"><button id="btnExp" class="btn btn-outline-primary btn-sm">Export</button></div>
-        </div>
-        <div id="expMsg" class="mt-2 text-muted small">Export file (Excel/PDF) នឹងភ្ជាប់នៅ server បន្ត...</div>
-      </div>`;
-  }
-
-  // Generic small UI builders
-  const tableWrap = (title,header,body,toolbar='') => `
-    <div class="card p-3">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="mb-0">${title}</h6>
-        <div>${toolbar||''}</div>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-striped">
-          <thead class="table-light"><tr>${header}</tr></thead>
-          <tbody>${body}</tbody>
-        </table>
-      </div>
-    </div>`;
-
-  async function renderReportCrud(filter={}){
-    view.innerHTML = `<div class="card p-3">Loading reports…</div>`;
-    try{
-      const q={api:1,route:'report',op:'list',limit:1000,...filter};
-      const {rows=[]}=await apiGet(q);
-      const body=rows.map((r,i)=>`
-        <tr><td>${i+1}</td><td>${r.report_id}</td><td>${r.indicator_id}</td>
-        <td>${r.period_id}</td><td>${r.value||0}</td><td>${r.plan_value||0}</td></tr>`).join('');
-      view.innerHTML = tableWrap('Reports',
-        '<th>#</th><th>ID</th><th>Indicator</th><th>Period</th><th>Value</th><th>Plan</th>',
-        body,'<button class="btn btn-primary btn-sm" disabled>New</button>');
-    }catch(e){ view.innerHTML=`<div class="alert alert-danger">Load failed</div>`; }
-  }
-
-  async function renderIndicatorCrud(){
-    view.innerHTML = `<div class="card p-3">Loading indicators…</div>`;
-    try{
-      const {rows=[]}=await apiGet({api:1,route:'indicator',op:'list',limit:1000});
-      const body=rows.map((r,i)=>`
-        <tr><td>${i+1}</td><td>${r.indicator_id}</td><td>${r.indicator_name||''}</td>
-        <td>${r.indicator_type||''}</td><td>${r.department_id||''}</td></tr>`).join('');
-      view.innerHTML = tableWrap('Indicators',
-        '<th>#</th><th>ID</th><th>Name</th><th>Type</th><th>Dept</th>',
-        body,'<button class="btn btn-primary btn-sm" disabled>New</button>');
-    }catch(e){ view.innerHTML=`<div class="alert alert-danger">Load failed</div>`; }
-  }
-
-  async function renderPeriodCrud(){
-    view.innerHTML = `<div class="card p-3">Loading periods…</div>`;
-    try{
-      const {rows=[]}=await apiGet({api:1,route:'period',op:'list',limit:5000});
-      const body=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.period_id}</td><td>${r.period_name||''}</td><td>${r.year||''}</td><td>${r.month??''}</td></tr>`).join('');
-      view.innerHTML = tableWrap('Periods',
-        '<th>#</th><th>ID</th><th>Name</th><th>Year</th><th>Month</th>',
-        body,'<button id="btnGen" class="btn btn-outline-primary btn-sm">Generate</button>');
-      document.getElementById('btnGen').onclick = async()=>{
-        await apiGet({api:1,route:'period',op:'generate',year:(new Date).getFullYear()});
-        renderPeriodCrud();
-      };
-    }catch(e){ view.innerHTML=`<div class="alert alert-danger">Load failed</div>`; }
-  }
-
-  async function renderDeptCrud(){
-    view.innerHTML = `<div class="card p-3">Loading departments…</div>`;
-    try{
-      const {rows=[]}=await apiGet({api:1,route:'department',op:'list',limit:500});
-      const body=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.department_id}</td><td>${r.department_name||''}</td></tr>`).join('');
-      view.innerHTML = tableWrap('Departments','<th>#</th><th>ID</th><th>Name</th>',body,'<button class="btn btn-primary btn-sm" disabled>New</button>');
-    }catch(e){ view.innerHTML=`<div class="alert alert-danger">Load failed</div>`; }
-  }
-
-  async function renderUnitCrud(){
-    view.innerHTML = `<div class="card p-3">Loading units…</div>`;
-    try{
-      const {rows=[]}=await apiGet({api:1,route:'unit',op:'list',limit:1000});
-      const body=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.unit_id}</td><td>${r.department_id||''}</td><td>${r.unit_name||''}</td></tr>`).join('');
-      view.innerHTML = tableWrap('Units','<th>#</th><th>ID</th><th>Dept</th><th>Name</th>',body,'<button class="btn btn-primary btn-sm" disabled>New</button>');
-    }catch(e){ view.innerHTML=`<div class="alert alert-danger">Load failed</div>`; }
-  }
-
-  async function renderUserCrud(){
-    view.innerHTML = `<div class="card p-3">Loading users…</div>`;
-    try{
-      const {rows=[]}=await apiGet({api:1,route:'user',op:'list',limit:1000});
-      const body=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.user_id}</td><td>${r.user_name||''}</td>
-        <td>${r.user_type||''}</td><td>${r.user_root||''}</td><td>${r.department_id||''}</td></tr>`).join('');
-      view.innerHTML = tableWrap('Users','<th>#</th><th>ID</th><th>User</th><th>Type</th><th>Root</th><th>Dept</th>',body,'<button class="btn btn-primary btn-sm" disabled>New</button>');
-    }catch(e){ view.innerHTML=`<div class="alert alert-danger">Load failed</div>`; }
-  }
-
-  function renderProfile(){
-    view.innerHTML = `
-      <div class="card p-3">
-        <h6 class="mb-3">User Profile</h6>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <div class="mb-2 text-muted">ឈ្មោះ</div><div class="fw-semibold">${auth.user_name}</div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-2 text-muted">ប្រភេទអ្នកប្រើ</div><div class="fw-semibold">${auth.user_type||''}</div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-2 text-muted">សិទ្ធិ</div><div class="fw-semibold">${auth.user_root||''}</div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-2 text-muted">Department</div><div class="fw-semibold">${auth.department_id||''}</div>
-          </div>
-        </div>
-      </div>`;
-  }
-
-  // initial
-  route('dashboard');
+    // (Optional) helper for API calls if you later need it:
+    async function apiGet(params){
+      const base = getApiBase();
+      if(!base) throw new Error('API_BASE is empty');
+      const url = base + (base.includes('?')?'&':'?') + new URLSearchParams(params).toString();
+      const res = await fetch(url, { cache:'no-store' });
+      if(!res.ok) throw new Error('API error');
+      return res.json();
+    }
   </script>
 </body>
 </html>
