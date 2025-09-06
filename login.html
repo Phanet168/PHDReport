@@ -15,12 +15,12 @@
     :root{ --radius:16px }
     body{ font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:#f6f7fb }
     .wrap{ min-height:100dvh; display:grid; place-items:center; padding:24px }
-    .card{ width:min(460px, 94vw); border-radius:var(--radius) }
+    .card{ width:min(480px, 94vw); border-radius:var(--radius) }
     .brand{ color:#4f46e5; font-weight:700; font-size:20px }
     .muted{ color:#6b7280 }
     dialog{ border:none; border-radius:16px; padding:0 }
     dialog::backdrop{ background:rgba(0,0,0,.35) }
-    .api-card{ width:min(560px, 96vw); }
+    .api-card{ width:min(600px, 96vw); }
     .divider{ height:1px; background:#e5e7eb; margin:16px 0 }
   </style>
 </head>
@@ -35,7 +35,7 @@
       <form id="loginForm">
         <div class="mb-3">
           <label class="form-label">ឈ្មោះអ្នកប្រើ</label>
-          <input id="username" class="form-control" placeholder="ឧ. phanet" autofocus required>
+          <input id="username" class="form-control" placeholder="ឧ. admin" autofocus required>
         </div>
         <div class="mb-1">
           <label class="form-label">ពាក្យសម្ងាត់</label>
@@ -49,6 +49,7 @@
           <button class="btn btn-primary">ចូលប្រើប្រាស់</button>
           <button type="button" id="btnOpenApi" class="btn btn-outline-primary">កំណត់ API / GitHub JSON</button>
         </div>
+
         <div id="msg" class="alert alert-danger d-none mt-3"></div>
         <div id="hint" class="alert alert-warning d-none mt-3"></div>
       </form>
@@ -58,27 +59,24 @@
   <!-- API / Config Dialog -->
   <dialog id="apiDialog">
     <form id="apiForm" method="dialog" class="card api-card p-3 shadow-lg">
-      <h5 class="mb-2">កំណត់ API</h5>
+      <h5 class="mb-2">កំណត់ API / JSON Source</h5>
       <p class="text-muted mb-3">
-        អ្នកអាចបញ្ចូល <b>API URL ត្រង់ៗ</b> (Apps Script Web App) ឬ <b>GitHub JSON Config</b> (raw JSON)។
+        អ្នកអាចបញ្ចូល <b>API URL ត្រង់ៗ</b> (Apps Script Web App) ឬ <b>GitHub raw JSON</b> ឬ URL ទៅឯកសារ <code>users.json</code> នៅក្នុង repo របស់អ្នក។
       </p>
       <div class="mb-3">
-        <label class="form-label">API URL ឬ GitHub JSON URL</label>
+        <label class="form-label">API / JSON URL</label>
         <input id="apiInput" class="form-control"
-               placeholder="https://script.google.com/macros/s/XXXX/exec ឬ https://raw.githubusercontent.com/you/repo/main/config.json"
-               required>
+          placeholder="https://script.google.com/macros/s/XXXX/exec ឬ https://raw.githubusercontent.com/you/repo/main/users.json"
+          required>
       </div>
 
       <details class="mb-3">
-        <summary class="mb-2"><b>គំរូ GitHub JSON (config)</b></summary>
+        <summary class="mb-2"><b>គំរូ GitHub JSON (embedded users)</b></summary>
 <pre class="bg-light p-2 small" style="border:1px solid #eee;border-radius:8px;overflow:auto">
 {
-  "api_base": "https://script.google.com/macros/s/XXXX/exec",
-  "users_url": "https://script.google.com/macros/s/XXXX/exec"
-  // ឬប្រើ users ដោយផ្ទាល់:
-  // "users": [
-  //   {"user_id":"u1","user_name":"phanet","user_pass":"&lt;sha256&gt;","user_type":"admin","user_root":"admin","department_id":"PHD"}
-  // ]
+  "users": [
+    {"user_id":1,"user_name":"admin","user_pass":"&lt;sha256&gt;","user_type":"superuser","user_root":"all","department_id":1}
+  ]
 }
 </pre>
       </details>
@@ -95,158 +93,121 @@
     // ===== Config =====
     const DASHBOARD_PAGE = "index.html";
     const ls = window.localStorage;
-    const $ = (sel, el=document) => el.querySelector(sel);
+    const $ = (s,el=document)=>el.querySelector(s);
 
-    // ===== LocalStorage helpers =====
+    // Candidates ដំបូង (អាចកែបាន): 1) users.json ក្នុង repo 2) API_BASE រក្សាទុក 3) (បន្ថែមដោយអ្នក)
+    const DEFAULT_CANDIDATES = [
+      "users.json",               // local file in the same repo
+      ls.getItem("API_BASE")||""  // previously saved
+    ].filter(Boolean);
+
+    // ===== Helpers =====
     function saveApiBase(v){ v ? ls.setItem("API_BASE", v) : ls.removeItem("API_BASE"); }
     function getApiBase(){ return (ls.getItem("API_BASE")||"").trim(); }
     function setAuth(profile){ ls.setItem("AUTH", JSON.stringify(profile)); }
+    function showError(t){ const m=$("#msg"); m.textContent=t; m.classList.remove("d-none"); }
+    function showHint(t){ const h=$("#hint"); h.textContent=t; h.classList.remove("d-none"); }
 
-    // ===== Crypto =====
-    async function sha256Hex(text) {
+    async function sha256Hex(text){
       const enc = new TextEncoder().encode(text);
       const buf = await crypto.subtle.digest("SHA-256", enc);
-      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
     }
-
-    // ===== Fetch helpers =====
     async function fetchJson(url){
-      const res = await fetch(url, { cache:"no-store" });
+      const res = await fetch(url, {cache:"no-store"});
       if(!res.ok) throw new Error("HTTP "+res.status);
       return res.json();
     }
 
-    // Resolve API from possible GitHub config JSON or direct API URL
-    // Return: { users, users_url, api_base }
-    async function resolveApiSource(inputUrl){
-      const url = (inputUrl||"").trim();
-      if(!url) throw new Error("Empty URL");
+    // Resolve input URL:
+    // - ប្រសិនបើ url សំគាល់ថា *.json/raw → អាចជា config មាន {users:[...]} ឬ users array តែម្តង
+    // - បើមិនមែន → គិតថា URL ត្រឡប់ users array
+    async function resolveUsers(url){
+      const u = url.trim();
+      if(!u) throw new Error("Empty URL");
+      const j = await fetchJson(u);
+      if (Array.isArray(j)) return j;           // users array
+      if (Array.isArray(j.users)) return j.users; // {users:[...]}
+      // also accept {data:[...]} fallback
+      if (Array.isArray(j.data)) return j.data;
+      throw new Error("Unsupported JSON schema");
+    }
 
-      // Heuristic: if ends with .json (or looks like raw GitHub), treat as config
-      if (/\.json(\?.*)?$/i.test(url) || url.includes("raw.githubusercontent.com")) {
-        const cfg = await fetchJson(url);
-
-        // Direct users array supplied?
-        if (Array.isArray(cfg.users) && cfg.users.length) {
-          return { users: cfg.users, users_url: null, api_base: cfg.api_base || getApiBase() || "" };
-        }
-
-        // Or URLs inside config
-        const users_url = cfg.users_url || cfg.api_base || cfg.api || "";
-        const api_base  = cfg.api_base || cfg.api || users_url || "";
-        if (!users_url && !api_base) {
-          throw new Error("Config JSON missing users_url/api_base");
-        }
-        return { users: null, users_url, api_base };
+    async function tryCandidates(candidates){
+      const errors = [];
+      for (const c of candidates){
+        try{
+          const users = await resolveUsers(c);
+          saveApiBase(c); // remember last working source
+          return users;
+        }catch(e){ errors.push(`${c}: ${e.message}`); }
       }
-
-      // Otherwise it's treated as direct API returning users JSON
-      return { users: null, users_url: url, api_base: url };
+      throw new Error(errors.join(" | "));
     }
 
-    async function loadUsersFromResolved(resolved){
-      // If users embedded:
-      if (Array.isArray(resolved.users)) return resolved.users;
-
-      // Otherwise fetch from users_url/api_base
-      const u = resolved.users_url || resolved.api_base;
-      if (!u) throw new Error("No users URL");
-      return fetchJson(u);
+    async function doLogin(username, password){
+      const candidates = [getApiBase(), ...DEFAULT_CANDIDATES].filter(Boolean);
+      try{
+        const users = await tryCandidates(candidates);
+        return checkUser(users, username, password);
+      }catch(err){
+        // Cannot read → ask to set API
+        showError("អានទិន្នន័យពី API/JSON បរាជ័យ — សូមកំណត់ API ឬ GitHub JSON។");
+        openApiDialog();
+        throw err;
+      }
     }
 
-    async function loginFromAnySource(username, password, sourceUrl){
-      const resolved = await resolveApiSource(sourceUrl);
-      // Save api_base if available
-      if (resolved.api_base) saveApiBase(resolved.api_base);
-
-      const users = await loadUsersFromResolved(resolved);
-
-      const u = users.find(x => (String(x.user_name||"").toLowerCase()) === username.toLowerCase());
-      if(!u) return { ok:false, reason:"រកមិនឃើញអ្នកប្រើ" };
-
-      const given = await sha256Hex(password);
-      const stored = String(u.user_pass || u.user_pass_sha256 || "").toLowerCase();
-      if(given !== stored) return { ok:false, reason:"ពាក្យសម្ងាត់មិនត្រឹមត្រូវ" };
+    async function checkUser(users, username, password){
+      const u = users.find(x => String(x.user_name||"").toLowerCase() === username.toLowerCase());
+      if(!u) return {ok:false, reason:"រកមិនឃើញអ្នកប្រើ"};
+      const hash = await sha256Hex(password);
+      const stored = String(u.user_pass||u.user_pass_sha256||"").toLowerCase();
+      if(hash !== stored) return {ok:false, reason:"ពាក្យសម្ងាត់មិនត្រឹមត្រូវ"};
 
       const profile = {
-        user_id: u.user_id,
-        user_name: u.user_name,
-        user_type: u.user_type,
-        user_root: u.user_root,
-        department_id: u.department_id,
-        login_at: Date.now()
+        user_id:u.user_id, user_name:u.user_name, user_type:u.user_type,
+        user_root:u.user_root, department_id:u.department_id, login_at:Date.now()
       };
       setAuth(profile);
-      return { ok:true, profile };
+      return {ok:true, profile};
     }
 
-    // ===== UI logic =====
-    const apiDialog = $("#apiDialog");
-    const apiForm   = $("#apiForm");
-    const apiInput  = $("#apiInput");
-    const apiMsg    = $("#apiMsg");
-    const msg       = $("#msg");
-    const hint      = $("#hint");
+    // ===== API Dialog =====
+    const apiDialog = $("#apiDialog"), apiForm=$("#apiForm"), apiInput=$("#apiInput"), apiMsg=$("#apiMsg");
+    function openApiDialog(){ apiMsg.classList.add("d-none"); apiInput.value=getApiBase()||""; apiDialog.showModal(); }
+    $("#btnOpenApi").onclick = openApiDialog;
 
-    // Open dialog manually
-    $("#btnOpenApi").onclick = () => {
-      apiMsg.classList.add("d-none"); apiMsg.textContent = "";
-      apiInput.value = getApiBase() || "";
-      apiDialog.showModal();
-    };
-
-    // Save in dialog
-    apiForm.addEventListener("submit", async (e) => {
-      if (e.submitter?.value !== "confirm") return; // cancel
+    apiForm.addEventListener("submit", async (e)=>{
+      if(e.submitter?.value!=="confirm") return; // cancel
       e.preventDefault();
       apiMsg.classList.add("d-none");
       try{
-        const inputUrl = apiInput.value.trim();
-        const resolved = await resolveApiSource(inputUrl);
-        // Validate by a light fetch (if not embedded users)
-        if (!Array.isArray(resolved.users)) {
-          await fetchJson(resolved.users_url || resolved.api_base);
-        }
-        if (resolved.api_base) saveApiBase(resolved.api_base);
-        else if (resolved.users_url) saveApiBase(resolved.users_url);
+        const v = apiInput.value.trim();
+        // quick validate
+        await resolveUsers(v);
+        saveApiBase(v);
         apiDialog.close();
-        showHint("រក្សាទុក API សម្រេច — សាកល្បង Login ម្តងទៀត។");
+        showHint("រក្សាទុក API/JSON សម្រេច — សាកល្បង Login ម្តងទៀត។");
       }catch(err){
-        apiMsg.textContent = "រក្សាទុក API បរាជ័យ: " + err.message;
+        apiMsg.textContent = "URL មិនត្រឹមត្រូវ ឬអានបរាជ័យ: " + err.message;
         apiMsg.classList.remove("d-none");
       }
     });
 
-    function showError(t){ msg.textContent = t; msg.classList.remove("d-none"); }
-    function showHint(t){ hint.textContent = t; hint.classList.remove("d-none"); }
-
-    // Submit login
-    $("#loginForm").addEventListener("submit", async (e) => {
+    // ===== Submit =====
+    $("#loginForm").addEventListener("submit", async (e)=>{
       e.preventDefault();
-      msg.classList.add("d-none");
-      hint.classList.add("d-none");
-
+      $("#msg").classList.add("d-none");
+      $("#hint").classList.add("d-none");
       const username = $("#username").value.trim();
       const password = $("#password").value;
-      let sourceUrl  = getApiBase();
-
+      if(!username || !password){ showError("សូមបំពេញ ឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់"); return; }
       try{
-        if (!sourceUrl) {
-          // No API saved → prompt user
-          showHint("មិនទាន់កំណត់ API ទេ — សូមបញ្ចូល API/GitHub JSON។");
-          apiInput.value = "";
-          apiDialog.showModal();
-          return;
-        }
-        const res = await loginFromAnySource(username, password, sourceUrl);
-        if(res.ok){ location.href = DASHBOARD_PAGE; }
-        else { showError("Login បរាជ័យ: " + res.reason); }
-      }catch(err){
-        // Fetch failed → open API dialog automatically
-        showError("អានទិន្នន័យពី API បរាជ័យ — សូមកំណត់ API ឡើងវិញ។");
-        apiInput.value = "";
-        apiDialog.showModal();
-      }
+        const res = await doLogin(username, password);
+        if(res.ok) location.href = DASHBOARD_PAGE;
+        else showError("Login បរាជ័យ: " + res.reason);
+      }catch(_) { /* already handled */ }
     });
   </script>
 </body>
