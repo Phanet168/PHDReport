@@ -1,130 +1,70 @@
 <!doctype html>
 <html lang="km">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login — PHD Report System</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PHD Report System</title>
 
-  <!-- Gull CSS: ប្រាកដថា path ត្រឹម — បើថតឈ្មោះ "themes" សរសេរ themes/  -->
   <link rel="stylesheet" href="assets/css/themes/title-purple.min.css">
-  <link rel="stylesheet" href="assets/css/themes/perfect-scrollbar.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <style> body{font-family:"Noto Sans Khmer","Roboto",sans-serif} </style>
+  <link rel="stylesheet" href="assets/css/perfect-scrollbar.min.css">
+  <link rel="stylesheet" href="assets/fonts/icomoon/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 </head>
 <body>
-  <!-- Auth layout របស់ Gull -->
-  <div class="auth-layout-wrap" style="background:linear-gradient(135deg,#5f4dee,#a16ae8);">
-    <div class="auth-content">
-      <div class="card o-hidden">
-        <div class="row">
-          <div class="col-md-12">
-            <div class="p-4 p-md-5">
-              <div class="text-center mb-3">
-                <h3 class="mb-0">Provincial Health Dept</h3>
-                <div class="text-muted">PHD Report System</div>
-              </div>
-
-              <form id="loginForm">
-                <div class="form-group mb-3">
-                  <label class="text-muted">Apps Script API URL</label>
-                  <input id="apiBase" class="form-control form-control-rounded"
-                         placeholder="https://script.google.com/macros/s/AKfycbwnxRudS_il7Dvcdh7-QB36NJaP-6-hl5nMniXrbuKhMpHPK8CCEGkRIc9-okB-P0Z6Zw/exec">
-                  <small class="form-text text-muted">រក្សាទុកក្នុង Browser ម្តងតែប៉ុណ្ណោះ</small>
-                </div>
-                <div class="form-group mb-3">
-                  <label>ឈ្មោះអ្នកប្រើ</label>
-                  <input id="userName" class="form-control form-control-rounded" autocomplete="username" required>
-                </div>
-                <div class="form-group mb-4 position-relative">
-                  <label>ពាក្យសម្ងាត់</label>
-                  <input id="userPass" type="password" 
-                 class="form-control form-control-rounded pe-5" 
-                  autocomplete="current-password" required>
-                  <button type="button" class="btn btn-sm btn-link position-absolute top-50 end-0 translate-middle-y me-2" 
-     id="togglePass" tabindex="-1">
-    👁
-  </button>
-</div>
-
-                <button type="submit" class="btn btn-primary btn-rounded btn-block">ចូលប្រើប្រាស់</button>
-              </form>
-
-              <div id="loginMsg" class="text-danger small mt-3 d-none">Login បរាជ័យ</div>
-              <div class="text-center text-muted small mt-3">© <span id="yr"></span> Provincial Health Department</div>
-            </div>
-          </div>
-        </div>
+<div class="app-admin-wrap layout-sidebar-large d-flex">
+  <!-- Sidebar -->
+  <div class="sidebar-left open">
+    <div class="logo d-flex align-items-center px-3 py-3">
+      <h4 class="text-white mb-0">PHD Report</h4>
+    </div>
+    <div class="ps perfect-scrollbar">
+      <div class="sidebar-left-content">
+        <ul class="navigation-left">
+          <li class="nav-item active"><a class="nav-item-hold" href="#" data-tab="dashboard"><i class="nav-icon i-Bar-Chart"></i><span class="nav-text">Dashboard</span></a><div class="triangle"></div></li>
+          <li class="nav-item"><a class="nav-item-hold" href="#" data-tab="reports"><i class="nav-icon i-Financial"></i><span class="nav-text">Reports</span></a><div class="triangle"></div></li>
+          <li class="nav-item"><a class="nav-item-hold" href="#" data-tab="indicators"><i class="nav-icon i-Check"></i><span class="nav-text">Indicators</span></a><div class="triangle"></div></li>
+          <li class="nav-item"><a class="nav-item-hold" href="#" data-tab="periods"><i class="nav-icon i-Calendar-4"></i><span class="nav-text">Periods</span></a><div class="triangle"></div></li>
+          <li class="nav-item"><a class="nav-item-hold text-warning" href="#" id="btnLogout"><i class="nav-icon i-Power-2"></i><span class="nav-text">Logout</span></a></li>
+        </ul>
       </div>
     </div>
   </div>
 
-  <!-- Vendor JS -->
-  <script src="assets/js/plugins/perfect-scrollbar.min.js"></script>
-  <script>
-  // ===== Settings =====
-  const DASHBOARD_PAGE = 'dashboard.html';   // ប្តូរទៅទំព័រ dashboard របស់បង
-  const ls = window.localStorage;
+  <!-- Main -->
+  <div class="main-content-wrap sidenav-open d-flex flex-column">
+    <div class="main-header d-flex align-items-center justify-content-between px-3">
+      <h5 class="mb-0">សូមស្វាគមន៍ <span id="topUser"></span></h5>
+      <button id="btnLogoutTop" class="btn btn-outline-danger btn-sm">Logout</button>
+    </div>
+    <div class="main-content p-3">
+      <div id="content"><h3>Dashboard</h3><p>ជ្រើសរើសម៉ឺនុយពីខាងឆ្វេង…</p></div>
+    </div>
+  </div>
+</div>
 
-  const apiInput = document.getElementById('apiBase');
-  const msg = document.getElementById('loginMsg');
-  document.getElementById('yr').textContent = new Date().getFullYear();
+<script src="assets/js/perfect-scrollbar.min.js"></script>
+<script>
+  const ls=window.localStorage;
+  function getProfile(){try{return JSON.parse(ls.getItem('AUTH')||'null')}catch{return null}}
+  function clearProfile(){ls.removeItem('AUTH')}
+  function showUser(){const p=getProfile();if(p) document.getElementById('topUser').textContent=p.user_name}
 
-  // remember API URL
-  apiInput.value = (ls.getItem('API_BASE')||'').trim();
-
-  function setApiBase(v){ ls.setItem('API_BASE', v.trim()); }
-  function getApiBase(){ return (ls.getItem('API_BASE')||'').trim(); }
-
-  // helpers
-  async function sha256Hex(str){
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  }
-  async function apiGet(params){
-    const base = getApiBase();
-    const qs = new URLSearchParams(params).toString();
-    const url = base + (base.includes('?')?'&':'?') + qs;
-    const res = await fetch(url, {cache:'no-store'});
-    if(!res.ok) throw new Error('API GET failed');
-    return res.json();
-  }
-
-  // login
-  document.getElementById('loginForm').addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    msg.classList.add('d-none'); msg.textContent = '';
-
-    const base = apiInput.value.trim();
-    if(!base){ msg.textContent='សូមបញ្ចូល API URL'; msg.classList.remove('d-none'); return; }
-    setApiBase(base);
-
-    const user = document.getElementById('userName').value.trim();
-    const pass = document.getElementById('userPass').value;
-    if(!user || !pass){ msg.textContent='សូមបំពេញឈ្មោះ និង ពាក្យសម្ងាត់'; msg.classList.remove('d-none'); return; }
-
-    try{
-      const { rows=[] } = await apiGet({ api:1, route:'user', op:'list', limit:5000 });
-      const u = rows.find(r => String(r.user_name||'').toLowerCase() === user.toLowerCase());
-      if(!u){ msg.textContent='មិនមានអ្នកប្រើប្រាស់នេះ'; msg.classList.remove('d-none'); return; }
-
-      const stored = String(u.user_pass||'');
-      const ok = (stored.length === 64) ? (await sha256Hex(pass)) === stored : (stored === pass);
-      if(!ok){ msg.textContent='ពាក្យសម្ងាត់មិនត្រឹមត្រូវ'; msg.classList.remove('d-none'); return; }
-
-      const profile = {
-        user_id: u.user_id, user_name: u.user_name,
-        user_type: u.user_type, user_root: u.user_root,
-        department_id: u.department_id, login_at: Date.now()
-      };
-      ls.setItem('AUTH', JSON.stringify(profile));
-      location.href = DASHBOARD_PAGE;   // ✅ redirect ត្រឹម
-    }catch(err){
-      console.error(err);
-      msg.textContent='Login បរាជ័យ (API)'; msg.classList.remove('d-none');
-    }
+  // nav switch
+  document.querySelectorAll('.navigation-left .nav-item a[data-tab]').forEach(a=>{
+    a.addEventListener('click',e=>{
+      e.preventDefault();document.querySelectorAll('.navigation-left .nav-item').forEach(li=>li.classList.remove('active'));
+      a.closest('.nav-item').classList.add('active');
+      document.getElementById('content').innerHTML='<h3>'+a.dataset.tab+'</h3><p>Content for '+a.dataset.tab+'</p>';
+    });
   });
-  </script>
+
+  // logout
+  document.querySelectorAll('#btnLogout,#btnLogoutTop').forEach(b=>b.addEventListener('click',(e)=>{
+    e.preventDefault(); clearProfile(); location.href='login.html';
+  }));
+
+  (function(){const p=getProfile();if(!p) location.href='login.html'; else showUser();})();
+</script>
 </body>
 </html>
-
-
