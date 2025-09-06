@@ -17,7 +17,7 @@
   </style>
 </head>
 <body>
-  <!-- Simple topbar -->
+  <!-- Topbar -->
   <div class="topbar py-2 px-3 d-flex align-items-center justify-content-between">
     <div class="fw-bold">PHD Report Dashboard</div>
     <div class="d-flex align-items-center gap-2">
@@ -40,7 +40,7 @@
             <button id="btnGen" class="btn btn-primary btn-sm">Generate Report</button>
             <button id="btnExport" class="btn btn-outline-primary btn-sm">Export CSV</button>
           </div>
-          <div class="text-muted small mt-2">API Base: <span id="apiVal">—</span></div>
+          <div class="text-muted small mt-2">JSON/API Source: <span id="apiVal">—</span></div>
         </div>
       </div>
 
@@ -56,24 +56,22 @@
   <script>
     // ===== Auth guard & helpers =====
     const ls = window.localStorage;
-
     function getProfile(){ try{ return JSON.parse(ls.getItem('AUTH')||'null'); }catch{ return null; } }
     function clearAuth(){ ls.removeItem('AUTH'); }
     function getApiBase(){ return (ls.getItem('API_BASE')||'').trim(); }
 
-    // Guard: redirect if no auth
     const auth = getProfile();
     if(!auth){ location.href = 'login.html'; }
 
-    // Paint topbar & profile
     document.addEventListener('DOMContentLoaded', () => {
+      // Paint user
       const topUser = document.getElementById('topUser');
-      if(topUser && auth){
-        topUser.textContent = `${auth.user_name||''} (${auth.user_type||''})`;
-      }
-      const profileBox = document.getElementById('profileBox');
-      if(profileBox){
-        profileBox.innerHTML = `
+      if(topUser && auth){ topUser.textContent = `${auth.user_name||''} (${auth.user_type||''})`; }
+
+      // Profile box
+      const p = document.getElementById('profileBox');
+      if(p){
+        p.innerHTML = `
           <div><strong>ID:</strong> ${auth.user_id||''}</div>
           <div><strong>Type:</strong> ${auth.user_type||''}</div>
           <div><strong>Root:</strong> ${auth.user_root||''}</div>
@@ -81,14 +79,16 @@
           <div><strong>Login at:</strong> ${new Date(auth.login_at||Date.now()).toLocaleString()}</div>
         `;
       }
-      document.getElementById('apiVal').textContent = getApiBase() || 'N/A';
 
+      // Source display
+      document.getElementById('apiVal').textContent = getApiBase() || 'users.json';
+
+      // Logout
       document.getElementById('btnLogout').addEventListener('click', () => {
-        clearAuth();
-        location.href = 'login.html';
+        clearAuth(); location.href = 'login.html';
       });
 
-      // Demo handlers
+      // Demo actions
       document.getElementById('btnGen').addEventListener('click', () => {
         alert('Generate Report (demo) at ' + new Date().toLocaleString());
       });
@@ -106,16 +106,6 @@
         URL.revokeObjectURL(url);
       });
     });
-
-    // (Optional) helper for API calls if you later need it:
-    async function apiGet(params){
-      const base = getApiBase();
-      if(!base) throw new Error('API_BASE is empty');
-      const url = base + (base.includes('?')?'&':'?') + new URLSearchParams(params).toString();
-      const res = await fetch(url, { cache:'no-store' });
-      if(!res.ok) throw new Error('API error');
-      return res.json();
-    }
   </script>
 </body>
 </html>
