@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="km">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Super Admin — PHD Report System</title>
+
+  <!-- Use your theme files -->
+  <link rel="stylesheet" href="assets/css/themes/lite-purple.min.css">
+  <link rel="stylesheet" href="assets/css/third-party.bundle.css">
+  <link rel="stylesheet" href="assets/fonts/icomoon/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body{ font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial }
+    .topbar{ border-bottom:1px solid #e5e7eb; }
+    .muted{ color:#6b7280 }
+    .grid{ display:grid; gap:12px }
+    .grid-2{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+    @media (max-width:992px){ .grid-2{ grid-template-columns:1fr } }
+    .table-sm td,.table-sm th{ padding:.5rem }
+    .card-title{ font-weight:600 }
+    .pointer{ cursor:pointer }
+  </style>
+</head>
+<body>
+  <!-- Topbar -->
+  <div class="topbar py-2 px-3 d-flex align-items-center justify-content-between">
+    <div class="fw-bold">Super Admin Management</div>
+    <div class="d-flex align-items-center gap-2">
+      <span id="topUser" class="text-muted small"></span>
+      <a href="index.html" class="btn btn-outline-secondary btn-sm">Dashboard</a>
+      <button id="btnLogout" class="btn btn-outline-primary btn-sm">Logout</button>
+    </div>
+  </div>
+
+  <div class="container my-3">
+    <!-- Summary -->
+    <div class="grid grid-2">
+      <div class="card p-3">
+        <div class="card-title mb-1">សេចក្ដីផ្តើម</div>
+        <div class="muted small">
+          ទំព័រនេះសម្រាប់ <b>Super Admin</b> ដើម្បីគ្រប់គ្រង Users, Indicators, Periods, Departments, Units និងសកម្មភាពរបាយការណ៍។
+        </div>
+        <div class="mt-2 small">API BASE: <code id="apiVal">—</code></div>
+      </div>
+      <div class="card p-3">
+        <div class="card-title mb-2">សកម្មភាពរបាយការណ៍</div>
+        <div class="d-flex gap-2 align-items-end">
+          <div>
+            <label class="form-label">Generate Periods (Year)</label>
+            <input id="genYear" type="number" class="form-control" placeholder="2025" />
+          </div>
+          <button id="btnGenPeriods" class="btn btn-primary">Generate</button>
+          <button id="btnExport" class="btn btn-outline-primary">Export CSV (ឧទាហរណ៍)</button>
+        </div>
+        <div id="toast" class="alert alert-info mt-3 d-none"></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mt-3" id="tabs">
+      <li class="nav-item"><a class="nav-link active pointer" data-tab="users">Users</a></li>
+      <li class="nav-item"><a class="nav-link pointer" data-tab="indicators">Indicators</a></li>
+      <li class="nav-item"><a class="nav-link pointer" data-tab="periods">Periods</a></li>
+      <li class="nav-item"><a class="nav-link pointer" data-tab="departments">Departments</a></li>
+      <li class="nav-item"><a class="nav-link pointer" data-tab="units">Units</a></li>
+    </ul>
+
+    <div class="tab-content mt-3">
+      <!-- USERS -->
+      <div class="tab-pane fade show active" id="tab-users">
+        <div class="card p-3 mb-2">
+          <div class="card-title">Add / Update User</div>
+          <form id="form-user" class="row g-2">
+            <div class="col-md-2"><input class="form-control" id="u_id" placeholder="ID (កែ)" /></div>
+            <div class="col-md-2"><input class="form-control" id="u_name" placeholder="user_name" required/></div>
+            <div class="col-md-2"><input class="form-control" id="u_pass" placeholder="user_pass (plaintext or sha256*)" /></div>
+            <div class="col-md-2"><input class="form-control" id="u_type" placeholder="user_type (superuser/admin/...)" /></div>
+            <div class="col-md-2"><input class="form-control" id="u_root" placeholder="user_root (all/write/...)" /></div>
+            <div class="col-md-2"><input class="form-control" id="u_dept" placeholder="department_id" /></div>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary">Save</button>
+              <button class="btn btn-outline-secondary" type="button" id="u_reset">Clear</button>
+            </div>
+            <div class="form-text">
+              * ប្រសិនបើ Server កែជា hash-compare អ្នកអាចបញ្ចូល plaintext; បើប្រើ JSON users hash សូមដាក់ SHA-256 hex។
+            </div>
+          </form>
+        </div>
+        <div class="card p-3">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="card-title mb-0">Users</div>
+            <button class="btn btn-sm btn-outline-secondary" id="reload-users">Reload</button>
+          </div>
+          <div class="table-responsive mt-2">
+            <table class="table table-sm table-striped align-middle" id="tbl-users">
+              <thead><tr>
+                <th>ID</th><th>user_name</th><th>type</th><th>root</th><th>dept</th><th></th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- INDICATORS -->
+      <div class="tab-pane fade" id="tab-indicators">
+        <div class="card p-3 mb-2">
+          <div class="card-title">Add / Update Indicator</div>
+          <form id="form-ind" class="row g-2">
+            <div class="col-md-2"><input class="form-control" id="i_id" placeholder="ID (កែ)" /></div>
+            <div class="col-md-4"><input class="form-control" id="i_name" placeholder="indicator_name" required/></div>
+            <div class="col-md-3"><input class="form-control" id="i_type" placeholder="indicator_type" /></div>
+            <div class="col-md-3"><input class="form-control" id="i_dept" placeholder="department_id" /></div>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary">Save</button>
+              <button class="btn btn-outline-secondary" type="button" id="i_reset">Clear</button>
+            </div>
+          </form>
+        </div>
+        <div class="card p-3">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="card-title mb-0">Indicators</div>
+            <button class="btn btn-sm btn-outline-secondary" id="reload-indicators">Reload</button>
+          </div>
+          <div class="table-responsive mt-2">
+            <table class="table table-sm table-striped align-middle" id="tbl-indicators">
+              <thead><tr>
+                <th>ID</th><th>Name</th><th>Type</th><th>Dept</th><th></th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PERIODS -->
+      <div class="tab-pane fade" id="tab-periods">
+        <div class="card p-3 mb-2">
+          <div class="card-title">Add / Update Period</div>
+          <form id="form-period" class="row g-2">
+            <div class="col-md-2"><input class="form-control" id="p_id" placeholder="ID (កែ)" /></div>
+            <div class="col-md-4"><input class="form-control" id="p_name" placeholder="period_name" required/></div>
+            <div class="col-md-3"><input class="form-control" id="p_year" placeholder="year" /></div>
+            <div class="col-md-3"><input class="form-control" id="p_month" placeholder="month" /></div>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary">Save</button>
+              <button class="btn btn-outline-secondary" type="button" id="p_reset">Clear</button>
+            </div>
+          </form>
+        </div>
+        <div class="card p-3">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="card-title mb-0">Periods</div>
+            <button class="btn btn-sm btn-outline-secondary" id="reload-periods">Reload</button>
+          </div>
+          <div class="table-responsive mt-2">
+            <table class="table table-sm table-striped align-middle" id="tbl-periods">
+              <thead><tr>
+                <th>ID</th><th>Name</th><th>Year</th><th>Month</th><th></th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- DEPARTMENTS -->
+      <div class="tab-pane fade" id="tab-departments">
+        <div class="card p-3 mb-2">
+          <div class="card-title">Add / Update Department</div>
+          <form id="form-dept" class="row g-2">
+            <div class="col-md-2"><input class="form-control" id="d_id" placeholder="ID (កែ)" /></div>
+            <div class="col-md-6"><input class="form-control" id="d_name" placeholder="department_name" required/></div>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary">Save</button>
+              <button class="btn btn-outline-secondary" type="button" id="d_reset">Clear</button>
+            </div>
+          </form>
+        </div>
+        <div class="card p-3">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="card-title mb-0">Departments</div>
+            <button class="btn btn-sm btn-outline-secondary" id="reload-departments">Reload</button>
+          </div>
+          <div class="table-responsive mt-2">
+            <table class="table table-sm table-striped align-middle" id="tbl-departments">
+              <thead><tr>
+                <th>ID</th><th>Name</th><th></th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- UNITS -->
+      <div class="tab-pane fade" id="tab-units">
+        <div class="card p-3 mb-2">
+          <div class="card-title">Add / Update Unit</div>
+          <form id="form-unit" class="row g-2">
+            <div class="col-md-2"><input class="form-control" id="un_id" placeholder="ID (កែ)" /></div>
+            <div class="col-md-4"><input class="form-control" id="un_name" placeholder="unit_name" required/></div>
+            <div class="col-md-3"><input class="form-control" id="un_dept" placeholder="department_id" /></div>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary">Save</button>
+              <button class="btn btn-outline-secondary" type="button" id="un_reset">Clear</button>
+            </div>
+          </form>
+        </div>
+        <div class="card p-3">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="card-title mb-0">Units</div>
+            <button class="btn btn-sm btn-outline-secondary" id="reload-units">Reload</button>
+          </div>
+          <div class="table-responsive mt-2">
+            <table class="table table-sm table-striped align-middle" id="tbl-units">
+              <thead><tr>
+                <th>ID</th><th>Name</th><th>Dept</th><th></th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div><!-- /tab-content -->
+  </div>
+
+  <script>
+    // ===== Auth guard =====
+    const ls = window.localStorage;
+    function getProfile(){ try{ return JSON.parse(ls.getItem('AUTH')||'null'); }catch{ return null; } }
+    function getApiBase(){ return (ls.getItem('API_BASE')||'').trim(); }
+    function clearAuth(){ ls.removeItem('AUTH'); }
+    function guardSuper(a){ return a && (String(a.user_type).toLowerCase()==='superuser' || String(a.user_root).toLowerCase()==='all'); }
+
+    const auth = getProfile();
+    if(!auth || !guardSuper(auth)){ location.href = 'login.html'; }
+
+    // ===== Helpers =====
+    const $ = (s,el=document)=>el.querySelector(s);
+    function toast(t){ const el=$("#toast"); el.textContent=t; el.classList.remove("d-none"); setTimeout(()=>el.classList.add("d-none"), 2000); }
+    function apiUrl(params){ const base=getApiBase(); if(!base) throw new Error('API_BASE not set'); return base + (base.includes('?')?'&':'?') + new URLSearchParams(params).toString(); }
+    async function getJSON(params){ const r=await fetch(apiUrl(params),{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
+    async function postJSON(params, body){ const r=await fetch(apiUrl(params),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
+    function bindReload(btnId, fn){ $(btnId).addEventListener('click', fn); }
+
+    // topbar
+    document.addEventListener('DOMContentLoaded', ()=>{
+      $("#topUser").textContent = `${auth.user_name||''} (${auth.user_type||''})`;
+      $("#apiVal").textContent  = getApiBase() || 'N/A';
+      $("#btnLogout").addEventListener('click', ()=>{ clearAuth(); location.href='login.html'; });
+    });
+
+    // ===== Tabs =====
+    $("#tabs").addEventListener("click", e=>{
+      const tab = e.target.closest("[data-tab]"); if(!tab) return;
+      $("#tabs .nav-link.active")?.classList.remove("active");
+      tab.classList.add("active");
+      document.querySelectorAll(".tab-pane").forEach(p=>p.classList.remove("show","active"));
+      $("#tab-"+tab.dataset.tab).classList.add("show","active");
+    });
+
+    // ===== Users =====
+    async function loadUsers(){
+      const data = await getJSON({api:1, route:'users', op:'list', limit:1000});
+      const rows = data.rows || data || [];
+      const tb = $("#tbl-users tbody"); tb.innerHTML='';
+      rows.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.user_id||''}</td>
+          <td>${r.user_name||''}</td>
+          <td>${r.user_type||''}</td>
+          <td>${r.user_root||''}</td>
+          <td>${r.department_id||''}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${r.user_id}">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.user_id}">Del</button>
+          </td>`;
+        tb.appendChild(tr);
+      });
+      tb.querySelectorAll("button").forEach(b=>b.onclick = async ()=>{
+        const id = b.dataset.id;
+        if(b.dataset.act==='edit'){
+          const tr = b.closest('tr').children;
+          $("#u_id").value   = tr[0].textContent.trim();
+          $("#u_name").value = tr[1].textContent.trim();
+          $("#u_type").value = tr[2].textContent.trim();
+          $("#u_root").value = tr[3].textContent.trim();
+          $("#u_dept").value = tr[4].textContent.trim();
+          $("#u_pass").value = '';
+          window.scrollTo({top:0,behavior:'smooth'});
+        }else{
+          if(!confirm('Delete user '+id+' ?')) return;
+          await postJSON({api:1,route:'users',op:'delete'},{user_id:id});
+          toast('Deleted'); loadUsers();
+        }
+      });
+    }
+    bindReload("#reload-users", loadUsers);
+    $("#u_reset").onclick = ()=>{ ["u_id","u_name","u_pass","u_type","u_root","u_dept"].forEach(id=>$("#"+id).value=''); };
+    $("#form-user").addEventListener("submit", async e=>{
+      e.preventDefault();
+      const payload = {
+        user_id: $("#u_id").value || undefined,
+        user_name: $("#u_name").value.trim(),
+        user_pass: $("#u_pass").value.trim(),   // server login() current compares plaintext; you can change server to hash-compare
+        user_type: $("#u_type").value.trim(),
+        user_root: $("#u_root").value.trim(),
+        department_id: $("#u_dept").value.trim()
+      };
+      const res = await postJSON({api:1,route:'users',op:'upsert'}, payload);
+      toast('Saved'); loadUsers();
+      $("#u_reset").click();
+    });
+
+    // ===== Indicators =====
+    async function loadIndicators(){
+      const data = await getJSON({api:1,route:'indicators',op:'list',limit:2000});
+      const rows = data.rows || data || [];
+      const tb = $("#tbl-indicators tbody"); tb.innerHTML='';
+      rows.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.indicator_id||''}</td>
+          <td>${r.indicator_name||''}</td>
+          <td>${r.indicator_type||''}</td>
+          <td>${r.department_id||''}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${r.indicator_id}">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.indicator_id}">Del</button>
+          </td>`;
+        tb.appendChild(tr);
+      });
+      tb.querySelectorAll("button").forEach(b=>b.onclick = async ()=>{
+        const id = b.dataset.id;
+        if(b.dataset.act==='edit'){
+          const tr = b.closest('tr').children;
+          $("#i_id").value   = tr[0].textContent.trim();
+          $("#i_name").value = tr[1].textContent.trim();
+          $("#i_type").value = tr[2].textContent.trim();
+          $("#i_dept").value = tr[3].textContent.trim();
+          window.scrollTo({top:0,behavior:'smooth'});
+        }else{
+          if(!confirm('Delete indicator '+id+' ?')) return;
+          await postJSON({api:1,route:'indicators',op:'delete'},{indicator_id:id});
+          toast('Deleted'); loadIndicators();
+        }
+      });
+    }
+    bindReload("#reload-indicators", loadIndicators);
+    $("#i_reset").onclick = ()=>{ ["i_id","i_name","i_type","i_dept"].forEach(id=>$("#"+id).value=''); };
+    $("#form-ind").addEventListener("submit", async e=>{
+      e.preventDefault();
+      const payload = {
+        indicator_id: $("#i_id").value || undefined,
+        indicator_name: $("#i_name").value.trim(),
+        indicator_type: $("#i_type").value.trim(),
+        department_id: $("#i_dept").value.trim()
+      };
+      await postJSON({api:1,route:'indicators',op:'upsert'}, payload);
+      toast('Saved'); loadIndicators(); $("#i_reset").click();
+    });
+
+    // ===== Periods =====
+    async function loadPeriods(){
+      const data = await getJSON({api:1,route:'periods',op:'list',limit:2000});
+      const rows = data.rows || data || [];
+      const tb = $("#tbl-periods tbody"); tb.innerHTML='';
+      rows.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.period_id||''}</td>
+          <td>${r.period_name||''}</td>
+          <td>${r.year||''}</td>
+          <td>${r.month||''}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${r.period_id}">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.period_id}">Del</button>
+          </td>`;
+        tb.appendChild(tr);
+      });
+      tb.querySelectorAll("button").forEach(b=>b.onclick = async ()=>{
+        const id = b.dataset.id;
+        if(b.dataset.act==='edit'){
+          const tr = b.closest('tr').children;
+          $("#p_id").value   = tr[0].textContent.trim();
+          $("#p_name").value = tr[1].textContent.trim();
+          $("#p_year").value = tr[2].textContent.trim();
+          $("#p_month").value= tr[3].textContent.trim();
+          window.scrollTo({top:0,behavior:'smooth'});
+        }else{
+          if(!confirm('Delete period '+id+' ?')) return;
+          await postJSON({api:1,route:'periods',op:'delete'},{period_id:id});
+          toast('Deleted'); loadPeriods();
+        }
+      });
+    }
+    bindReload("#reload-periods", loadPeriods);
+    $("#p_reset").onclick = ()=>{ ["p_id","p_name","p_year","p_month"].forEach(id=>$("#"+id).value=''); };
+    $("#form-period").addEventListener("submit", async e=>{
+      e.preventDefault();
+      const payload = {
+        period_id: $("#p_id").value || undefined,
+        period_name: $("#p_name").value.trim(),
+        year: $("#p_year").value.trim(),
+        month: $("#p_month").value.trim()
+      };
+      await postJSON({api:1,route:'periods',op:'upsert'}, payload);
+      toast('Saved'); loadPeriods(); $("#p_reset").click();
+    });
+
+    // ===== Departments =====
+    async function loadDepts(){
+      const data = await getJSON({api:1,route:'departments',op:'list',limit:2000});
+      const rows = data.rows || data || [];
+      const tb = $("#tbl-departments tbody"); tb.innerHTML='';
+      rows.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.department_id||''}</td>
+          <td>${r.department_name||''}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${r.department_id}">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.department_id}">Del</button>
+          </td>`;
+        tb.appendChild(tr);
+      });
+      tb.querySelectorAll("button").forEach(b=>b.onclick = async ()=>{
+        const id = b.dataset.id;
+        if(b.dataset.act==='edit'){
+          const tr = b.closest('tr').children;
+          $("#d_id").value   = tr[0].textContent.trim();
+          $("#d_name").value = tr[1].textContent.trim();
+          window.scrollTo({top:0,behavior:'smooth'});
+        }else{
+          if(!confirm('Delete department '+id+' ?')) return;
+          await postJSON({api:1,route:'departments',op:'delete'},{department_id:id});
+          toast('Deleted'); loadDepts();
+        }
+      });
+    }
+    bindReload("#reload-departments", loadDepts);
+    $("#d_reset").onclick = ()=>{ ["d_id","d_name"].forEach(id=>$("#"+id).value=''); };
+    $("#form-dept").addEventListener("submit", async e=>{
+      e.preventDefault();
+      const payload = {
+        department_id: $("#d_id").value || undefined,
+        department_name: $("#d_name").value.trim()
+      };
+      await postJSON({api:1,route:'departments',op:'upsert'}, payload);
+      toast('Saved'); loadDepts(); $("#d_reset").click();
+    });
+
+    // ===== Units =====
+    async function loadUnits(){
+      const data = await getJSON({api:1,route:'units',op:'list',limit:2000});
+      const rows = data.rows || data || [];
+      const tb = $("#tbl-units tbody"); tb.innerHTML='';
+      rows.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.unit_id||''}</td>
+          <td>${r.unit_name||''}</td>
+          <td>${r.department_id||''}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${r.unit_id}">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.unit_id}">Del</button>
+          </td>`;
+        tb.appendChild(tr);
+      });
+      tb.querySelectorAll("button").forEach(b=>b.onclick = async ()=>{
+        const id = b.dataset.id;
+        if(b.dataset.act==='edit'){
+          const tr = b.closest('tr').children;
+          $("#un_id").value   = tr[0].textContent.trim();
+          $("#un_name").value = tr[1].textContent.trim();
+          $("#un_dept").value = tr[2].textContent.trim();
+          window.scrollTo({top:0,behavior:'smooth'});
+        }else{
+          if(!confirm('Delete unit '+id+' ?')) return;
+          await postJSON({api:1,route:'units',op:'delete'},{unit_id:id});
+          toast('Deleted'); loadUnits();
+        }
+      });
+    }
+    bindReload("#reload-units", loadUnits);
+    $("#un_reset").onclick = ()=>{ ["un_id","un_name","un_dept"].forEach(id=>$("#"+id).value=''); };
+    $("#form-unit").addEventListener("submit", async e=>{
+      e.preventDefault();
+      const payload = {
+        unit_id: $("#un_id").value || undefined,
+        unit_name: $("#un_name").value.trim(),
+        department_id: $("#un_dept").value.trim()
+      };
+      await postJSON({api:1,route:'units',op:'upsert'}, payload);
+      toast('Saved'); loadUnits(); $("#un_reset").click();
+    });
+
+    // ===== Actions (generate periods / export demo) =====
+    $("#btnGenPeriods").addEventListener("click", async ()=>{
+      const y = Number($("#genYear").value || new Date().getFullYear());
+      const res = await getJSON({api:1,route:'period',op:'generate',year:y});
+      toast(`Generate periods: added ${res.added||0} (${res.year})`);
+      loadPeriods();
+    });
+    $("#btnExport").addEventListener("click", ()=>{
+      const rows = [["Indicator","Unit"],["ANC coverage","%"],["OPD visits","count"]];
+      const csv = rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv],{type:"text/csv"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href=url; a.download="export.csv"; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // ===== Initial loads =====
+    (async function init(){
+      try{
+        await Promise.all([loadUsers(), loadIndicators(), loadPeriods(), loadDepts(), loadUnits()]);
+      }catch(e){
+        alert("API error: "+e.message+"\nសូមពិនិត្យ API_BASE និង Deploy Apps Script (Anyone).");
+      }
+    })();
+  </script>
+</body>
+</html>
