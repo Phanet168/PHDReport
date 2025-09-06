@@ -5,194 +5,211 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>PHD Report System</title>
 
-  <!-- Theme & Plugins CSS -->
+  <!-- Theme & plugins CSS (match your repo structure) -->
   <link rel="stylesheet" href="assets/css/themes/lite-purple.min.css">
   <link rel="stylesheet" href="assets/css/third-party.bundle.css">
   <link rel="stylesheet" href="assets/fonts/icomoon/style.css">
 
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600&display=swap" rel="stylesheet">
+  <!-- Charts (demo) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
-  <style> body{font-family:"Noto Sans Khmer","Roboto",sans-serif} </style>
+  <style>
+    body{font-family:"Noto Sans Khmer","Roboto",sans-serif;background:#fafbff}
+
+    /* ===== Sidebar (hover to expand) ===== */
+    .sidebar{
+      position:fixed; inset:0 auto 0 0;
+      width:72px; height:100vh;
+      background:#2d2a53; color:#fff;
+      transition:width .25s ease; z-index:1000;
+      box-shadow:0 5px 18px rgba(31,28,65,.25);
+      overflow-x:hidden;
+    }
+    .sidebar:hover{ width:230px; }
+
+    .sidebar .brand{
+      height:60px; display:flex; align-items:center; gap:10px;
+      padding:0 16px; border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .sidebar .brand .hamb{ width:22px; height:16px; position:relative; cursor:pointer}
+    .sidebar .brand .hamb span{
+      position:absolute; left:0; right:0; height:2px; background:#fff; border-radius:2px
+    }
+    .sidebar .brand .hamb span:nth-child(1){ top:0 }
+    .sidebar .brand .hamb span:nth-child(2){ top:7px }
+    .sidebar .brand .hamb span:nth-child(3){ bottom:0 }
+
+    .sidebar .nav{ padding:10px 6px 14px; }
+    .sidebar .nav a{
+      display:flex; align-items:center; gap:12px;
+      color:#cfd1d8; padding:10px 12px; border-radius:10px;
+      text-decoration:none; transition:background .15s,color .15s;
+      white-space:nowrap;
+    }
+    .sidebar .nav a .nav-icon{ font-size:20px; min-width:20px; text-align:center }
+    .sidebar .nav a.active,
+    .sidebar .nav a:hover{ background:rgba(255,255,255,.08); color:#fff }
+    .sidebar .section{ margin:10px 8px; height:1px; background:rgba(255,255,255,.07) }
+
+    /* ===== Main area ===== */
+    .main{
+      margin-left:72px; transition:margin-left .25s ease;
+      min-height:100vh; display:flex; flex-direction:column;
+    }
+    .sidebar:hover + .main{ margin-left:230px; }
+
+    .topbar{
+      height:60px; display:flex; align-items:center; justify-content:space-between;
+      background:#fff; padding:0 18px; border-bottom:1px solid #eef0f6;
+      position:sticky; top:0; z-index:10;
+    }
+    .content{ padding:18px }
+    .card{ border-radius:14px; box-shadow:0 10px 25px rgba(31,28,65,.06); border:0 }
+
+    /* small helpers */
+    .kpi .title{ color:#6b6f80; font-size:.9rem }
+    .kpi .value{ font-size:1.6rem; font-weight:700 }
+  </style>
 </head>
 <body>
-<div class="app-admin-wrap layout-sidebar-large d-flex">
-  <!-- Sidebar -->
-<nav class="sidebar">
-  <ul>
-    <li><a href="#" data-tab="dashboard"><i class="i-Bar-Chart"></i> Dashboard</a></li>
-    <li><a href="#" data-tab="reports"><i class="i-File-Clipboard-File--Text"></i> Reports</a></li>
-    <li><a href="#" data-tab="indicators"><i class="i-Bulb"></i> Indicators</a></li>
-    <li><a href="#" data-tab="periods"><i class="i-Calendar"></i> Periods</a></li>
-    <li><a href="#" data-tab="issues"><i class="i-Warning"></i> Issues</a></li>
-    <li><a href="#" data-tab="actions"><i class="i-Gear"></i> Actions</a></li>
-    <li><a href="#" data-tab="users" class="admin-only"><i class="i-Administrator"></i> Users</a></li>
-    <li><a href="#" data-tab="departments" class="admin-only"><i class="i-Building"></i> Departments</a></li>
-    <li><a href="#" data-tab="units" class="admin-only"><i class="i-Structure"></i> Units</a></li>
-    <li><a href="#" data-tab="profile"><i class="i-Checked-User"></i> Profile</a></li>
-    <li><a href="#" id="btnLogout"><i class="i-Power-2"></i> Logout</a></li>
-  </ul>
-</nav>
 
+  <!-- ===== Sidebar ===== -->
+  <nav class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="hamb" aria-hidden="true"><span></span><span></span><span></span></div>
+      <strong>PHD Report</strong>
+    </div>
 
-  <!-- Main -->
-  <div class="main-content-wrap sidenav-open d-flex flex-column">
-    <div class="main-header d-flex align-items-center justify-content-between px-3">
-      <div class="d-flex align-items-center">
-        <div class="menu-toggle"><div></div><div></div><div></div></div>
-        <h5 class="mb-0 ms-3">សូមស្វាគមន៍ <span id="topUser"></span></h5>
-      </div>
+    <div class="nav">
+      <a href="#" class="active" data-tab="dashboard"><i class="nav-icon i-Bar-Chart"></i><span>Dashboard</span></a>
+      <a href="#" data-tab="reports"><i class="nav-icon i-File-Clipboard-File--Text"></i><span>Reports</span></a>
+      <a href="#" data-tab="indicators"><i class="nav-icon i-Bulb"></i><span>Indicators</span></a>
+      <a href="#" data-tab="periods"><i class="nav-icon i-Calendar-4"></i><span>Periods</span></a>
+      <div class="section"></div>
+      <a href="#" id="btnLogout" class="text-warning"><i class="nav-icon i-Power-2"></i><span>Logout</span></a>
+    </div>
+  </nav>
+
+  <!-- ===== Main ===== -->
+  <section class="main">
+    <header class="topbar">
+      <h6 class="mb-0">សូមស្វាគមន៍ <span id="topUser"></span></h6>
       <button id="btnLogoutTop" class="btn btn-outline-danger btn-sm">Logout</button>
-    </div>
+    </header>
 
-    <div class="main-content p-3">
-      <div id="content"></div>
-    </div>
-  </div>
-</div>
+    <main class="content">
+      <div id="view"></div>
+    </main>
+  </section>
 
-<!-- JS -->
-<script src="assets/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/plugins/perfect-scrollbar.min.js"></script>
+  <!-- JS (match your repo) -->
+  <script src="assets/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/plugins/perfect-scrollbar.min.js"></script>
 
-<script>
+  <script>
+  /* ===== Auth guard ===== */
   const ls = window.localStorage;
-
-  // Auth guard
-  function getProfile(){ try{return JSON.parse(ls.getItem('AUTH')||'null')}catch{return null} }
+  function getProfile(){ try{ return JSON.parse(ls.getItem('AUTH')||'null'); }catch{ return null } }
   function clearAuth(){ ls.removeItem('AUTH'); }
-  (function(){ const p=getProfile(); if(!p){ location.href='login.html'; } else { document.getElementById('topUser').textContent=p.user_name; renderDashboard(); } })();
+  (function initAuth(){
+    const p = getProfile();
+    if(!p) { location.href='login.html'; return; }
+    document.getElementById('topUser').textContent = p.user_name + ' ('+(p.user_type||'user')+')';
+  })();
 
-  // Nav wiring
-  document.querySelectorAll('.navigation-left .nav-item a[data-tab]').forEach(a=>{
-    a.addEventListener('click',async e=>{
-      e.preventDefault();
-      document.querySelectorAll('.navigation-left .nav-item').forEach(li=>li.classList.remove('active'));
-      a.closest('.nav-item').classList.add('active');
-      const tab=a.dataset.tab;
-      if(tab==='dashboard') renderDashboard();
-      else if(tab==='indicators') await renderIndicators();
-      else if(tab==='periods')    await renderPeriods();
-      else if(tab==='reports')    await renderReports();
-    });
-  });
-  document.querySelectorAll('#btnLogout,#btnLogoutTop').forEach(b=>{
-    b.addEventListener('click', e=>{ e.preventDefault(); clearAuth(); location.href='login.html'; });
-  });
-
-  // API
+  /* ===== API helper ===== */
   function getApiBase(){ return (ls.getItem('API_BASE')||'').trim(); }
   async function apiGet(params){
     const base = getApiBase();
-    const qs   = new URLSearchParams(params).toString();
-    const url  = base + (base.includes('?')?'&':'?') + qs;
+    const url  = base + (base.includes('?')?'&':'?') + new URLSearchParams(params).toString();
     const res  = await fetch(url, {cache:'no-store'});
     if(!res.ok) throw new Error('API'); return res.json();
   }
 
-  // Views
-  function renderDashboard(){
-    const year = (new Date()).getFullYear();
-    document.getElementById('content').innerHTML = `
-      <h3 class="mb-3">Dashboard</h3>
-      <div class="row">
-        <div class="col-md-3"><div class="card mb-3"><div class="card-body">
-          <div class="text-muted">New Leads</div><div id="k1" class="h3 mb-0">—</div>
-        </div></div></div>
-        <div class="col-md-3"><div class="card mb-3"><div class="card-body">
-          <div class="text-muted">Sales</div><div id="k2" class="h3 mb-0">$—</div>
-        </div></div></div>
-        <div class="col-md-3"><div class="card mb-3"><div class="card-body">
-          <div class="text-muted">Orders</div><div id="k3" class="h3 mb-0">—</div>
-        </div></div></div>
-        <div class="col-md-3"><div class="card mb-3"><div class="card-body">
-          <div class="text-muted">Expense</div><div id="k4" class="h3 mb-0">$—</div>
-        </div></div></div>
+  /* ===== Views ===== */
+  async function renderDashboard(){
+    const el = document.getElementById('view');
+    el.innerHTML = `
+      <div class="row g-3 mb-3 kpi">
+        <div class="col-sm-6 col-xl-3"><div class="card p-3"><div class="title">New Leads</div><div id="k1" class="value">—</div></div></div>
+        <div class="col-sm-6 col-xl-3"><div class="card p-3"><div class="title">Sales</div><div id="k2" class="value">$—</div></div></div>
+        <div class="col-sm-6 col-xl-3"><div class="card p-3"><div class="title">Orders</div><div id="k3" class="value">—</div></div></div>
+        <div class="col-sm-6 col-xl-3"><div class="card p-3"><div class="title">Expense</div><div id="k4" class="value">$—</div></div></div>
       </div>
 
-      <div class="row">
-        <div class="col-xl-8"><div class="card mb-3"><div class="card-body">
-          <h5 class="mb-3">This Year Sales</h5>
-          <canvas id="salesChart" height="120"></canvas>
-        </div></div></div>
-        <div class="col-xl-4"><div class="card mb-3"><div class="card-body">
-          <h5 class="mb-3">Sales by Countries</h5>
-          <canvas id="countryChart" height="220"></canvas>
-        </div></div></div>
+      <div class="row g-3">
+        <div class="col-xl-8"><div class="card p-3"><h6>Sales</h6><canvas id="salesChart" height="120"></canvas></div></div>
+        <div class="col-xl-4"><div class="card p-3"><h6>Sales by Countries</h6><canvas id="countryChart" height="220"></canvas></div></div>
       </div>`;
 
-    // demo data from reports
-    (async ()=>{
-      try{
-        const {rows=[]}=await apiGet({api:1,route:'report',op:'list',year});
-        const monthly=Array.from({length:12},()=>({val:0,plan:0}));
-        rows.forEach(r=>{
-          const m=/M(\d{2})/.exec(String(r.period_id||'')); const i=m?Number(m[1])-1:0;
-          monthly[i].val+=Number(r.value||0); monthly[i].plan+=Number(r.plan_value||0);
-        });
-        document.getElementById('k1').textContent = rows.length*2 + 205;
-        document.getElementById('k2').textContent = '$' + monthly.reduce((a,b)=>a+b.val,0);
-        document.getElementById('k3').textContent = rows.length || 80;
-        document.getElementById('k4').textContent = '$' + monthly.reduce((a,b)=>a+b.plan,0);
+    // Load demo data from reports (if available)
+    const year = (new Date()).getFullYear();
+    try{
+      const {rows=[]}=await apiGet({api:1,route:'report',op:'list',year});
+      const monthly=Array.from({length:12},()=>({val:0,plan:0}));
+      rows.forEach(r=>{
+        const m=/M(\d{2})/.exec(String(r.period_id||'')); const i=m?Number(m[1])-1:0;
+        monthly[i].val+=Number(r.value||0); monthly[i].plan+=Number(r.plan_value||0);
+      });
 
-        const labels=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        new Chart(document.getElementById('salesChart'),{
-          type:'bar',
-          data:{labels,datasets:[
-            {label:'Online',data:monthly.map(m=>m.val),borderWidth:1},
-            {label:'Offline',data:monthly.map(m=>m.plan),borderWidth:1}
-          ]},
-          options:{responsive:true,plugins:{legend:{position:'top'}}}
-        });
-        new Chart(document.getElementById('countryChart'),{
-          type:'pie',data:{labels:['USA','India','UK','KH','Other'],datasets:[{data:[35,22,15,8,20]}]}
-        });
-      }catch(e){ /* keep UI even if API fails */ }
-    })();
+      document.getElementById('k1').textContent = rows.length*2 + 205;
+      document.getElementById('k2').textContent = '$' + monthly.reduce((a,b)=>a+b.val,0);
+      document.getElementById('k3').textContent = rows.length || 80;
+      document.getElementById('k4').textContent = '$' + monthly.reduce((a,b)=>a+b.plan,0);
+
+      const labels=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      new Chart(document.getElementById('salesChart'),{
+        type:'bar',
+        data:{labels,datasets:[
+          {label:'Online',data:monthly.map(x=>x.val),borderWidth:1},
+          {label:'Offline',data:monthly.map(x=>x.plan),borderWidth:1}
+        ]},
+        options:{responsive:true,plugins:{legend:{position:'top'}}}
+      });
+      new Chart(document.getElementById('countryChart'),{
+        type:'pie', data:{labels:['USA','India','UK','KH','Other'],datasets:[{data:[35,22,15,8,20]}]}
+      });
+    }catch(e){ /* keep empty charts if API not ready */ }
   }
 
   async function renderIndicators(){
-    const wrap = document.getElementById('content');
-    wrap.innerHTML = `<h3 class="mb-3">Indicators</h3>
-      <div class="card"><div class="card-body">កំពុងទាញទិន្នន័យ...</div></div>`;
+    const wrap=document.getElementById('view');
+    wrap.innerHTML=`<div class="card p-3"><h6 class="mb-3">Indicators</h6><div>Loading…</div></div>`;
     try{
       const {rows=[]}=await apiGet({api:1,route:'indicator',op:'list',limit:1000});
-      const body = rows.map((r,i)=>`
+      const body=rows.map((r,i)=>`
         <tr><td>${i+1}</td><td>${r.indicator_id}</td><td>${r.indicator_name||''}</td>
         <td>${r.indicator_type||''}</td><td>${r.department_id||''}</td></tr>`).join('');
-      wrap.innerHTML = `<h3 class="mb-3">Indicators</h3>
-        <div class="card"><div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-sm table-striped">
-              <thead class="table-light"><tr>
-                <th>#</th><th>ID</th><th>សូចនាករ</th><th>ប្រភេទ</th><th>ការិយាល័យ</th>
-              </tr></thead><tbody>${body}</tbody>
-            </table>
-          </div>
+      wrap.innerHTML=`<div class="card p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0">Indicators</h6>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped">
+            <thead class="table-light"><tr>
+              <th>#</th><th>ID</th><th>សូចនាករ</th><th>ប្រភេទ</th><th>ការិយាល័យ</th>
+            </tr></thead><tbody>${body}</tbody>
+          </table>
         </div></div>`;
     }catch(e){ wrap.innerHTML=`<div class="alert alert-danger">ទាញទិន្នន័យបរាជ័យ</div>`; }
   }
 
   async function renderPeriods(){
-    const wrap=document.getElementById('content');
-    wrap.innerHTML = `<h3 class="mb-3">Periods</h3>
-      <div class="card"><div class="card-body">កំពុងទាញ...</div></div>`;
+    const wrap=document.getElementById('view');
+    wrap.innerHTML=`<div class="card p-3"><h6 class="mb-3">Periods</h6><div>Loading…</div></div>`;
     try{
       const {rows=[]}=await apiGet({api:1,route:'period',op:'list',limit:5000});
-      const body=rows.map((r,i)=>`
-        <tr><td>${i+1}</td><td>${r.period_id}</td><td>${r.period_name||''}</td>
-        <td>${r.year||''}</td><td>${r.month??''}</td></tr>`).join('');
-      wrap.innerHTML = `<h3 class="mb-3">Periods</h3>
-        <div class="card"><div class="card-body">
-          <div class="d-flex justify-content-end mb-2">
-            <button id="btnGen" class="btn btn-outline-primary btn-sm">Generate ${(new Date).getFullYear()}</button>
-          </div>
-          <div class="table-responsive">
-            <table class="table table-sm table-striped">
-              <thead class="table-light"><tr><th>#</th><th>ID</th><th>ឈ្មោះ</th><th>ឆ្នាំ</th><th>ខែ</th></tr></thead>
-              <tbody>${body}</tbody>
-            </table>
-          </div>
+      const body=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.period_id}</td><td>${r.period_name||''}</td><td>${r.year||''}</td><td>${r.month??''}</td></tr>`).join('');
+      wrap.innerHTML=`<div class="card p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0">Periods</h6>
+          <button id="btnGen" class="btn btn-outline-primary btn-sm">Generate ${(new Date).getFullYear()}</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped">
+            <thead class="table-light"><tr><th>#</th><th>ID</th><th>ឈ្មោះ</th><th>ឆ្នាំ</th><th>ខែ</th></tr></thead>
+            <tbody>${body}</tbody>
+          </table>
         </div></div>`;
       document.getElementById('btnGen').onclick=async()=>{
         await apiGet({api:1,route:'period',op:'generate',year:(new Date).getFullYear()});
@@ -202,11 +219,34 @@
   }
 
   async function renderReports(){
-    document.getElementById('content').innerHTML = `
-      <h3 class="mb-3">Reports</h3>
-      <div class="card"><div class="card-body text-muted">UI CRUD និង Filter នឹងដាក់បន្ត…</div></div>`;
+    document.getElementById('view').innerHTML =
+      `<div class="card p-3"><h6 class="mb-0">Reports</h6><div class="text-muted mt-2">UI CRUD និង Filter នឹងដាក់បន្ត…</div></div>`;
   }
-</script>
+
+  /* ===== Router (sidebar clicks) ===== */
+  function activate(tab){
+    document.querySelectorAll('.sidebar .nav a[data-tab]').forEach(a=>{
+      a.classList.toggle('active', a.dataset.tab===tab);
+    });
+  }
+  document.querySelectorAll('.sidebar .nav a[data-tab]').forEach(a=>{
+    a.addEventListener('click',e=>{
+      e.preventDefault();
+      const tab=a.dataset.tab; activate(tab);
+      if(tab==='dashboard') renderDashboard();
+      else if(tab==='indicators') renderIndicators();
+      else if(tab==='periods') renderPeriods();
+      else if(tab==='reports') renderReports();
+    });
+  });
+
+  // logout
+  document.querySelectorAll('#btnLogout,#btnLogoutTop').forEach(b=>b.addEventListener('click',(e)=>{
+    e.preventDefault(); clearAuth(); location.href='login.html';
+  }));
+
+  // initial view
+  renderDashboard();
+  </script>
 </body>
 </html>
-
