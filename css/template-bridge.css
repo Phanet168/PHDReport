@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;600;700&display=swap');
+
+/* Fonts & base */
+:root{
+  --k-brand:#5b6ef5;
+  --k-shadow:0 10px 25px rgba(0,0,0,.06);
+}
+html,body{font-family:"Noto Sans Khmer",system-ui,Segoe UI,Arial,sans-serif;}
+.h-khmer{font-family:"Khmer Moul", system-ui; letter-spacing:.3px}
+
+/* Card polish */
+.k-card{
+  border-radius:18px !important;
+  box-shadow:var(--k-shadow);
+  border:0 !important;
+}
+
+/* Form */
+.k-label{font-size:13px; color:#374151}
+.k-input{background:#f8fafc; border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px}
+.k-input input,.k-input select{width:100%; border:0; outline:0; background:transparent}
+
+/* Buttons */
+.k-btn{border:0; border-radius:12px; padding:10px 14px; font-weight:600}
+.k-btn-primary{background:var(--k-brand); color:#fff}
+.k-btn-muted{background:#e5e7eb; color:#111827}
+.k-btn-danger{background:#ef4444; color:#fff}
+
+/* Utility */
+.k-badge{
+  display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px;
+  background:#eef2ff; color:#3730a3
+}
