@@ -4,258 +4,106 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Login — PHD Report System</title>
-
-  <!-- Optional theme files (use yours if available) -->
-  <link rel="stylesheet" href="assets/css/themes/lite-purple.min.css">
-  <link rel="stylesheet" href="assets/css/third-party.bundle.css">
-  <link rel="stylesheet" href="assets/fonts/icomoon/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600&display=swap" rel="stylesheet">
-
   <style>
     :root{ --radius:16px }
     *{ box-sizing:border-box }
-    body{
-      font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-      background:#f6f7fb; margin:0;
-    }
+    body{ font-family:"Noto Sans Khmer",system-ui,-apple-system,"Segoe UI",Roboto,Arial; background:#f6f7fb; margin:0 }
     .wrap{ min-height:100dvh; display:grid; place-items:center; padding:24px }
-    .card{ width:min(480px, 94vw); border-radius:var(--radius); background:#fff; border:1px solid #e5e7eb; box-shadow:0 8px 24px rgba(0,0,0,.05); padding:18px }
-    .brand{ color:#4f46e5; font-weight:700; font-size:20px }
-    .muted{ color:#6b7280 }
-    .divider{ height:1px; background:#e5e7eb; margin:16px 0 }
-    .btn{ border-radius:10px }
-    dialog{ border:none; border-radius:16px; padding:0 }
-    dialog::backdrop{ background:rgba(0,0,0,.35) }
-    .api-card{ width:min(620px, 96vw); background:#fff; border:1px solid #e5e7eb; border-radius:16px }
-    .p-3{ padding:16px }
-    .mb-0{ margin-bottom:0 } .mb-1{ margin-bottom:6px } .mb-2{ margin-bottom:10px } .mb-3{ margin-bottom:14px }
-    .d-grid{ display:grid } .gap-2{ gap:10px }
-    .d-flex{ display:flex } .justify-between{ justify-content:space-between } .align-center{ align-items:center }
-    .w-100{ width:100% }
-    input, select, button { font-family:inherit }
-    .alert{ border-radius:12px; padding:10px 12px }
-    .alert-danger{ background:#fee2e2; color:#7f1d1d }
-    .alert-warning{ background:#fef3c7; color:#78350f }
-    .d-none{ display:none }
+    .card{ width:min(440px,94vw); background:#fff; border:1px solid #e5e7eb; border-radius:var(--radius); box-shadow:0 8px 24px rgba(0,0,0,.06); padding:18px }
+    .brand{ color:#4f46e5; font-weight:700; font-size:20px; margin-bottom:10px }
+    label{ font-weight:600; display:block; margin:10px 0 6px }
+    input{ width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:10px; font:inherit }
+    .btn{ width:100%; padding:10px 12px; border-radius:10px; border:0; background:#4f46e5; color:#fff; font-weight:600; cursor:pointer }
+    .btn:disabled{ opacity:.6; cursor:not-allowed }
+    .muted{ color:#6b7280; font-size:13px }
+    .alert{ margin-top:12px; border-radius:10px; padding:10px 12px }
+    .danger{ background:#fee2e2; color:#7f1d1d }
+    .hidden{ display:none }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
-      <div class="d-flex justify-between align-center mb-2">
-        <div class="brand">PHD Report System</div>
-        <span class="badge badge-outline-primary">Login</span>
-      </div>
+      <div class="brand">PHD Report System</div>
 
       <form id="loginForm">
-        <div class="mb-2">
-          <label class="form-label">ឈ្មោះអ្នកប្រើ</label>
-          <input id="username" class="form-control" placeholder="ឧ. admin" autocomplete="username" autofocus required>
-        </div>
-        <div class="mb-1">
-          <label class="form-label">ពាក្យសម្ងាត់</label>
-          <input id="password" type="password" class="form-control" placeholder="••••••" autocomplete="current-password" required>
-        </div>
-        <small class="muted">បើប្រើ JSON users.raw → client នឹងប្រៀបធៀបជា SHA-256; បើប្រើ Apps Script → server ផ្ទៀងផ្ទាត់។</small>
+        <label for="username">ឈ្មោះអ្នកប្រើ</label>
+        <input id="username" name="username" placeholder="ឧ. admin" autocomplete="username" required autofocus>
 
-        <div class="divider"></div>
+        <label for="password">ពាក្យសម្ងាត់</label>
+        <input id="password" name="password" type="password" placeholder="••••••" autocomplete="current-password" required>
 
-        <div class="d-grid gap-2">
-          <button class="btn btn-primary">ចូលប្រើប្រាស់</button>
-          <button type="button" id="btnOpenApi" class="btn btn-outline-primary">កំណត់ API / GitHub JSON</button>
-        </div>
+        <button id="btnLogin" class="btn" type="submit">ចូលប្រើប្រាស់</button>
 
-        <div id="msg" class="alert alert-danger d-none mt-3"></div>
-        <div id="hint" class="alert alert-warning d-none mt-3"></div>
+        <div id="msg" class="alert danger hidden"></div>
+        <p class="muted">Login នឹងផ្ទៀងផ្ទាត់តាម Apps Script API របស់អង្គភាព។</p>
       </form>
     </div>
   </div>
 
-  <!-- API / JSON Source Dialog -->
-  <dialog id="apiDialog">
-    <form id="apiForm" method="dialog" class="api-card p-3">
-      <h5 class="mb-2">កំណត់ API / JSON Source</h5>
-      <p class="muted mb-2">
-        អាចបញ្ចូល <b>Apps Script Web App</b> (បញ្ចប់ដោយ <code>/exec</code>) ឬ <b>GitHub raw JSON</b> / <code>users.json</code>.
-      </p>
-      <div class="mb-2">
-        <label class="form-label">API / JSON URL</label>
-        <input id="apiInput" class="form-control"
-               placeholder="https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec"
-               required>
-      </div>
-
-      <details class="mb-2">
-        <summary><b>គំរូ JSON</b></summary>
-        <pre class="muted" style="white-space:pre-wrap;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:10px">
-[
-  {"user_id":1,"user_name":"admin","user_pass":"&lt;sha256&gt;","user_type":"superuser","user_root":"all","department_id":1}
-]
-<!-- ឬជា object -->
-{ "users": [ { ...ដូចខាងលើ... } ] }
-        </pre>
-      </details>
-
-      <div class="d-flex justify-between align-center">
-        <button value="cancel" class="btn btn-link">បោះបង់</button>
-        <div class="d-flex gap-2">
-          <button value="confirm" class="btn btn-primary">រក្សាទុក</button>
-        </div>
-      </div>
-      <div id="apiMsg" class="alert alert-danger d-none mt-3"></div>
-    </form>
-  </dialog>
-
-  <!-- Login logic -->
   <script>
-    const DASHBOARD_PAGE    = "index.html";
-    const SUPER_ADMIN_PAGE  = "super-admin.html";
-    const ls = window.localStorage;
-    const $ = (s,el=document)=>el.querySelector(s);
+    // ===== CONFIG (hidden from UI) =====
+    const API_BASE = "https://script.google.com/macros/s/AKfycbwnxRudS_il7Dvcdh7-QB36NJaP-6-hl5nMniXrbuKhMpHPK8CCEGkRIc9-okB-P0Z6Zw/exec";
+    const LOGIN_URL = API_BASE + (API_BASE.includes("?") ? "&" : "?") + "api=1&route=auth&op=login";
+    const DASHBOARD_PAGE   = "index.html";
+    const SUPER_ADMIN_PAGE = "super-admin.html";
 
-    function saveApiBase(v){ v ? ls.setItem("API_BASE", v) : ls.removeItem("API_BASE"); }
-    function getApiBase(){ return (ls.getItem("API_BASE")||"").trim(); }
+    // ===== Helpers =====
+    const ls = window.localStorage;
+    const $ = (s, el=document)=>el.querySelector(s);
     function setAuth(profile){ ls.setItem("AUTH", JSON.stringify(profile)); }
-    function getAuth(){ try{ return JSON.parse(ls.getItem("AUTH")||"null"); }catch{ return null; } }
     function isSuper(p){
       return p && (
         String(p.user_type||"").toLowerCase()==="superuser" ||
         String(p.user_root||"").toLowerCase()==="all"
       );
     }
+    function showError(t){ const m=$("#msg"); m.textContent=t; m.classList.remove("hidden"); }
+    function hideError(){ $("#msg").classList.add("hidden"); }
 
-    async function sha256Hex(text){
-      const enc = new TextEncoder().encode(text);
-      const buf = await crypto.subtle.digest("SHA-256", enc);
-      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
-    }
-    async function fetchJson(url){
-      const res = await fetch(url, {cache:"no-store"});
-      if(!res.ok) throw new Error("HTTP "+res.status);
-      return res.json();
-    }
+    // Save API_BASE silently for other pages to use
+    ls.setItem("API_BASE", API_BASE);
 
-    function looksLikeAppsScript(url){
-      return /script\.google\.com\/macros\/s\/.+\/exec/.test(url);
-    }
-
-    async function loginViaAppsScript(apiBase, username, password){
-      const url = apiBase + (apiBase.includes("?") ? "&" : "?") + "api=1&route=auth&op=login";
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ username, password })
-      });
-      if(!res.ok) throw new Error("HTTP "+res.status);
-      const json = await res.json();
-      if(json && !json.error){
-        const profile = {
-          user_id: json.user_id,
-          user_name: json.user_name,
-          user_type: json.user_type,
-          user_root: json.user_root,
-          department_id: json.department_id,
-          login_at: Date.now()
-        };
-        setAuth(profile);
-        return { ok:true, profile };
-      }else{
-        return { ok:false, reason: json?.error || "Login failed" };
-      }
-    }
-
-    async function resolveUsers(url){
-      const j = await fetchJson(url);
-      if (Array.isArray(j)) return j;               // users array
-      if (Array.isArray(j.users)) return j.users;   // {users:[...]}
-      if (j.rows && Array.isArray(j.rows)) return j.rows; // {rows:[...]}
-      throw new Error("Unsupported JSON schema");
-    }
-    async function loginViaUsersJson(sourceUrl, username, password){
-      const users = await resolveUsers(sourceUrl);
-      const u = users.find(x => String(x.user_name||"").toLowerCase() === username.toLowerCase());
-      if(!u) return { ok:false, reason:"រកមិនឃើញអ្នកប្រើ" };
-      const hash = await sha256Hex(password);
-      const stored = String(u.user_pass||u.user_pass_sha256||"").toLowerCase();
-      if(hash !== stored) return { ok:false, reason:"ពាក្យសម្ងាត់មិនត្រឹមត្រូវ" };
-      const profile = {
-        user_id:u.user_id, user_name:u.user_name, user_type:u.user_type,
-        user_root:u.user_root, department_id:u.department_id, login_at:Date.now()
-      };
-      setAuth(profile);
-      return { ok:true, profile };
-    }
-
-    async function doLogin(username, password, sourceUrl){
-      const api = sourceUrl.trim();
-      if(!api) throw new Error("Empty API/JSON URL");
-      if (looksLikeAppsScript(api)) return loginViaAppsScript(api, username, password);
-      return loginViaUsersJson(api, username, password);
-    }
-
-    // API dialog
-    const apiDialog = $("#apiDialog");
-    const apiForm   = $("#apiForm");
-    const apiInput  = $("#apiInput");
-    const apiMsg    = $("#apiMsg");
-    const msg       = $("#msg");
-    const hint      = $("#hint");
-
-    function openApiDialog(){ apiMsg.classList.add("d-none"); apiInput.value=getApiBase()||""; apiDialog.showModal(); }
-    $("#btnOpenApi").onclick = openApiDialog;
-
-    apiForm.addEventListener("submit", async (e)=>{
-      if(e.submitter?.value!=="confirm") return; // cancel → ignore
-      e.preventDefault();
-      apiMsg.classList.add("d-none");
-      try{
-        const v = apiInput.value.trim();
-        if (looksLikeAppsScript(v)) {
-          const url = v + (v.includes("?") ? "&" : "?") + "api=1&route=users&op=list&limit=1";
-          await fetchJson(url);
-        } else {
-          await resolveUsers(v);
-        }
-        saveApiBase(v);
-        apiDialog.close();
-        hint.textContent = "រក្សាទុក API/JSON សម្រេច — សាកល្បង Login ម្តងទៀត។";
-        hint.classList.remove("d-none");
-      }catch(err){
-        apiMsg.textContent = "URL មិនត្រឹមត្រូវ ឬអានបរាជ័យ: " + err.message;
-        apiMsg.classList.remove("d-none");
-      }
-    });
-
-    // Submit login
+    // ===== Submit handler =====
     $("#loginForm").addEventListener("submit", async (e)=>{
-      e.preventDefault();
-      msg.classList.add("d-none"); hint.classList.add("d-none");
+      e.preventDefault(); hideError();
+      const btn = $("#btnLogin");
+      btn.disabled = true;
+
       const username = $("#username").value.trim();
       const password = $("#password").value;
-      const apiBase  = getApiBase();
 
-      if(!username || !password){
-        msg.textContent = "សូមបំពេញ ឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់";
-        msg.classList.remove("d-none"); return;
-      }
-      if(!apiBase){
-        hint.textContent = "មិនទាន់កំណត់ API/JSON URL — សូមបញ្ចូល URL ជាមុនសិន។";
-        hint.classList.remove("d-none");
-        return openApiDialog();
-      }
       try{
-        const res = await doLogin(username, password, apiBase);
-        if(res.ok){
-          const p = getAuth() || res.profile;
-          location.href = isSuper(p) ? SUPER_ADMIN_PAGE : DASHBOARD_PAGE;
+        const res = await fetch(LOGIN_URL, {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        if(!res.ok) throw new Error("HTTP " + res.status);
+
+        const json = await res.json();
+        if(json && !json.error){
+          // Server already removed password field – store & redirect
+          const profile = {
+            user_id: json.user_id,
+            user_name: json.user_name,
+            user_type: json.user_type,
+            user_root: json.user_root,
+            department_id: json.department_id,
+            login_at: Date.now()
+          };
+          setAuth(profile);
+
+          // Redirect by role
+          location.href = isSuper(profile) ? SUPER_ADMIN_PAGE : DASHBOARD_PAGE;
         }else{
-          msg.textContent = "Login បរាជ័យ: " + (res.reason||"");
-          msg.classList.remove("d-none");
+          showError(json?.error || "Login បរាជ័យ");
         }
       }catch(err){
-        msg.textContent = "អានពី API បរាជ័យ: " + err.message;
-        msg.classList.remove("d-none");
-        openApiDialog();
+        showError("មិនអាចភ្ជាប់ទៅ Server បានទេ: " + err.message);
+      }finally{
+        btn.disabled = false;
       }
     });
   </script>
