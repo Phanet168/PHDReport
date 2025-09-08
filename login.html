@@ -3,135 +3,126 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
   <title>ចូលប្រើប្រាស់ | PHD Report</title>
 
   <!-- Khmer + Nunito -->
   <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <!-- Gull theme -->
-  <link href="dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
+  <!-- Gull theme (utilities/buttons) -->
+  <link href="dist-assets/css/themes/lite-purple.min.css" rel="stylesheet"/>
 
   <style>
     :root{
-      --boxH: 46px;         /* កម្ពស់ field */
-      --radius: 12px;       /* Radius ស្មើគ្នា */
-      --shadow: 0 10px 24px rgba(24,24,40,.08);
+      --card-w: 420px;
+      --boxH: 46px;
+      --radius: 14px;
       --bd: #E5E7EB;
-      --bd-focus: #7C4DFF33;
+      --focus: #7C4DFF;
+      --focus-ring: #7C4DFF33;
+      --shadow: 0 12px 32px rgba(24,24,40,.08);
+      --shadow-soft: 0 8px 20px rgba(24,24,40,.06);
     }
-    body{ font-family:"Noto Sans Khmer",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
-    .auth-layout-wrap{ min-height:100vh; backdrop-filter:saturate(120%); }
-    .card.o-hidden{ border:0; border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
-
-    /* ===== nicer heading ===== */
+    *{ box-sizing:border-box; }
+    body{
+      margin:0; min-height:100vh;
+      display:grid; place-items:center;
+      background:linear-gradient(180deg,#F6F7FB, #EEF1F8);
+      font-family:"Noto Sans Khmer", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    .login-wrap{
+      width:min(92vw, var(--card-w));
+      background:#fff; border-radius:18px;
+      box-shadow: var(--shadow-soft);
+      padding:28px 26px 26px;
+    }
     .kh-title{ font-family:"Khmer Moul"; color:#4A148C; letter-spacing:.2px; }
 
-    /* ===== input group polish ===== */
+    /* input-group polish */
+    .form-group{ margin-bottom:14px; }
     .input-group{
-      height:var(--boxH);
       border:1px solid var(--bd);
-      border-radius:var(--radius);
+      border-radius: var(--radius);
+      height: var(--boxH);
       overflow:hidden;
       background:#fff;
       transition: box-shadow .2s, border-color .2s;
     }
     .input-group:focus-within{
-      border-color:#7C4DFF;
-      box-shadow:0 0 0 4px var(--bd-focus);
+      border-color: var(--focus);
+      box-shadow: 0 0 0 4px var(--focus-ring);
     }
     .input-group-text{
-      background:#fff;
-      border:0;
-      padding:0 12px;
-      color:#6B7280;
-      display:flex; align-items:center; justify-content:center;
-      width:44px;
+      width:44px; border:0; background:#fff;
+      color:#6B7280; display:flex; align-items:center; justify-content:center;
     }
     .form-control{
-      border:0 !important;
-      height:var(--boxH);
-      padding:0 12px;
-      font-size:15px;
-      box-shadow:none !important;
+      border:0 !important; height:var(--boxH);
+      padding:0 12px; font-size:15px; box-shadow:none !important;
     }
-    .eye-btn{
-      cursor:pointer;
-      user-select:none;
-    }
-    /* nicer primary button */
+    .eye-btn{ cursor:pointer; user-select:none; }
+
     .btn-primary{
-      background:#6C2BD9;
-      border-color:#6C2BD9;
-      border-radius:14px;
-      height:48px;
-      font-weight:600;
+      height:48px; border-radius:14px; font-weight:600;
+      background:#6C2BD9; border-color:#6C2BD9;
+      box-shadow: var(--shadow);
     }
     .btn-primary:hover{ background:#5B21B6; border-color:#5B21B6; }
 
-    /* left panel breathing */
-    .p-hero{ padding:42px 34px 34px; }
-    .auth-logo img{ height:62px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.12)); }
+    .logo-dot{
+      width:52px; height:52px; border-radius:14px;
+      display:grid; place-items:center;
+      background:linear-gradient(135deg,#7C4DFF,#6C2BD9);
+      color:#fff; font-weight:800; font-size:22px;
+      box-shadow: 0 10px 24px rgba(124,77,255,.25);
+      margin-inline:auto;
+    }
   </style>
 </head>
-
 <body>
-  <div class="auth-layout-wrap" style="background-image:url(dist-assets/images/photo-wide-4.jpg)">
-    <div class="auth-content">
-      <div class="card o-hidden">
-        <div class="row no-gutters">
-          <!-- LEFT -->
-          <div class="col-lg-6">
-            <div class="p-hero">
-              <div class="auth-logo text-center mb-3">
-                <img src="dist-assets/images/logo.png" alt="logo">
-              </div>
-              <h2 class="kh-title text-center mb-1">ប្រព័ន្ធរាយការណ៍សុខាភិបាល</h2>
-              <p class="text-muted text-center mb-4">សូមបញ្ចូលឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់</p>
 
-              <div id="msg" class="alert alert-danger d-none" role="alert"></div>
+  <main class="login-wrap">
+    <div class="text-center mb-3">
+      <div class="logo-dot">P</div>
+    </div>
+    <h2 class="kh-title text-center mb-1">ប្រព័ន្ធរាយការណ៍សុខាភិបាល</h2>
+    <p class="text-muted text-center mb-4">សូមបញ្ចូលឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់</p>
 
-              <form id="loginForm" novalidate>
-                <div class="form-group">
-                  <label for="username" class="mb-1">ឈ្មោះអ្នកប្រើ</label>
-                  <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-person"></i></span>
-                    <input id="username" class="form-control" autocomplete="username" required>
-                  </div>
-                </div>
+    <div id="msg" class="alert alert-danger d-none" role="alert"></div>
 
-                <div class="form-group">
-                  <label for="password" class="mb-1">ពាក្យសម្ងាត់</label>
-                  <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                    <input id="password" type="password" class="form-control" autocomplete="current-password" required>
-                    <span id="btnTogglePw" class="input-group-text eye-btn" title="បង្ហាញ/លាក់"><i class="bi bi-eye"></i></span>
-                  </div>
-                </div>
-
-                <button id="btnLogin" type="submit" class="btn btn-primary w-100 mt-3">
-                  <span id="btnText">ចូលប្រើប្រាស់</span>
-                </button>
-
-                <div class="mt-3 text-center">
-                  <a class="text-muted" href="#"><u>ភ្លេចពាក្យសម្ងាត់?</u></a>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          
+    <form id="loginForm" novalidate>
+      <div class="form-group">
+        <label for="username" class="mb-1">ឈ្មោះអ្នកប្រើ</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input id="username" class="form-control" autocomplete="username" required>
         </div>
       </div>
-    </div>
-  </div>
+
+      <div class="form-group">
+        <label for="password" class="mb-1">ពាក្យសម្ងាត់</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-lock"></i></span>
+          <input id="password" type="password" class="form-control" autocomplete="current-password" required>
+          <span id="btnTogglePw" class="input-group-text eye-btn" title="បង្ហាញ/លាក់"><i class="bi bi-eye"></i></span>
+        </div>
+      </div>
+
+      <button id="btnLogin" type="submit" class="btn btn-primary w-100 mt-2">
+        <span id="btnText">ចូលប្រើប្រាស់</span>
+      </button>
+
+      <div class="mt-3 text-center">
+        <a class="text-muted" href="#"><u>ភ្លេចពាក្យសម្ងាត់?</u></a>
+      </div>
+    </form>
+  </main>
 
 <script>
-  // ===== Apps Script endpoint =====
+  // ===== Apps Script endpoint (ដដែលដែលអ្នកប្រើ) =====
   const GAS_BASE = "https://script.google.com/macros/s/AKfycbwdeEgEMYK8bCZqU0xmOEERIvqbqu21tUwDKDuBb9tUXhOVwb463Hjk2XZsz9T9lBmLZQ/exec";
 
-  const $ = sel => document.querySelector(sel);
+  const $ = s => document.querySelector(s);
   const msgBox = $("#msg");
 
   $("#btnTogglePw").addEventListener("click", () => {
@@ -149,7 +140,7 @@
   async function gasLogin(username, password){
     const res = await fetch(GAS_BASE + "?api=1&route=auth&op=login", {
       method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"}, // no-preflight
+      headers: {"Content-Type":"text/plain;charset=utf-8"}, // no-preflight CORS
       body: JSON.stringify({ username, password })
     });
     if(!res.ok) throw new Error("HTTP " + res.status);
@@ -160,7 +151,7 @@
     e.preventDefault();
     const u = $("#username").value.trim();
     const p = $("#password").value;
-    if(!u || !p){ showMsg("សូមបំពេញទាំងពីរ "); return; }
+    if(!u || !p){ showMsg("សូមបំពេញទាំងពីរ"); return; }
 
     $("#btnLogin").disabled = true; $("#btnText").textContent = "កំពុងចូល...";
     showMsg("");
