@@ -77,71 +77,51 @@
 <script src="assets/js/bootstrap.bundle.min.js"></script>
 
 <script>
-/* ===== CONFIG: API URL (embedded, not shown on UI) ===== */
-const API_BASE = "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
-const DASHBOARD = "index.html";
+const GAS_BASE =
+  "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
 
-/* ===== helpers ===== */
-function setAuth(profile){ localStorage.setItem("AUTH", JSON.stringify(profile)); }
-async function gasLogin(username,password){
-  const url = API_BASE + (API_BASE.includes("?") ? "&" : "?") + "api=1&route=auth&op=login";
+async function gasLogin(username, password){
+  const url = GAS_BASE + "?api=1&route=auth&op=login";
+  // NOTE: Content-Type: text/plain  -> គ្មាន preflight
   const res = await fetch(url, {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ username, password })
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ username, password }),
+    // មិនចាំបាច់: mode:'cors'  (default)
   });
-  if(!res.ok) throw new Error("HTTP "+res.status);
-  const json = await res.json();
-  if(json && !json.error) return json; // server already removed user_pass
-  throw new Error(json?.error || "Login failed");
+  if(!res.ok){ throw new Error("HTTP " + res.status); }
+  const data = await res.json();   // Apps Script បញ្ជូន JSON
+  if(data.error){ throw new Error(data.error); }
+  return data; // {user_id, user_name, user_type, user_root, department_id, ...}
 }
 
-/* ===== UI logic ===== */
-const $ = (s,el=document)=>el.querySelector(s);
-const u = $("#u");
-const p = $("#p");
-const btn = $("#btn");
-const form = $("#f");
-const err = $("#err");
-
-$("#toggle").addEventListener("click", ()=>{
-  p.type = p.type==="password" ? "text" : "password";
-  $("#toggle").classList.toggle("i-Eye-Blocked");
-});
-
-form.addEventListener("submit", async (e)=>{
+// ហៅពី form submit
+document.getElementById("loginForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
-  err.style.display="none";
-  btn.disabled = true;
-  btn.textContent = "កំពុងចូល...";
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value;
+  const msg = document.getElementById("msg");
+  msg.textContent = ""; msg.classList.add("d-none");
 
   try{
-    const user = await gasLogin(u.value.trim(), p.value);
-    // keep only safe profile fields (server already safe)
-    const profile = {
-      user_id: user.user_id,
-      user_name: user.user_name,
-      user_type: user.user_type,
-      user_root: user.user_root,
-      department_id: user.department_id,
-      login_at: Date.now()
-    };
-    setAuth(profile);
-    location.replace(DASHBOARD);
-  }catch(ex){
-    err.textContent = "ចូលប្រើបរាជ័យ៖ " + ex.message;
-    err.style.display = "block";
-  }finally{
-    btn.disabled = false;
-    btn.textContent = "ចូលប្រើប្រព័ន្ធ";
+    const profile = await gasLogin(u,p);
+
+    // guard: supper/super admin ទៅគ្រប់គ្រងទូលំទូលាយ, otherwise redirect ទៅផ្ទាំងការិយាល័យខ្លួន
+    localStorage.setItem("AUTH", JSON.stringify({ ...profile, login_at: Date.now() }));
+
+    if (String(profile.user_type).toLowerCase()==="superuser" ||
+        String(profile.user_root).toLowerCase()==="all") {
+      location.href = "./pages/super-admin/index.html";
+    } else {
+      // Redirect ទៅផ្ទាំងការិយាល័យតាម department_id
+      location.href = `./pages/departments/${profile.department_id}/index.html`;
+    }
+  }catch(err){
+    msg.textContent = "Login បរាជ័យ: " + err.message;
+    msg.classList.remove("d-none");
   }
 });
-
-/* ប្រសិនបើមាន AUTH ស្រាប់ ត្រឡប់ទៅ Dashboard */
-try{
-  const me = JSON.parse(localStorage.getItem("AUTH")||"null");
-  if(me && me.user_id){ location.replace(DASHBOARD); }
-}catch(_){}
 </script>
+
 </body>
 </html>
