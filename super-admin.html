@@ -3,249 +3,131 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Super Admin — PHD Report System</title>
-
-  <!-- Fonts & Icons -->
+  <title>Super Admin — PHD Report</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-
   <style>
-    :root{
-      --rail:260px; --rail-collapsed:72px; --primary:#6d5df6;
-      --ink:#0f172a; --muted:#64748b; --card:#fff;
-      --line:#e9eef5; --ring:#a78bfa;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; font-family:"Noto Sans Khmer",system-ui,-apple-system,"Segoe UI",Roboto,Arial;
-      color:var(--ink); background:#f7f8fc;
-      display:grid; grid-template-columns:var(--rail) 1fr; grid-template-rows:auto 1fr;
-      grid-template-areas:"aside header" "aside main";
-      transition: grid-template-columns .25s ease;
-    }
-    body.collapsed{ grid-template-columns:var(--rail-collapsed) 1fr; }
-
-    /* ===== Sidebar ===== */
-    aside{
-      grid-area:aside; background:#111827; color:#e5e7eb; position:sticky; top:0; height:100vh;
-      border-right:1px solid #0b1220; overflow:auto; padding:14px 10px;
-    }
-    .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 14px}
+    :root{--rail:260px;--rail-c:72px;--primary:#6d5df6;--ink:#0f172a;--muted:#64748b;--line:#e9eef5}
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;font-family:"Noto Sans Khmer",system-ui;display:grid;grid-template-columns:var(--rail) 1fr;grid-template-rows:auto 1fr;grid-template-areas:"aside header" "aside main";background:#f7f8fc;color:var(--ink);transition:.25s}
+    body.c{grid-template-columns:var(--rail-c) 1fr}
+    aside{grid-area:aside;background:#111827;color:#e5e7eb;border-right:1px solid #0b1220;position:sticky;top:0;height:100vh;overflow:auto;padding:14px 10px}
+    .brand{display:flex;gap:10px;align-items:center;padding:6px 8px 14px}
     .logo{width:36px;height:36px;border-radius:10px;background:#fff;color:#111;display:grid;place-items:center;font-weight:800}
-    .brand .name{font-weight:700}
-
-    .search{position:relative;margin:6px}
-    .search input{
-      width:100%; padding:10px 12px 10px 36px; border-radius:10px; background:#0f172a; border:1px solid #1f2937; color:#e5e7eb;
-    }
-    .search i{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#94a3b8}
-
+    .label{transition:.2s} body.c .label{opacity:0;transform:translateX(-6px);pointer-events:none}
+    .search{position:relative;margin:6px} .search input{width:100%;padding:10px 12px 10px 36px;border-radius:10px;background:#0f172a;border:1px solid #1f2937;color:#e5e7eb}
+    body.c .search{display:none} .search i{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#94a3b8}
     nav{display:flex;flex-direction:column;gap:4px;margin-top:6px}
-    .item{
-      display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; color:#e5e7eb;
-      text-decoration:none; font-weight:600; transition:background .15s, color .15s;
-    }
-    .item i{font-size:18px; color:#cbd5e1}
-    .item:hover{ background:#1f2937 }
-    .item.active{ background:#312e81; color:#fff }
-    .label{transition:opacity .2s, transform .2s}
-
-    body.collapsed .label{opacity:0; transform:translateX(-6px); pointer-events:none}
-    body.collapsed .search{display:none}
-
-    /* ===== Header ===== */
-    header{
-      grid-area:header; background:#fff; border-bottom:1px solid var(--line); display:flex; align-items:center;
-      justify-content:space-between; padding:10px 16px; position:sticky; top:0; z-index:5;
-    }
-    .menu-btn{display:flex; align-items:center; gap:8px}
-    .icon-btn{
-      border:1px solid var(--line); background:#fff; border-radius:10px; padding:8px 10px; cursor:pointer;
-    }
-    .user{display:flex;align-items:center;gap:10px}
-    .avatar{width:34px;height:34px;border-radius:50%;background:#111;color:#fff;display:grid;place-items:center;font-weight:700}
-    .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer}
-    .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
-
-    /* ===== Main ===== */
+    .item{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;color:#e5e7eb;text-decoration:none}
+    .item:hover{background:#1f2937} .item.active{background:#312e81}
+    header{grid-area:header;background:#fff;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;padding:10px 16px}
+    .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer}
+    .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .user{display:flex;gap:10px;align-items:center}.avatar{width:34px;height:34px;border-radius:50%;background:#111;color:#fff;display:grid;place-items:center;font-weight:700}
     main{grid-area:main;padding:16px}
-    .path{color:var(--muted);margin:4px 0 12px}
-    .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 8px 24px rgba(15,23,42,.05)}
+    .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 8px 24px rgba(15,23,42,.05)}
     .muted{color:var(--muted)}
-    .grid{display:grid;gap:12px}
-    .two{grid-template-columns:2fr 1fr}
-    .charts .card-title{font-weight:700;margin-bottom:8px}
-    @media (max-width:1100px){ .cards{grid-template-columns:repeat(2,1fr)} .two{grid-template-columns:1fr} }
-    @media (max-width:640px){ body{grid-template-columns:1fr;grid-template-rows:auto auto 1fr;grid-template-areas:"header" "aside" "main"} aside{height:auto;position:relative} }
-
-    /* ===== Loader Overlay ===== */
-    .loader{
-      position:fixed; inset:0; background:rgba(255,255,255,.6); display:none; align-items:center; justify-content:center;
-      z-index:50; backdrop-filter:blur(2px);
-    }
-    .loader.show{display:flex}
-    .spinner{width:46px;height:46px;border-radius:50%;border:4px solid #ddd;border-top-color:var(--primary); animation:spin 1s linear infinite}
+    .grid{display:grid;gap:12px}.two{grid-template-columns:2fr 1fr}
+    @media(max-width:1100px){.cards{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+    /* loader */
+    .loader{position:fixed;inset:0;background:rgba(255,255,255,.6);display:none;align-items:center;justify-content:center;z-index:40;backdrop-filter:blur(2px)}
+    .loader.show{display:flex}.spin{width:46px;height:46px;border:4px solid #ddd;border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .loader .txt{margin-top:8px; text-align:center; color:#334155; font-weight:700}
-    .loader .box{display:flex; flex-direction:column; align-items:center}
-    /* skeleton shimmer for cards while loading */
-    .skeleton{position:relative;overflow:hidden;background:#eef2f7;min-height:74px;border-radius:10px}
-    .skeleton:before{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);animation:shimmer 1.2s infinite}
-    @keyframes shimmer{to{transform:translateX(100%)}}
   </style>
 </head>
 <body>
-  <!-- ===== Loader ===== -->
-  <div id="pageLoader" class="loader">
-    <div class="box">
-      <div class="spinner"></div>
-      <div class="txt">កំពុងផ្ទុក...</div>
-    </div>
-  </div>
+  <div id="loader" class="loader"><div class="spin"></div></div>
 
-  <!-- ===== Sidebar ===== -->
   <aside>
-    <div class="brand">
-      <div class="logo">P</div>
-      <div class="name label">@ Your Company</div>
-    </div>
-    <div class="search">
-      <i class="ri-search-line"></i>
-      <input type="text" placeholder="ស្វែងរកម៉ឺនុយ" oninput="filterMenu(this.value)">
-    </div>
-
+    <div class="brand"><div class="logo">P</div><div class="label">@ Your Company</div></div>
+    <div class="search"><i class="ri-search-line"></i><input type="text" placeholder="ស្វែងរក" oninput="filterMenu(this.value)"></div>
     <nav id="menu">
-      <a class="item active" href="#dashboard" data-route="dashboard"><i class="ri-home-5-line"></i><span class="label">Dashboard</span></a>
-      <a class="item" href="#reports" data-route="reports"><i class="ri-flag-2-line"></i><span class="label">Reports</span></a>
-      <a class="item" href="#users" data-route="users"><i class="ri-user-settings-line"></i><span class="label">ការគ្រប់គ្រងអ្នកប្រើប្រាស់</span></a>
-      <a class="item" href="#departments" data-route="departments"><i class="ri-building-2-line"></i><span class="label">ផ្នែក (Departments)</span></a>
-      <a class="item" href="#units" data-route="units"><i class="ri-building-4-line"></i><span class="label">អង្គភាព (Units)</span></a>
-      <a class="item" href="#periods" data-route="periods"><i class="ri-timer-line"></i><span class="label">រយៈពេល (Periods)</span></a>
-      <a class="item" href="#indicators" data-route="indicators"><i class="ri-bar-chart-2-line"></i><span class="label">សូចនាករ (Indicators)</span></a>
-      <a class="item" href="#settings" data-route="settings"><i class="ri-settings-3-line"></i><span class="label">Settings</span></a>
+      <a class="item active" href="#dashboard"><i class="ri-home-5-line"></i><span class="label">Dashboard</span></a>
+      <a class="item" href="#reports"><i class="ri-flag-2-line"></i><span class="label">Reports</span></a>
+      <a class="item" href="#users"><i class="ri-user-settings-line"></i><span class="label">អ្នកប្រើប្រាស់</span></a>
+      <a class="item" href="#departments"><i class="ri-building-2-line"></i><span class="label">Departments</span></a>
+      <a class="item" href="#units"><i class="ri-building-4-line"></i><span class="label">Units</span></a>
+      <a class="item" href="#periods"><i class="ri-timer-line"></i><span class="label">Periods</span></a>
+      <a class="item" href="#indicators"><i class="ri-bar-chart-2-line"></i><span class="label">Indicators</span></a>
+      <a class="item" href="#settings"><i class="ri-settings-3-line"></i><span class="label">Settings</span></a>
     </nav>
   </aside>
 
-  <!-- ===== Header ===== -->
   <header>
-    <div class="menu-btn">
-      <button id="btnToggle" class="icon-btn" title="បិទ/បើក Sidebar"><i class="ri-menu-line"></i></button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn" id="toggle"><i class="ri-menu-line"></i></button>
       <div style="font-weight:700">Version 1</div>
-      <div class="path">Dashboard / Version 1</div>
+      <div class="muted">Dashboard / Version 1</div>
     </div>
     <div class="user">
-      <button class="icon-btn" id="btnShowLoader" title="សាកល្បង Form loading"><i class="ri-refresh-line"></i></button>
       <div id="who" class="muted"></div>
-      <div id="avatar" class="avatar">SU</div>
-      <button class="btn" onclick="goIndex()">Dashboard ទូទៅ</button>
-      <button class="btn primary" onclick="logout()">ចាកចេញ</button>
+      <div id="av" class="avatar">SU</div>
+      <button class="btn" onclick="location.href='index.html'">Dashboard ទូទៅ</button>
+      <button class="btn primary" onclick="Auth.clear();location.href='login.html'">ចាកចេញ</button>
     </div>
   </header>
 
-  <!-- ===== Main ===== -->
   <main>
-    <!-- Top stats -->
-    <div class="cards" id="stats">
-      <div class="card"><div class="muted">New Leads</div><h2 id="s1" class="skeleton"></h2></div>
-      <div class="card"><div class="muted">Sales</div><h2 id="s2" class="skeleton"></h2></div>
-      <div class="card"><div class="muted">Orders</div><h2 id="s3" class="skeleton"></h2></div>
-      <div class="card"><div class="muted">Expense</div><h2 id="s4" class="skeleton"></h2></div>
+    <div class="cards">
+      <div class="card"><div class="muted">New Leads</div><h2 id="k1">205</h2></div>
+      <div class="card"><div class="muted">Sales</div><h2>$4021</h2></div>
+      <div class="card"><div class="muted">Orders</div><h2>80</h2></div>
+      <div class="card"><div class="muted">Expense</div><h2>$1200</h2></div>
     </div>
 
-    <!-- Charts -->
-    <div class="grid two charts" style="margin-top:12px">
-      <div class="card">
-        <div class="card-title">This Year Sales</div>
-        <div id="barChart" style="height:340px"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Sales by Countries</div>
-        <div id="pieChart" style="height:340px"></div>
-      </div>
+    <div class="grid two" style="margin-top:12px">
+      <div class="card"><div style="font-weight:700;margin-bottom:8px">This Year Sales</div><div id="bar" style="height:340px"></div></div>
+      <div class="card"><div style="font-weight:700;margin-bottom:8px">Sales by Countries</div><div id="pie" style="height:340px"></div></div>
     </div>
 
-    <!-- Example data table block -->
     <div class="card" style="margin-top:12px">
-      <div class="card-title" style="font-weight:700;margin-bottom:8px">អ្នកប្រើថ្មីៗ</div>
-      <div class="muted" style="margin-bottom:10px">គំរូតារាង (សម្រាប់បន្ថែម CRUD ពេលក្រោយ)</div>
-      <div class="grid" style="grid-template-columns:1fr auto; align-items:center">
-        <div class="muted">ចំនួនអ្នកប្រើសរុប: <span id="statUsers">—</span></div>
-        <button class="btn primary" onclick="fakeFormSave()">+ បន្ថែមអ្នកប្រើ</button>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="muted">ចំនួនអ្នកប្រើសរុប: <span id="totalUsers">—</span></div>
+        <button class="btn primary" onclick="demoSave()">+ បន្ថែមអ្នកប្រើ</button>
       </div>
     </div>
   </main>
 
+  <script src="auth.js"></script>
   <script>
-    // ===== Guard: only super admin =====
-    const AUTH = (()=>{ try{ return JSON.parse(localStorage.getItem("AUTH")||"null"); }catch{ return null; }})();
-    function isSuper(p){ return p && (String(p.user_type||"").toLowerCase()==="superuser" || String(p.user_root||"").toLowerCase()==="all"); }
-    if(!AUTH){ location.href = "login.html"; }
-    else if(!isSuper(AUTH)){ location.href = "index.html"; }
+    // Guard
+    Auth.requireSuper();
 
     // Header info
-    (function setUser(){
-      document.getElementById("who").textContent = AUTH ? (AUTH.user_name+" • "+(AUTH.user_type||"")) : "";
-      document.getElementById("avatar").textContent = (AUTH?.user_name||"SU").slice(0,2).toUpperCase();
-    })();
+    const A = Auth.get();
+    document.getElementById('who').textContent = `${A.user_name} • ${A.user_type||''}`;
+    document.getElementById('av').textContent = (A.user_name||'SU').slice(0,2).toUpperCase();
 
     // Sidebar toggle
-    document.getElementById("btnToggle").addEventListener("click", ()=>{ document.body.classList.toggle("collapsed"); });
+    document.getElementById('toggle').onclick = ()=> document.body.classList.toggle('c');
 
-    // Menu active & search filter
+    // Menu
     function filterMenu(q){
-      q=(q||"").toLowerCase();
-      document.querySelectorAll("#menu .item").forEach(a=>{
-        a.style.display = a.textContent.toLowerCase().includes(q) ? "" : "none";
+      q=(q||'').toLowerCase();
+      document.querySelectorAll('#menu .item').forEach(a=>{
+        a.style.display = a.textContent.toLowerCase().includes(q) ? '' : 'none';
       });
     }
-    document.querySelectorAll("#menu .item").forEach(a=>{
-      a.addEventListener("click",()=>{ document.querySelectorAll("#menu .item").forEach(x=>x.classList.remove("active")); a.classList.add("active"); });
-    });
 
-    function logout(){ localStorage.removeItem("AUTH"); location.href="login.html"; }
-    function goIndex(){ location.href="index.html"; }
+    // Loader
+    const L = document.getElementById('loader');
+    const show = ()=>L.classList.add('show'), hide = ()=>L.classList.remove('show');
+    function demoSave(){ show(); setTimeout(()=>{ hide(); alert('រក្សាទុកបាន (demo)'); }, 800); }
 
-    // Loader helpers
-    const loader = document.getElementById("pageLoader");
-    function showLoader(txt="កំពុងផ្ទុក..."){ loader.querySelector(".txt").textContent = txt; loader.classList.add("show"); }
-    function hideLoader(){ loader.classList.remove("show"); }
+    // API counts
+    (async function(){
+      show();
+      document.getElementById('totalUsers').textContent = await apiCount('users');
+      hide();
+    })();
 
-    // Fake form save demo (shows loader briefly)
-    function fakeFormSave(){
-      showLoader("កំពុងរក្សាទុកទិន្នន័យ...");
-      setTimeout(()=>{ hideLoader(); alert("រក្សាទុកបានសម្រេច (គំរូ)"); }, 900);
-    }
-    document.getElementById("btnShowLoader").addEventListener("click", ()=> showLoader() && setTimeout(hideLoader, 800));
-
-    // ===== Data from API (optional if API_BASE exists) =====
-    const API_BASE = localStorage.getItem("API_BASE") || "";
-    async function fetchCount(route){
-      if(!API_BASE) return "—";
-      const url = API_BASE + (API_BASE.includes("?")?"&":"?") + `api=1&route=${route}&op=list&limit=1`;
-      try{
-        const res = await fetch(url, {cache:"no-store"});
-        if(!res.ok) return "—";
-        const j = await res.json();
-        return (j?.total ?? "—");
-      }catch(_){ return "—"; }
-    }
-
-    async function loadStats(){
-      // Put some pretty numbers; override with API counts if available
-      setStat("s1","205"); setStat("s2","$4021"); setStat("s3","80"); setStat("s4","$1200");
-      document.getElementById("statUsers").textContent = await fetchCount("users");
-    }
-    function setStat(id, val){ const el=document.getElementById(id); el.classList.remove("skeleton"); el.textContent=val; }
-
-    // ===== Charts =====
-    function renderCharts(){
-      const bar = echarts.init(document.getElementById('barChart'));
+    // Charts
+    (function charts(){
+      const bar = echarts.init(document.getElementById('bar'));
       bar.setOption({
-        tooltip:{}, legend:{data:['Online','Offline']},
-        grid:{left:30,right:10,top:30,bottom:30},
+        legend:{data:['Online','Offline']}, grid:{left:30,right:10,top:30,bottom:30},
         xAxis:{type:'category',data:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sept','Oct','Nov','Dec']},
         yAxis:{type:'value'},
         series:[
@@ -253,23 +135,11 @@
           {name:'Offline', type:'bar', data:[58,62,35,95,72,90,48,82,79,88,35,40]}
         ]
       });
-
-      const pie = echarts.init(document.getElementById('pieChart'));
-      pie.setOption({
-        tooltip:{trigger:'item'},
-        series:[{type:'pie', radius:['40%','70%'],
-          data:[{value:35,name:'USA'},{value:22,name:'India'},{value:10,name:'UK'},{value:14,name:'France'},{value:19,name:'Brazil'}]
-        }]
-      });
-      window.addEventListener('resize', ()=>{ bar.resize(); pie.resize(); });
-    }
-
-    // Boot
-    (async function boot(){
-      showLoader();
-      await loadStats();
-      renderCharts();
-      hideLoader();
+      const pie = echarts.init(document.getElementById('pie'));
+      pie.setOption({ series:[{type:'pie',radius:['40%','70%'],data:[
+        {value:35,name:'USA'},{value:22,name:'India'},{value:10,name:'UK'},{value:14,name:'France'},{value:19,name:'Brazil'}
+      ]}]});
+      addEventListener('resize', ()=>{ bar.resize(); pie.resize(); });
     })();
   </script>
 </body>
