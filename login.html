@@ -1,107 +1,207 @@
-
 <!doctype html>
 <html lang="km">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login — PHD Report System</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <title>ចូលប្រើប្រាស់ប្រព័ន្ធ</title>
+
+  <!-- Template CSS (paths តាម repo របស់អ្នក) -->
+  <link rel="stylesheet" href="assets/css/themes/lite-purple.min.css">
+  <link rel="stylesheet" href="assets/css/themes/third-party.bundle.css"><!-- optional -->
+
+  <!-- Khmer fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@400;500;600&display=swap" rel="stylesheet">
+
   <style>
-    body{ background:#f4f6fb; font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
-    .card{ border-radius:16px; box-shadow:0 10px 25px rgba(0,0,0,.06) }
-    .brand{ font-weight:700 }
+    :root{
+      --brand:#6c63ff; --brand600:#584ff2; --err:#d32f2f; --ok:#2e7d32;
+    }
+    body{
+      min-height:100vh;
+      display:grid; place-items:center;
+      background:linear-gradient(160deg,#f7f8ff 0%, #f1f2ff 40%, #eef0ff 100%);
+      font-family:"Noto Sans Khmer",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      padding:24px;
+    }
+    .auth-wrap{
+      width:min(980px,96vw);
+      display:grid; grid-template-columns:1.1fr .9fr; gap:36px; align-items:stretch;
+    }
+    @media (max-width: 920px){ .auth-wrap{grid-template-columns:1fr} .hero{display:none} }
+
+    .card-auth{
+      background:#fff; border-radius:16px; box-shadow:0 10px 28px rgba(17,12,62,.08);
+      padding:34px 32px 28px; position:relative; overflow:hidden;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px; margin-bottom:14px;
+    }
+    .logo{
+      width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:#fff;
+      background:linear-gradient(135deg,var(--brand),var(--brand600));font-weight:800;
+      box-shadow:0 10px 26px rgba(108,99,255,.28);
+    }
+    .brand h1{
+      margin:0; font-family:"Khmer Moul"; font-size:20px; line-height:1.2; letter-spacing:.2px;
+    }
+    .brand small{display:block; color:#6b6f80; font-size:12.5px}
+
+    .title{font-weight:600; font-size:18px; margin:8px 0 16px}
+
+    .field{margin:14px 0}
+    .control{
+      display:flex; align-items:center; gap:10px;
+      background:#f6f7ff; border:1px solid #e6e7fb; border-radius:12px; padding:10px 12px;
+      transition:.2s; 
+    }
+    .control:focus-within{background:#fff; border-color:#c9c9ff; box-shadow:0 0 0 4px rgba(108,99,255,.12)}
+    .control i{width:22px; opacity:.65}
+    .control input{
+      border:0; background:transparent; outline:0; flex:1; font-size:15px; padding:4px 2px;
+    }
+    .toggle{cursor:pointer;opacity:.7}
+    .toggle:hover{opacity:1}
+
+    .btn-brand{
+      width:100%; margin-top:18px; padding:12px 14px; border:0; border-radius:12px; color:#fff;
+      background:linear-gradient(135deg,var(--brand),var(--brand600));
+      font-weight:700; letter-spacing:.2px; display:grid; grid-auto-flow:column; place-items:center; gap:10px;
+      box-shadow:0 10px 26px rgba(108,99,255,.28); transition:transform .15s ease;
+    }
+    .btn-brand:hover{transform:translateY(-1px)}
+    .btn-brand[disabled]{opacity:.75; transform:none; cursor:wait}
+
+    .spin{width:16px;height:16px;border-radius:999px;border:2px solid rgba(255,255,255,.55);border-top-color:#fff;animation:spin .9s linear infinite}
+    @keyframes spin{to{transform:rotate(1turn)}}
+
+    .msg{margin-top:12px; text-align:center; font-size:14px; display:none}
+    .msg.err{color:var(--err)} .msg.ok{color:var(--ok)}
+
+    .hero{
+      background:#fff; border-radius:16px; padding:28px; box-shadow:0 10px 28px rgba(17,12,62,.08);
+      position:relative; overflow:hidden;
+    }
+    .hero h3{font-family:"Khmer Moul"; font-size:20px; margin:0 0 12px}
+    .hero p{margin:0; color:#555a74}
+    .chips{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px}
+    .chip{padding:9px 12px; border-radius:999px; background:#eef0ff; border:1px dashed #dfe2ff; font-weight:600; font-size:12.5px; color:#3b3f78}
+
+    .foot{margin-top:14px; color:#8a8fad; font-size:12.5px; text-align:center}
   </style>
 </head>
-<body class="d-flex align-items-center justify-content-center vh-100">
-  <div class="container" style="max-width: 460px;">
-    <div class="text-center mb-3">
-      <div class="brand h3 mb-0">Provincial Health Dept</div>
-      <div class="text-muted">PHD Report System</div>
+<body>
+  <div class="auth-wrap">
+
+    <!-- LEFT: form -->
+    <div class="card-auth">
+      <div class="brand">
+        <div class="logo">PHD</div>
+        <div>
+          <h1>ប្រព័ន្ធរាយការណ៍សុខាភិបាល</h1>
+          <small>Provincial Health Department Reporting</small>
+        </div>
+      </div>
+
+      <div class="title">ចូលប្រើប្រាស់ប្រព័ន្ធ</div>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="username" class="text-muted">ឈ្មោះអ្នកប្រើ</label>
+          <div class="control">
+            <i>👤</i>
+            <input id="username" name="username" autocomplete="username" required placeholder="ឧ. admin">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="password" class="text-muted">ពាក្យសម្ងាត់</label>
+          <div class="control">
+            <i>🔒</i>
+            <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••">
+            <span id="btnTogglePw" class="toggle" title="បង្ហាញ/លាក់">👁</span>
+          </div>
+        </div>
+
+        <button id="btnLogin" class="btn-brand" type="submit">
+          <span id="spin" class="spin" style="display:none"></span>
+          <span id="btnText">ចូលប្រើប្រាស់</span>
+        </button>
+
+        <div id="msg" class="msg err"></div>
+        <div class="foot">© <span id="yy"></span> PHD — Version 1.0</div>
+      </form>
     </div>
 
-    <div class="card p-4">
-      <div class="mb-3">
-        <label class="form-label">Apps Script API URL</label>
-        <input id="apiBase" class="form-control" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
-        <div class="form-text">ដាក់ URL នេះម្តងតែប៉ុណ្ណោះ (រក្សាទុកក្នុង Browser)</div>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">ឈ្មោះអ្នកប្រើ</label>
-        <input id="userName" class="form-control" autocomplete="username" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">ពាក្យសម្ងាត់</label>
-        <input id="userPass" type="password" class="form-control" autocomplete="current-password" required>
-      </div>
-      <div class="d-grid gap-2">
-        <button class="btn btn-primary" id="btnLogin">Login</button>
-      </div>
-    </div>
-
-    <div class="text-center small text-muted mt-3">© {{YEAR}} Provincial Health Department</div>
-  </div>
-
+  
+   
   <script>
-  // ===== config helpers =====
-  const ls = window.localStorage;
-  function getApiBase(){ return (ls.getItem('API_BASE')||'').trim(); }
-  function setApiBase(v){ ls.setItem('API_BASE', v.trim()); }
+  // ========= CONFIG =========
+  // Apps Script Web App (Deploy as "Anyone with the link")
+  const GAS_BASE = "https://script.google.com/macros/s/AKfycbwdeEgEMYK8bCZqU0xmOEERIvqbqu21tUwDKDuBb9tUXhOVwb463Hjk2XZsz9T9lBmLZQ/exec";
 
-  // quick sha256 hash (hex)
-  async function sha256Hex(str){
-    const enc = new TextEncoder().encode(str);
-    const buf = await crypto.subtle.digest('SHA-256', enc);
-    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const $ = s => document.querySelector(s);
+  const yy = $("#yy"); yy.textContent = new Date().getFullYear();
+
+  // UI helpers
+  function setLoading(v){
+    $("#btnLogin").disabled = v;
+    $("#spin").style.display = v ? "inline-block" : "none";
+    $("#btnText").textContent = v ? "កំពុងចូល..." : "ចូលប្រើប្រាស់";
+  }
+  function showMsg(t, kind="err"){
+    const el = $("#msg");
+    el.className = `msg ${kind}`;
+    el.textContent = t || "";
+    el.style.display = t ? "block" : "none";
   }
 
-  async function apiGet(params){
-    const base = getApiBase();
-    const usp = new URLSearchParams(params);
-    const url = base + (base.includes('?')?'&':'?') + usp.toString();
-    const res = await fetch(url);
-    if(!res.ok) throw new Error('API error');
+  // Toggle password
+  $("#btnTogglePw").addEventListener("click", ()=>{
+    const i = $("#password"); i.type = i.type === "password" ? "text" : "password";
+  });
+
+  // Call GAS without preflight (text/plain)
+  async function gasLogin(username, password){
+    const res = await fetch(GAS_BASE + "?api=1&route=auth&op=login", {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({ username, password })
+    });
+    if(!res.ok) throw new Error("HTTP " + res.status);
     return res.json();
   }
 
-  // UI init
-  const apiInput = document.getElementById('apiBase');
-  apiInput.value = getApiBase();
-  document.body.innerHTML = document.body.innerHTML.replace('{{YEAR}}', new Date().getFullYear());
+  // Submit
+  $("#loginForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    showMsg(""); setLoading(true);
 
-  document.getElementById('btnLogin').addEventListener('click', async ()=>{
-    const base = apiInput.value.trim();
-    if(!base){ alert('សូមបញ្ចូល API URL មុន'); return; }
-    setApiBase(base);
+    const u = $("#username").value.trim();
+    const p = $("#password").value;
 
-    const user = document.getElementById('userName').value.trim();
-    const pass = document.getElementById('userPass').value;
-    if(!user || !pass){ alert('សូមបំពេញឈ្មោះ និង ពាក្យសម្ងាត់'); return; }
+    if(!u || !p){ showMsg("សូមបញ្ចូលឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់"); setLoading(false); return; }
 
     try{
-      // NOTE: API list(user) មិនទាន់មាន filter តាម user_name → ទាញទាំងអស់ហើយ filter ខាង client
-      const data = await apiGet({ api:1, route:'user', op:'list', limit: 5000 });
-      const rows = data.rows || [];
-      const u = rows.find(r => (String(r.user_name||'').toLowerCase() === user.toLowerCase()));
-      if(!u){ alert('មិនមានអ្នកប្រើនេះ'); return; }
-
-      const passHash = await sha256Hex(pass);
-      const stored = String(u.user_pass||'');
-      const ok = (stored.length === 64 ? (stored === passHash) : (stored === pass));
-      if(!ok){ alert('ពាក្យសម្ងាត់មិនត្រឹមត្រូវ'); return; }
-
-      const profile = {
-        user_id: u.user_id,
-        user_name: u.user_name,
-        user_type: u.user_type,
-        user_root: u.user_root,
-        department_id: u.department_id,
-        login_at: Date.now()
-      };
-      ls.setItem('AUTH', JSON.stringify(profile));
-      location.href = 'index.html';
+      const j = await gasLogin(u, p);
+      if(j && !j.error){
+        // save profile
+        localStorage.setItem("AUTH", JSON.stringify({
+          user_id: j.user_id,
+          user_name: j.user_name,
+          user_type: j.user_type,
+          user_root: j.user_root,
+          department_id: j.department_id,
+          login_at: Date.now()
+        }));
+        showMsg("បានចូលប្រើដោយជោគជ័យ!", "ok");
+        setTimeout(()=>location.href="index.html", 450);
+      }else{
+        showMsg(j?.error || "ឈ្មោះអ្នកប្រើ ឬ ពាក្យសម្ងាត់ មិនត្រឹមត្រូវ");
+      }
     }catch(err){
-      console.error(err); alert('Login បរាជ័យ (API)');
+      showMsg("បរាជ័យក្នុងការតភ្ជាប់ API: " + err.message);
+    }finally{
+      setLoading(false);
     }
   });
   </script>
