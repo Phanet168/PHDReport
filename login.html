@@ -1,78 +1,146 @@
 <!doctype html>
 <html lang="km">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Login — PHD Report System</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    :root{ --radius:16px }
+    :root{
+      --bg1:#4f46e5; --bg2:#22c1c3; --card:#ffffff; --text:#0f172a;
+      --muted:#6b7280; --danger:#b91c1c; --ring:#a78bfa;
+      --radius:18px;
+    }
     *{ box-sizing:border-box }
-    body{ font-family:"Noto Sans Khmer",system-ui,-apple-system,"Segoe UI",Roboto,Arial; background:#f6f7fb; margin:0 }
-    .wrap{ min-height:100dvh; display:grid; place-items:center; padding:24px }
-    .card{ width:min(440px,94vw); background:#fff; border:1px solid #e5e7eb; border-radius:var(--radius); box-shadow:0 8px 24px rgba(0,0,0,.06); padding:18px }
-    .brand{ color:#4f46e5; font-weight:700; font-size:20px; margin-bottom:10px }
-    label{ font-weight:600; display:block; margin:10px 0 6px }
-    input{ width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:10px; font:inherit }
-    .btn{ width:100%; padding:10px 12px; border-radius:10px; border:0; background:#4f46e5; color:#fff; font-weight:600; cursor:pointer }
-    .btn:disabled{ opacity:.6; cursor:not-allowed }
-    .muted{ color:#6b7280; font-size:13px }
-    .alert{ margin-top:12px; border-radius:10px; padding:10px 12px }
-    .danger{ background:#fee2e2; color:#7f1d1d }
-    .hidden{ display:none }
+    html,body{ height:100% }
+    body{
+      margin:0; font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 20% 0%, #e9e7ff 0, transparent 60%),
+                  linear-gradient(135deg, var(--bg1), var(--bg2));
+      background-attachment: fixed;
+    }
+    .wrap{ min-height:100%; display:grid; place-items:center; padding:28px }
+    .card{
+      width:min(460px,94vw); border-radius:var(--radius);
+      background: color-mix(in srgb, var(--card) 92%, transparent);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border:1px solid rgba(255,255,255,.6); box-shadow:0 12px 40px rgba(0,0,0,.12);
+      padding:22px;
+    }
+    .brand{ display:flex; align-items:center; gap:10px; margin-bottom:8px }
+    .brand .logo{ width:42px; height:42px; display:grid; place-items:center; border-radius:12px; background:#111; color:#fff; font-weight:700 }
+    .brand .title{ font-weight:700; font-size:20px; color:#111827 }
+    label{ font-weight:600; display:block; margin:12px 0 6px }
+    .input{
+      width:100%; display:flex; align-items:center; gap:8px;
+      padding:12px 13px; border:1px solid #e5e7eb; border-radius:12px; background:#fff;
+      outline:none; transition:.15s;
+    }
+    .input:focus-within{ border-color:var(--ring); box-shadow:0 0 0 3px #a78bfa40 }
+    .input input{ border:0; outline:0; width:100%; font:inherit; background:transparent }
+    .row{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin:10px 0 14px }
+    .muted{ color:var(--muted); font-size:13px }
+    .btn{
+      width:100%; padding:12px 14px; border-radius:12px; border:0; cursor:pointer;
+      background:#111827; color:#fff; font-weight:700; font-size:15px; transition:.2s;
+    }
+    .btn:hover{ filter:brightness(1.05) }
+    .btn[disabled]{ opacity:.65; cursor:not-allowed }
+    .alert{ margin-top:12px; border-radius:12px; padding:10px 12px; font-weight:600; display:none }
+    .alert.show{ display:block }
+    .alert.danger{ background:#fee2e2; color:#7f1d1d; border:1px solid #fecaca }
+    .tools{ display:flex; align-items:center; gap:10px; margin-top:6px }
+    .checkbox{ display:flex; align-items:center; gap:8px; user-select:none; cursor:pointer; }
+    .eye{ cursor:pointer; user-select:none; color:#64748b }
+    .foot{ margin-top:12px; text-align:center; color:#0b1324; font-weight:600; }
+    .foot small{ color:#111827; background:#fff; padding:2px 8px; border-radius:999px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
-      <div class="brand">PHD Report System</div>
+      <div class="brand">
+        <div class="logo">P</div>
+        <div>
+          <div class="title">PHD Report System</div>
+          <div class="muted">ចូលប្រើប្រព័ន្ធ — សុវត្ថិភាព និងលឿន</div>
+        </div>
+      </div>
 
-      <form id="loginForm">
+      <form id="loginForm" novalidate>
         <label for="username">ឈ្មោះអ្នកប្រើ</label>
-        <input id="username" name="username" placeholder="ឧ. admin" autocomplete="username" required autofocus>
+        <div class="input">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z" fill="#64748b"/></svg>
+          <input id="username" name="username" placeholder="ឧ. admin" autocomplete="username" required autofocus>
+        </div>
 
         <label for="password">ពាក្យសម្ងាត់</label>
-        <input id="password" name="password" type="password" placeholder="••••••" autocomplete="current-password" required>
+        <div class="input">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 8V7a5 5 0 0 0-10 0v1H5v13h14V8h-2Zm-8 0V7a3 3 0 0 1 6 0v1H9Zm3 9a2 2 0 1 1 2-2 2 2 0 0 1-2 2Z" fill="#64748b"/></svg>
+          <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required>
+          <span id="togglePwd" class="eye" title="បង្ហាញ/លាក់">👁️</span>
+        </div>
+
+        <div class="row">
+          <label class="checkbox">
+            <input type="checkbox" id="remember"> ចងចាំឈ្មោះ
+          </label>
+          <span class="muted">ភ្លេចពាក្យសម្ងាត់? សូមទំនាក់ទំនង IT</span>
+        </div>
 
         <button id="btnLogin" class="btn" type="submit">ចូលប្រើប្រាស់</button>
-
-        <div id="msg" class="alert danger hidden"></div>
-        <p class="muted">Login នឹងផ្ទៀងផ្ទាត់តាម Apps Script API របស់អង្គភាព។</p>
+        <div id="msg" class="alert danger"></div>
+        <div class="foot"><small>UI ខ្មែរ • សាមញ្ញ & មានសុវត្ថិភាព</small></div>
       </form>
     </div>
   </div>
 
   <script>
-    // ===== CONFIG (hidden from UI) =====
+    // ===== CONFIG (hidden) =====
     const API_BASE = "https://script.google.com/macros/s/AKfycbwnxRudS_il7Dvcdh7-QB36NJaP-6-hl5nMniXrbuKhMpHPK8CCEGkRIc9-okB-P0Z6Zw/exec";
     const LOGIN_URL = API_BASE + (API_BASE.includes("?") ? "&" : "?") + "api=1&route=auth&op=login";
     const DASHBOARD_PAGE   = "index.html";
     const SUPER_ADMIN_PAGE = "super-admin.html";
 
+    // Save API_BASE silently for other pages
+    localStorage.setItem("API_BASE", API_BASE);
+
     // ===== Helpers =====
-    const ls = window.localStorage;
-    const $ = (s, el=document)=>el.querySelector(s);
-    function setAuth(profile){ ls.setItem("AUTH", JSON.stringify(profile)); }
+    const $ = (s,el=document)=>el.querySelector(s);
+    function setAuth(profile){ localStorage.setItem("AUTH", JSON.stringify(profile)); }
     function isSuper(p){
       return p && (
         String(p.user_type||"").toLowerCase()==="superuser" ||
         String(p.user_root||"").toLowerCase()==="all"
       );
     }
-    function showError(t){ const m=$("#msg"); m.textContent=t; m.classList.remove("hidden"); }
-    function hideError(){ $("#msg").classList.add("hidden"); }
+    function showErr(t){ const m=$("#msg"); m.textContent=t; m.classList.add("show"); }
+    function hideErr(){ $("#msg").classList.remove("show"); }
 
-    // Save API_BASE silently for other pages to use
-    ls.setItem("API_BASE", API_BASE);
+    // Show/Hide password
+    $("#togglePwd").addEventListener("click", ()=>{
+      const p = $("#password");
+      p.type = (p.type === "password") ? "text" : "password";
+    });
 
-    // ===== Submit handler =====
+    // Remember username
+    (function initRemember(){
+      const saved = localStorage.getItem("REMEMBER_USER");
+      if(saved){ $("#username").value = saved; $("#remember").checked = true; }
+    })();
+
+    // ===== Submit =====
     $("#loginForm").addEventListener("submit", async (e)=>{
-      e.preventDefault(); hideError();
+      e.preventDefault(); hideErr();
       const btn = $("#btnLogin");
-      btn.disabled = true;
+      btn.disabled = true; btn.textContent = "កំពុងចូល...";
 
       const username = $("#username").value.trim();
       const password = $("#password").value;
+
+      if($("#remember").checked) localStorage.setItem("REMEMBER_USER", username);
+      else localStorage.removeItem("REMEMBER_USER");
 
       try{
         const res = await fetch(LOGIN_URL, {
@@ -84,7 +152,6 @@
 
         const json = await res.json();
         if(json && !json.error){
-          // Server already removed password field – store & redirect
           const profile = {
             user_id: json.user_id,
             user_name: json.user_name,
@@ -94,18 +161,20 @@
             login_at: Date.now()
           };
           setAuth(profile);
-
-          // Redirect by role
           location.href = isSuper(profile) ? SUPER_ADMIN_PAGE : DASHBOARD_PAGE;
         }else{
-          showError(json?.error || "Login បរាជ័យ");
+          showErr(json?.error || "ការចូលបរាជ័យ — សូមពិនិត្យឈ្មោះ/ពាក្យសម្ងាត់");
         }
       }catch(err){
-        showError("មិនអាចភ្ជាប់ទៅ Server បានទេ: " + err.message);
+        // Typical reasons: Web App not deployed to "Anyone", or network/CORS
+        showErr("ភ្ជាប់ទៅម៉ាស៊ីនមេមិនបាន — សូមពិនិត្យការដាក់ចេញ Web App (Anyone) ឬអ៊ីនធឺណិត។");
+        console.error(err);
       }finally{
-        btn.disabled = false;
+        btn.disabled = false; btn.textContent = "ចូលប្រើប្រាស់";
       }
     });
+
+    // Enter on fields triggers submit (already handled by form)
   </script>
 </body>
 </html>
