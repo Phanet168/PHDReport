@@ -2,123 +2,323 @@
 <html lang="km">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ចូលប្រើប្រាស់ប្រព័ន្ធ</title>
 
   <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
+    :root{
+      --bg:#f5f6ff;
+      --card:#ffffff;
+      --ink:#1a1b2e;
+      --muted:#6b6f80;
+      --brand:#6c63ff;
+      --brand-600:#5a52f2;
+      --brand-700:#4b44e0;
+      --ok:#2e7d32;
+      --err:#d32f2f;
+      --ring: 0 10px 30px rgba(108,99,255,.25);
+      --soft: 0 6px 16px rgba(17, 12, 62, .08);
+      --radius:16px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
-      margin:0; display:flex; align-items:center; justify-content:center;
-      height:100vh; background:#f4f6fb; font-family:"Noto Sans Khmer",sans-serif;
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family:"Noto Sans Khmer", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      display:grid; place-items:center;
+      overflow:hidden;
     }
+
+    /* Background decor */
+    .backdrop{
+      position:fixed; inset:-15% -15% auto -15%; height:70%;
+      background: radial-gradient(900px 600px at 75% -10%, rgba(108,99,255,.17), transparent 60%),
+                  radial-gradient(600px 500px at -10% 70%, rgba(108,99,255,.12), transparent 65%);
+      pointer-events:none; z-index:0;
+      filter: blur(2px);
+    }
+
+    .wrap{
+      width:min(980px, 96vw);
+      display:grid; grid-template-columns: 1.1fr .9fr; gap:36px;
+      align-items:stretch; z-index:2;
+    }
+    @media (max-width: 920px){
+      .wrap{grid-template-columns: 1fr}
+      .hero{display:none}
+    }
+
     .card{
-      width:360px; background:#fff; border-radius:14px;
-      box-shadow:0 8px 24px rgba(0,0,0,.08);
-      padding:24px;
-    }
-    h1{
-      font-family:"Khmer Moul"; font-size:22px; margin:0 0 20px; text-align:center;
-      color:#1a237e;
-    }
-    label{display:block; margin:10px 0 6px}
-    .field{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--soft);
+      padding:34px 32px 28px;
       position:relative;
+      overflow:hidden;
     }
-    .field input{
-      width:100%; padding:10px 38px 10px 12px;
-      border:1px solid #ccc; border-radius:8px; font-size:15px;
+
+    .brand{
+      display:flex; align-items:center; gap:12px; margin-bottom:18px;
     }
-    .field .toggle{
-      position:absolute; right:10px; top:50%; transform:translateY(-50%);
-      cursor:pointer; opacity:.6;
+    .logo{
+      width:42px; height:42px; border-radius:12px;
+      display:grid; place-items:center; font-weight:700;
+      background:linear-gradient(135deg, var(--brand), var(--brand-600));
+      color:#fff; box-shadow:var(--ring);
     }
-    button{
-      width:100%; margin-top:16px; padding:12px; font-size:16px;
-      border:none; border-radius:8px; cursor:pointer;
-      background:#3f51b5; color:#fff; font-family:"Noto Sans Khmer";
+    .brand h1{
+      margin:0; line-height:1.2; font-size:20px; color:var(--ink);
+      font-family:"Khmer Moul", serif; letter-spacing:.2px;
     }
-    button:hover{background:#303f9f}
-    .msg{margin-top:12px; font-size:14px; color:#d32f2f; text-align:center; display:none}
+    .brand small{display:block; color:var(--muted); font: 500 12.5px/1.3 "Noto Sans Khmer",sans-serif}
+
+    .title{
+      font: 600 18px/1.3 "Noto Sans Khmer",sans-serif;
+      margin:6px 0 18px; color:#1f2240;
+    }
+
+    .field{margin:14px 0}
+    .control{
+      position:relative;
+      display:flex; align-items:center; gap:10px;
+      background:#f6f7ff;
+      border:1px solid #e6e7fb;
+      border-radius:12px; padding:10px 12px;
+      transition:.2s border-color ease, .2s background-color ease, .2s box-shadow ease;
+    }
+    .control:focus-within{
+      background:#fff; border-color:#c9c9ff; box-shadow:0 0 0 4px rgba(108,99,255,.12);
+    }
+    .control i{
+      width:22px; opacity:.6
+    }
+    .control input{
+      border:0; outline:0; background:transparent; flex:1; font-size:15px;
+      color:#1b1c34; padding:4px 2px;
+    }
+    .toggle{
+      user-select:none; cursor:pointer; opacity:.65; font-size:14px;
+    }
+    .toggle:hover{opacity:.95}
+
+    .row{
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+      margin-top:6px; color:var(--muted); font-size:13.5px;
+    }
+    .remember{
+      display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+      user-select:none;
+    }
+    .remember input{width:16px; height:16px}
+
+    .btn{
+      width:100%; margin-top:18px; padding:12px 14px; border:0;
+      border-radius:12px; cursor:pointer; color:#fff;
+      background:linear-gradient(135deg, var(--brand), var(--brand-700));
+      font:600 15.5px/1 "Noto Sans Khmer",sans-serif;
+      display:inline-grid; grid-auto-flow:column; place-items:center; gap:10px;
+      box-shadow:var(--ring); transition:.18s transform ease;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn[disabled]{opacity:.7; cursor:wait; transform:none}
+
+    .spinner{
+      width:16px; height:16px; border-radius:999px; border:2px solid rgba(255,255,255,.5);
+      border-top-color:#fff; animation:spin .9s linear infinite
+    }
+    @keyframes spin{to{transform:rotate(1turn)}}
+
+    .msg{
+      margin-top:12px; text-align:center; font-size:14px; display:none;
+    }
+    .msg.err{color:var(--err)}
+    .msg.ok{color:var(--ok)}
+
+    /* Right side hero */
+    .hero{
+      position:relative; padding:28px;
+      background:linear-gradient(135deg, #ffffff, #fbfbff); border-radius:var(--radius);
+      box-shadow:var(--soft);
+      display:flex; flex-direction:column; justify-content:center;
+      overflow:hidden;
+    }
+    .hero .glass{
+      position:absolute; inset:18px; border-radius:18px; pointer-events:none;
+      background: radial-gradient(800px 500px at 110% -10%, rgba(108,99,255,.12), transparent 50%),
+                  radial-gradient(700px 520px at -30% 120%, rgba(108,99,255,.15), transparent 55%);
+      filter: blur(1px);
+    }
+    .hero h3{
+      font: 700 20px/1.25 "Khmer Moul", serif; color:#26284d; margin:0 0 10px;
+    }
+    .hero p{margin:0; color:#555a74; font-size:14.5px}
+    .chips{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px}
+    .chip{
+      font:600 12.5px/1 "Noto Sans Khmer"; color:#3b3f78;
+      padding:9px 12px; background:#eef0ff; border-radius:999px; border:1px dashed #dfe2ff;
+    }
+
+    .foot{
+      color:#8a8fad; font-size:12.5px; text-align:center; margin-top:16px
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>ប្រព័ន្ធរាយការណ៍សុខាភិបាល</h1>
-    <form id="loginForm">
-      <label>ឈ្មោះអ្នកប្រើ</label>
-      <div class="field">
-        <input id="username" required />
+  <div class="backdrop"></div>
+
+  <div class="wrap">
+
+    <!-- LEFT: Login card -->
+    <div class="card">
+      <div class="brand">
+        <div class="logo">PHD</div>
+        <div>
+          <h1>ប្រព័ន្ធរាយការណ៍សុខាភិបាល</h1>
+          <small>Provincial Health Department Reporting</small>
+        </div>
       </div>
 
-      <label>ពាក្យសម្ងាត់</label>
-      <div class="field">
-        <input id="password" type="password" required />
-        <span id="btnTogglePw" class="toggle">👁</span>
-      </div>
+      <div class="title">ចូលប្រើប្រាស់ប្រព័ន្ធ</div>
 
-      <button type="submit">ចូលប្រើប្រាស់</button>
-      <div id="msg" class="msg"></div>
-    </form>
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="username" style="font-size:13.5px;color:var(--muted)">ឈ្មោះអ្នកប្រើ</label>
+          <div class="control">
+            <i>👤</i>
+            <input id="username" name="username" autocomplete="username" required placeholder="ឧ. admin" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="password" style="font-size:13.5px;color:var(--muted)">ពាក្យសម្ងាត់</label>
+          <div class="control">
+            <i>🔒</i>
+            <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••" />
+            <span id="btnTogglePw" class="toggle" title="បង្ហាញ/លាក់ ពាក្យសម្ងាត់">👁</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <label class="remember"><input type="checkbox" id="remember" /> ចងចាំខ្ញុំ</label>
+          <a href="#" style="font-size:13.5px;color:var(--brand-700);text-decoration:none">ភ្លេចពាក្យសម្ងាត់?</a>
+        </div>
+
+        <button id="btnLogin" class="btn" type="submit">
+          <span class="spinner" style="display:none" id="spin"></span>
+          <span id="btnText">ចូលប្រើប្រាស់</span>
+        </button>
+
+        <div id="msg" class="msg err"></div>
+        <div class="foot">© <span id="yy"></span> PHD — Version 1.0</div>
+      </form>
+    </div>
+
+    <!-- RIGHT: Visual / notes -->
+    <div class="hero">
+      <div class="glass"></div>
+      <h3>ផ្ទាំងគ្រប់គ្រងកាន់តែរហ័ស & ស្អាត</h3>
+      <p>ចូលប្រើ ដើម្បីគ្រប់គ្រង ការិយាល័យ, ផ្នែក, រយៈពេល, សូចនាករ និងរបាយការណ៍។ Super Admin អាចមើលគ្រប់ផ្នែក គណនេយ្យ, រដ្ឋបាល, បង្ការ–គ្រប់គ្រងជំងឺ…។</p>
+      <div class="chips">
+        <span class="chip">Dashboard</span>
+        <span class="chip">Reports</span>
+        <span class="chip">Departments/Units</span>
+        <span class="chip">Periods</span>
+        <span class="chip">Indicators</span>
+      </div>
+    </div>
+
   </div>
 
- <script>
-// ======= CONFIG =======
-const GAS_BASE =
-  "https://script.google.com/macros/s/AKfycbwdeEgEMYK8bCZqU0xmOEERIvqbqu21tUwDKDuBb9tUXhOVwb463Hjk2XZsz9T9lBmLZQ/exec";
+  <script>
+  // ===== CONFIG (ប្រើ POST text/plain ដើម្បីជៀស CORS preflight) =====
+  const GAS_BASE = "https://script.google.com/macros/s/AKfycbwdeEgEMYK8bCZqU0xmOEERIvqbqu21tUwDKDuBb9tUXhOVwb463Hjk2XZsz9T9lBmLZQ/exec";
 
-// ======= LOGIN HANDLER (no-preflight) =======
-async function gasLogin(username, password) {
-  const url = GAS_BASE + "?api=1&route=auth&op=login";
+  const $ = (sel)=>document.querySelector(sel);
 
-  // 1) កុំប្រើ application/json ដើម្បីជៀស OPTIONS preflight
-  //    ប្រើ text/plain ឬ x-www-form-urlencoded
-  const res = await fetch(url, {
-    method: "POST",
-    // NOTE: កុំដាក់ headers ផ្សេងៗទៀត
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ username, password })  // Apps Script អាន e.postData.contents
+  // UI helpers
+  function setLoading(loading){
+    const btn = $("#btnLogin"), spin = $("#spin"), txt = $("#btnText");
+    btn.disabled = loading;
+    spin.style.display = loading ? "inline-block" : "none";
+    txt.textContent = loading ? "កំពុងចូល..." : "ចូលប្រើប្រាស់";
+  }
+  function showMsg(text, kind="err"){
+    const el = $("#msg");
+    el.className = `msg ${kind}`;
+    el.textContent = text || "";
+    el.style.display = text ? "block" : "none";
+  }
+
+  // Toggle password
+  $("#btnTogglePw").addEventListener("click", ()=>{
+    const input = $("#password");
+    input.type = input.type === "password" ? "text" : "password";
   });
 
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  return res.json();
-}
+  // year
+  $("#yy").textContent = new Date().getFullYear();
 
-// ======= UI SUBMIT =======
-document.getElementById("loginForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const u = document.getElementById("username").value.trim();
-  const p = document.getElementById("password").value;
-
-  const msg = document.getElementById("msg");
-  msg.textContent = "";
-  msg.classList.add("d-none");
-
-  try {
-    const j = await gasLogin(u, p);
-    if (j && !j.error) {
-      // Save auth profile
-      localStorage.setItem("AUTH", JSON.stringify({
-        user_id: j.user_id,
-        user_name: j.user_name,
-        user_type: j.user_type,
-        user_root: j.user_root,
-        department_id: j.department_id,
-        login_at: Date.now()
-      }));
-      // redirect
-      location.href = "index.html";
-    } else {
-      msg.textContent = j?.error || "Login បរាជ័យ";
-      msg.classList.remove("d-none");
-    }
-  } catch (err) {
-    msg.textContent = "បរាជ័យក្នុងការតភ្ជាប់ API: " + err.message;
-    msg.classList.remove("d-none");
+  async function gasLogin(username, password){
+    const url = GAS_BASE + "?api=1&route=auth&op=login";
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({ username, password })
+    });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    return res.json();
   }
-});
-</script>
 
+  // Submit
+  $("#loginForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    showMsg(""); setLoading(true);
+
+    const u = $("#username").value.trim();
+    const p = $("#password").value;
+
+    if(!u || !p){ showMsg("សូមបញ្ចូលឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់"); setLoading(false); return; }
+
+    try{
+      const j = await gasLogin(u, p);
+      if(j && !j.error){
+        // persist profile
+        const profile = {
+          user_id: j.user_id,
+          user_name: j.user_name,
+          user_type: j.user_type,
+          user_root: j.user_root,
+          department_id: j.department_id,
+          login_at: Date.now()
+        };
+        localStorage.setItem("AUTH", JSON.stringify(profile));
+
+        // remember username (optional)
+        if($("#remember").checked) localStorage.setItem("REMEMBER_USER", u);
+        else localStorage.removeItem("REMEMBER_USER");
+
+        showMsg("បានចូលប្រើដោយជោគជ័យ!", "ok");
+        // redirect to main dashboard
+        setTimeout(()=>location.href = "index.html", 450);
+      }else{
+        showMsg(j?.error || "ឈ្មោះអ្នកប្រើ ឬ ពាក្យសម្ងាត់ មិនត្រឹមត្រូវ");
+      }
+    }catch(err){
+      showMsg("បរាជ័យក្នុងការតភ្ជាប់ API: " + err.message);
+    }finally{
+      setLoading(false);
+    }
+  });
+
+  // prefill remembered username
+  (function(){
+    const remembered = localStorage.getItem("REMEMBER_USER");
+    if(remembered) $("#username").value = remembered;
+  })();
+  </script>
 </body>
 </html>
