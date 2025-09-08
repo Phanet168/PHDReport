@@ -6,55 +6,35 @@
   <title>Login — PHD Report System</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --bg1:#4f46e5; --bg2:#22c1c3; --card:#ffffff; --text:#0f172a;
-      --muted:#6b7280; --danger:#b91c1c; --ring:#a78bfa;
-      --radius:18px;
-    }
-    *{ box-sizing:border-box }
-    html,body{ height:100% }
+    :root{ --card:#fff; --ring:#a78bfa; --muted:#6b7280; --bg1:#4f46e5; --bg2:#22c1c3; --radius:18px }
+    *{ box-sizing:border-box } html,body{ height:100% }
     body{
-      margin:0; font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-      color:var(--text);
+      margin:0; font-family:"Noto Sans Khmer",system-ui,-apple-system,"Segoe UI",Roboto,Arial;
       background: radial-gradient(1200px 600px at 20% 0%, #e9e7ff 0, transparent 60%),
                   linear-gradient(135deg, var(--bg1), var(--bg2));
-      background-attachment: fixed;
+      background-attachment:fixed; color:#0f172a;
     }
     .wrap{ min-height:100%; display:grid; place-items:center; padding:28px }
     .card{
-      width:min(460px,94vw); border-radius:var(--radius);
-      background: color-mix(in srgb, var(--card) 92%, transparent);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      border:1px solid rgba(255,255,255,.6); box-shadow:0 12px 40px rgba(0,0,0,.12);
-      padding:22px;
+      width:min(460px,94vw); background:color-mix(in srgb, var(--card) 92%, transparent);
+      border:1px solid rgba(255,255,255,.7); border-radius:var(--radius);
+      box-shadow:0 12px 40px rgba(0,0,0,.12); backdrop-filter:blur(10px); padding:22px;
     }
-    .brand{ display:flex; align-items:center; gap:10px; margin-bottom:8px }
-    .brand .logo{ width:42px; height:42px; display:grid; place-items:center; border-radius:12px; background:#111; color:#fff; font-weight:700 }
-    .brand .title{ font-weight:700; font-size:20px; color:#111827 }
-    label{ font-weight:600; display:block; margin:12px 0 6px }
-    .input{
-      width:100%; display:flex; align-items:center; gap:8px;
-      padding:12px 13px; border:1px solid #e5e7eb; border-radius:12px; background:#fff;
-      outline:none; transition:.15s;
-    }
+    .brand{ display:flex; gap:10px; align-items:center; margin-bottom:8px }
+    .logo{ width:42px; height:42px; border-radius:12px; background:#111; color:#fff; display:grid; place-items:center; font-weight:700 }
+    .title{ font-weight:700; font-size:20px; color:#111827 }
+    label{ display:block; font-weight:600; margin:12px 0 6px }
+    .input{ width:100%; display:flex; gap:8px; align-items:center; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px 13px }
     .input:focus-within{ border-color:var(--ring); box-shadow:0 0 0 3px #a78bfa40 }
-    .input input{ border:0; outline:0; width:100%; font:inherit; background:transparent }
-    .row{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin:10px 0 14px }
+    .input input{ width:100%; border:0; outline:0; font:inherit; background:transparent }
+    .tools{ display:flex; justify-content:space-between; align-items:center; margin:10px 0 14px; gap:8px }
     .muted{ color:var(--muted); font-size:13px }
-    .btn{
-      width:100%; padding:12px 14px; border-radius:12px; border:0; cursor:pointer;
-      background:#111827; color:#fff; font-weight:700; font-size:15px; transition:.2s;
-    }
-    .btn:hover{ filter:brightness(1.05) }
+    .btn{ width:100%; padding:12px 14px; border-radius:12px; border:0; background:#111827; color:#fff; font-weight:700; cursor:pointer }
     .btn[disabled]{ opacity:.65; cursor:not-allowed }
-    .alert{ margin-top:12px; border-radius:12px; padding:10px 12px; font-weight:600; display:none }
+    .alert{ display:none; margin-top:12px; border-radius:12px; padding:10px 12px; font-weight:600 }
     .alert.show{ display:block }
     .alert.danger{ background:#fee2e2; color:#7f1d1d; border:1px solid #fecaca }
-    .tools{ display:flex; align-items:center; gap:10px; margin-top:6px }
-    .checkbox{ display:flex; align-items:center; gap:8px; user-select:none; cursor:pointer; }
-    .eye{ cursor:pointer; user-select:none; color:#64748b }
-    .foot{ margin-top:12px; text-align:center; color:#0b1324; font-weight:600; }
-    .foot small{ color:#111827; background:#fff; padding:2px 8px; border-radius:999px; }
+    .eye{ cursor:pointer; color:#64748b; user-select:none }
   </style>
 </head>
 <body>
@@ -72,26 +52,25 @@
         <label for="username">ឈ្មោះអ្នកប្រើ</label>
         <div class="input">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z" fill="#64748b"/></svg>
-          <input id="username" name="username" placeholder="ឧ. admin" autocomplete="username" required autofocus>
+          <input id="username" autocomplete="username" placeholder="ឧ. admin" required autofocus>
         </div>
 
         <label for="password">ពាក្យសម្ងាត់</label>
         <div class="input">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 8V7a5 5 0 0 0-10 0v1H5v13h14V8h-2Zm-8 0V7a3 3 0 0 1 6 0v1H9Zm3 9a2 2 0 1 1 2-2 2 2 0 0 1-2 2Z" fill="#64748b"/></svg>
-          <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required>
+          <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
           <span id="togglePwd" class="eye" title="បង្ហាញ/លាក់">👁️</span>
         </div>
 
-        <div class="row">
-          <label class="checkbox">
-            <input type="checkbox" id="remember"> ចងចាំឈ្មោះ
+        <div class="tools">
+          <label style="display:flex;align-items:center;gap:8px;user-select:none;cursor:pointer">
+            <input id="remember" type="checkbox"> ចងចាំឈ្មោះ
           </label>
-          <span class="muted">ភ្លេចពាក្យសម្ងាត់? សូមទំនាក់ទំនង IT</span>
+          <span class="muted">មានបញ្ហា? ទាក់ទង IT</span>
         </div>
 
         <button id="btnLogin" class="btn" type="submit">ចូលប្រើប្រាស់</button>
         <div id="msg" class="alert danger"></div>
-        <div class="foot"><small>UI ខ្មែរ • សាមញ្ញ & មានសុវត្ថិភាព</small></div>
       </form>
     </div>
   </div>
@@ -99,29 +78,25 @@
   <script>
     // ===== CONFIG (hidden) =====
     const API_BASE = "https://script.google.com/macros/s/AKfycbwnxRudS_il7Dvcdh7-QB36NJaP-6-hl5nMniXrbuKhMpHPK8CCEGkRIc9-okB-P0Z6Zw/exec";
-    const LOGIN_URL = API_BASE + (API_BASE.includes("?") ? "&" : "?") + "api=1&route=auth&op=login";
+    const USERS_LIST = (q)=> API_BASE + (API_BASE.includes("?") ? "&" : "?") + q;
     const DASHBOARD_PAGE   = "index.html";
     const SUPER_ADMIN_PAGE = "super-admin.html";
 
-    // Save API_BASE silently for other pages
+    // store API_BASE silently for other pages
     localStorage.setItem("API_BASE", API_BASE);
 
     // ===== Helpers =====
     const $ = (s,el=document)=>el.querySelector(s);
-    function setAuth(profile){ localStorage.setItem("AUTH", JSON.stringify(profile)); }
-    function isSuper(p){
-      return p && (
-        String(p.user_type||"").toLowerCase()==="superuser" ||
-        String(p.user_root||"").toLowerCase()==="all"
-      );
-    }
     function showErr(t){ const m=$("#msg"); m.textContent=t; m.classList.add("show"); }
     function hideErr(){ $("#msg").classList.remove("show"); }
+    function setAuth(p){ localStorage.setItem("AUTH", JSON.stringify(p)); }
+    function isSuper(p){
+      return p && (String(p.user_type||"").toLowerCase()==="superuser" || String(p.user_root||"").toLowerCase()==="all");
+    }
 
     // Show/Hide password
     $("#togglePwd").addEventListener("click", ()=>{
-      const p = $("#password");
-      p.type = (p.type === "password") ? "text" : "password";
+      const p = $("#password"); p.type = (p.type==="password") ? "text" : "password";
     });
 
     // Remember username
@@ -130,11 +105,30 @@
       if(saved){ $("#username").value = saved; $("#remember").checked = true; }
     })();
 
+    // Get user by name (1) filtered fetch (exact) → (2) fallback fetch all + case-insensitive
+    async function fetchUserByName(name){
+      // try exact filter from API (fast)
+      const url1 = USERS_LIST("api=1&route=users&op=list&limit=1&user_name=" + encodeURIComponent(name));
+      let res = await fetch(url1, { cache:"no-store" });
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      let json = await res.json();
+      let rows = json?.rows || [];
+      if (rows.length) return rows[0];
+
+      // fallback: fetch many then case-insensitive match
+      const url2 = USERS_LIST("api=1&route=users&op=list&limit=2000&offset=0");
+      res = await fetch(url2, { cache:"no-store" });
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      json = await res.json();
+      rows = json?.rows || [];
+      const lower = name.toLowerCase().trim();
+      return rows.find(u => String(u.user_name||"").toLowerCase() === lower) || null;
+    }
+
     // ===== Submit =====
     $("#loginForm").addEventListener("submit", async (e)=>{
       e.preventDefault(); hideErr();
-      const btn = $("#btnLogin");
-      btn.disabled = true; btn.textContent = "កំពុងចូល...";
+      const btn = $("#btnLogin"); btn.disabled = true; btn.textContent = "កំពុងចូល...";
 
       const username = $("#username").value.trim();
       const password = $("#password").value;
@@ -143,38 +137,34 @@
       else localStorage.removeItem("REMEMBER_USER");
 
       try{
-        const res = await fetch(LOGIN_URL, {
-          method: "POST",
-          headers: { "Content-Type":"application/json" },
-          body: JSON.stringify({ username, password })
-        });
-        if(!res.ok) throw new Error("HTTP " + res.status);
+        // Fetch user and compare plaintext password (matches your JSON schema)
+        const user = await fetchUserByName(username);
+        if(!user){ showErr("រកមិនឃើញឈ្មោះអ្នកប្រើ"); return; }
 
-        const json = await res.json();
-        if(json && !json.error){
-          const profile = {
-            user_id: json.user_id,
-            user_name: json.user_name,
-            user_type: json.user_type,
-            user_root: json.user_root,
-            department_id: json.department_id,
-            login_at: Date.now()
-          };
-          setAuth(profile);
-          location.href = isSuper(profile) ? SUPER_ADMIN_PAGE : DASHBOARD_PAGE;
-        }else{
-          showErr(json?.error || "ការចូលបរាជ័យ — សូមពិនិត្យឈ្មោះ/ពាក្យសម្ងាត់");
+        if(String(user.user_pass) !== String(password)){
+          showErr("ពាក្យសម្ងាត់មិនត្រឹមត្រូវ"); return;
         }
+
+        const profile = {
+          user_id: user.user_id,
+          user_name: user.user_name,
+          user_type: user.user_type,
+          user_root: user.user_root,
+          department_id: user.department_id,
+          login_at: Date.now()
+        };
+        setAuth(profile);
+
+        // Redirect by role
+        location.href = isSuper(profile) ? SUPER_ADMIN_PAGE : DASHBOARD_PAGE;
+
       }catch(err){
-        // Typical reasons: Web App not deployed to "Anyone", or network/CORS
-        showErr("ភ្ជាប់ទៅម៉ាស៊ីនមេមិនបាន — សូមពិនិត្យការដាក់ចេញ Web App (Anyone) ឬអ៊ីនធឺណិត។");
+        showErr("ភ្ជាប់ទៅម៉ាស៊ីនមេមិនបាន — សូមពិនិត្យ Deploy Web App (Anyone).");
         console.error(err);
       }finally{
         btn.disabled = false; btn.textContent = "ចូលប្រើប្រាស់";
       }
     });
-
-    // Enter on fields triggers submit (already handled by form)
   </script>
 </body>
 </html>
