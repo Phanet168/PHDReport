@@ -1,189 +1,44 @@
-<!doctype html>
-<html lang="km">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Login — PHD Report System</title>
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Moul&family=Noto+Sans+Khmer:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root{
-      --bg1:#f5f7ff; --bg2:#eef2ff; --ink:#0f172a; --muted:#6b7280;
-      --primary:#5b43ff; --ring:#a78bfa; --card:#ffffff; --radius:18px;
-    }
-    *{ box-sizing:border-box }
-    html,body{ height:100% }
-    body{
-      margin:0; color:var(--ink);
-      font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-      background:
-        radial-gradient(1000px 600px at 15% -10%, #eae8ff 0%, transparent 60%),
-        radial-gradient(900px 400px at 100% 0%, #e9fbff 0%, transparent 70%),
-        linear-gradient(180deg, var(--bg1), var(--bg2));
-    }
-    .wrap{ min-height:100%; display:grid; place-items:center; padding:28px }
-    .card{
-      width:min(520px, 94vw);
-      background:var(--card);
-      border:1px solid #eef0f5;
-      border-radius:var(--radius);
-      box-shadow:0 14px 36px rgba(15,23,42,.08), 0 2px 6px rgba(15,23,42,.04);
-      padding:28px 26px 24px;
-    }
-    .title{
-      font-family:"Moul", "Khmer Moul", "Noto Sans Khmer", sans-serif;
-      font-size:34px; line-height:1.15; text-align:center; margin:0 0 18px;
-      color:#1e293b; letter-spacing:.2px;
-    }
-    label{ font-weight:600; display:block; margin:12px 0 6px }
-    .field{
-      display:flex; align-items:center; gap:10px;
-      border:1px solid #e5e7eb; border-radius:12px; background:#fff; padding:12px 13px;
-      transition:border-color .15s, box-shadow .15s;
-    }
-    .field:focus-within{ border-color:var(--ring); box-shadow:0 0 0 3px #a78bfa40 }
-    .field input{ border:0; outline:0; width:100%; font:inherit; background:transparent }
-    .icon{ color:#94a3b8 }
-    .eye{ cursor:pointer; user-select:none; color:#64748b }
-    .row{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin:8px 0 16px }
-    .muted{ color:var(--muted); font-size:13px }
-    .btn{
-      width:100%; padding:12px 14px; border-radius:12px; border:0; cursor:pointer;
-      background:var(--primary); color:#fff; font-weight:700; font-size:16px;
-      box-shadow:0 8px 20px rgba(91,67,255,.25);
-    }
-    .btn[disabled]{ opacity:.65; cursor:not-allowed; box-shadow:none }
-    .alert{ display:none; margin-top:12px; border-radius:12px; padding:10px 12px; font-weight:600 }
-    .alert.show{ display:block }
-    .alert.danger{ background:#fee2e2; color:#7f1d1d; border:1px solid #fecaca }
-    .foot{ margin-top:12px; text-align:center; }
-    .foot small{ color:#94a3b8 }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="card">
-      <h1 class="title">ប្រព័ន្ធគ្រប់គ្រងរបាយការណ៍</h1>
+<!DOCTYPE html>
 
-      <form id="loginForm" novalidate>
-        <label for="username">ឈ្មោះអ្នកប្រើ</label>
-        <div class="field">
-          <!-- user icon -->
-          <svg width="18" height="18" viewBox="0 0 24 24" class="icon" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z"/></svg>
-          <input id="username" placeholder="ឧ. admin" autocomplete="username" required autofocus>
-        </div>
 
-        <label for="password">ពាក្យសម្ងាត់</label>
-        <div class="field">
-          <!-- lock icon -->
-          <svg width="18" height="18" viewBox="0 0 24 24" class="icon" fill="currentColor"><path d="M17 8V7a5 5 0 0 0-10 0v1H5v13h14V8h-2Zm-8 0V7a3 3 0 0 1 6 0v1H9Zm3 9a2 2 0 1 1 2-2 2 2 0 0 1-2 2Z"/></svg>
-          <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" required>
-          <span id="togglePwd" class="eye" title="បង្ហាញ/លាក់">👁️</span>
-        </div>
+async function loginViaUsersJson(source, username, password){
+const j = await fetchDriveJson(source);
+const rows = Array.isArray(j)? j : (Array.isArray(j?.rows)? j.rows : []);
+const u = rows.find(r=> String(r.user_name).toLowerCase()===username.toLowerCase() && String(r.user_pass)===String(password));
+if(!u) return {ok:false, reason:'ឈ្មោះ ឬ ពាក្យសម្ងាត់មិនត្រឹមត្រូវ'};
+const {user_pass, ...safe} = u; setAuth({...safe, login_at:Date.now()});
+return {ok:true, profile:safe};
+}
 
-        <div class="row">
-          <label style="display:flex;align-items:center;gap:8px;user-select:none;cursor:pointer">
-            <input id="remember" type="checkbox"> ចងចាំឈ្មោះ
-          </label>
-          <span class="muted">មានបញ្ហា? ទាក់ទង IT</span>
-        </div>
 
-        <button id="btnLogin" class="btn" type="submit">ចូលប្រើប្រាស់</button>
-        <div id="msg" class="alert danger"></div>
-        <div class="foot"><small>© PHD Report System</small></div>
-      </form>
-    </div>
-  </div>
+async function doLogin(username,password){
+const api = getApiBase();
+if(looksLikeAppsScript(api)){
+const r = await loginViaAppsScript(api, username, password);
+if(r.ok) return r; // success
+}
+if(DRIVE_USERS && DRIVE_USERS!=='PUT_USERS_FILE_ID_OR_URL_HERE'){
+return loginViaUsersJson(DRIVE_USERS, username, password);
+}
+return {ok:false, reason:'មិនអាច Authenticate បាន'};
+}
 
-  <script>
-    /* ---------- CONFIG (hidden) ---------- */
-    const API_BASE = "https://script.google.com/macros/s/AKfycbwnxRudS_il7Dvcdh7-QB36NJaP-6-hl5nMniXrbuKhMpHPK8CCEGkRIc9-okB-P0Z6Zw/exec";
-    const DASHBOARD_PAGE   = "index.html";
-    const SUPER_ADMIN_PAGE = "super-admin.html";
 
-    // save API_BASE for other pages silently
-    localStorage.setItem("API_BASE", API_BASE);
+// Events
+document.getElementById('apiInput').value = getApiBase();
+document.getElementById('btnSaveApi').onclick = ()=>{ saveApiBase($('#apiInput').value.trim()); const m=$('#msg'); m.style.display='block'; m.style.color='#065f46'; m.textContent='រក្សាទុក API រួច'; };
 
-    /* ---------- Helpers ---------- */
-    const $ = (s,el=document)=>el.querySelector(s);
-    function showErr(t){ const m=$("#msg"); m.textContent=t; m.classList.add("show"); }
-    function hideErr(){ $("#msg").classList.remove("show"); }
-    function setAuth(p){ localStorage.setItem("AUTH", JSON.stringify(p)); }
-    function isSuper(p){ return p && (String(p.user_type||"").toLowerCase()==="superuser" || String(p.user_root||"").toLowerCase()==="all"); }
-    function isSha256Hex(x){ return typeof x==="string" && /^[a-f0-9]{64}$/i.test(x); }
-    async function sha256Hex(t){ const enc=new TextEncoder().encode(t); const b=await crypto.subtle.digest("SHA-256",enc); return Array.from(new Uint8Array(b)).map(v=>v.toString(16).padStart(2,"0")).join(""); }
 
-    // Toggle password visibility
-    $("#togglePwd").addEventListener("click", ()=>{ const p=$("#password"); p.type = (p.type==="password") ? "text" : "password"; });
-
-    // Remember username (optional)
-    (function initRemember(){
-      const saved = localStorage.getItem("REMEMBER_USER");
-      if(saved){ $("#username").value = saved; $("#remember").checked = true; }
-    })();
-
-    // Fetch one user by name (try server-side filter first; fallback to client filter)
-    async function fetchUserByName(name){
-      const q1 = `api=1&route=users&op=list&limit=1&user_name=${encodeURIComponent(name)}`;
-      let r = await fetch(API_BASE + (API_BASE.includes("?")?"&":"?") + q1, { cache:"no-store" });
-      if(!r.ok) throw new Error("HTTP "+r.status);
-      let j = await r.json();
-      let rows = j?.rows || [];
-      if(rows.length) return rows[0];
-
-      // fallback – get more rows then find case-insensitively
-      const q2 = `api=1&route=users&op=list&limit=2000&offset=0`;
-      r = await fetch(API_BASE + (API_BASE.includes("?")?"&":"?") + q2, { cache:"no-store" });
-      if(!r.ok) throw new Error("HTTP "+r.status);
-      j = await r.json();
-      rows = j?.rows || [];
-      const lower = String(name).toLowerCase();
-      return rows.find(u => String(u.user_name||"").toLowerCase() === lower) || null;
-    }
-
-    /* ---------- Submit ---------- */
-    $("#loginForm").addEventListener("submit", async (e)=>{
-      e.preventDefault(); hideErr();
-      const btn = $("#btnLogin"); btn.disabled = true; btn.textContent = "កំពុងចូល...";
-
-      const username = $("#username").value.trim();
-      const password = $("#password").value;
-
-      if($("#remember").checked) localStorage.setItem("REMEMBER_USER", username);
-      else localStorage.removeItem("REMEMBER_USER");
-
-      try{
-        const user = await fetchUserByName(username);
-        if(!user){ showErr("រកមិនឃើញឈ្មោះអ្នកប្រើ"); return; }
-
-        // Compare password (supports plaintext OR sha256 in your JSON)
-        let ok = false;
-        if(isSha256Hex(String(user.user_pass||""))){
-          const hashed = await sha256Hex(password);
-          ok = (hashed.toLowerCase() === String(user.user_pass).toLowerCase());
-        }else{
-          ok = (String(user.user_pass) === String(password));
-        }
-        if(!ok){ showErr("ពាក្យសម្ងាត់មិនត្រឹមត្រូវ"); return; }
-
-        const profile = {
-          user_id: user.user_id,
-          user_name: user.user_name,
-          user_type: user.user_type,
-          user_root: user.user_root,
-          department_id: user.department_id,
-          login_at: Date.now()
-        };
-        setAuth(profile);
-        location.href = isSuper(profile) ? SUPER_ADMIN_PAGE : DASHBOARD_PAGE;
-
-      }catch(err){
-        showErr("ភ្ជាប់ទៅម៉ាស៊ីនមេមិនបាន — សូមពិនិត្យការដាក់ចេញ Web App (Anyone).");
-        console.error(err);
-      }finally{
-        btn.disabled = false; btn.textContent = "ចូលប្រើប្រាស់";
-      }
-    });
-  </script>
+document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+e.preventDefault(); const u=$('#username').value.trim(); const p=$('#password').value; const m=$('#msg');
+if(!u||!p){ m.style.display='block'; m.textContent='សូមបំពេញឈ្មោះ និង ពាក្យសម្ងាត់'; return; }
+m.style.display='none';
+try{
+const r = await doLogin(u,p);
+if(r.ok){ location.href = DASHBOARD_PAGE; }
+else { m.style.display='block'; m.textContent='បរាជ័យ: '+(r.reason||''); }
+}catch(err){ m.style.display='block'; m.textContent='កំហុស: '+(err.message||err); }
+});
+</script>
 </body>
 </html>
