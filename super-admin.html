@@ -462,6 +462,109 @@
       e.preventDefault(); CRUD.saveForm().catch(err=> toast(err.message||'បរាជ័យ'));
     });
   });
+
+// ================== CONFIG ==================
+const DRIVE_JSON = {
+  // ដាក់ File ID ឬ sharing URL នៃ JSON នៅ Google Drive
+  departments: "2",
+  units:       "2"
+};
+
+// ប្រើជំនួស បើអានពី Drive បរាជ័យ (Apps Script Web App របស់អ្នក)
+const FALLBACK_API_BASE = "https://script.google.com/macros/s/AKfycbwnxRudS_il7Dvcdh7-QB36NJaP-6-hl5nMniXrbuKhMpHPK8CCEGkRIc9-okB-P0Z6Zw/exec";
+
+// ================== Helpers ==================
+function parseDriveId(u){
+  if(!u) return "";
+  if(/^[a-zA-Z0-9_-]{20,}$/.test(u)) return u;                               // pure id
+  let m = u.match(/\/d\/([a-zA-Z0-9_-]+)/) || u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : "";
+}
+
+function normalizeRows(j){
+  if (Array.isArray(j)) return j;        // [...]
+  if (j && Array.isArray(j.rows)) return j.rows; // {rows:[...]}
+  if (j && Array.isArray(j.users)) return j.users;
+  return [];
+}
+
+async function fetchFromAppsScript(route){
+  const url = `${FALLBACK_API_BASE}?api=1&route=${route}&op=list&limit=500`;
+  const res = await fetch(url, {cache:"no-store"});
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  return normalizeRows(await res.json());
+}
+
+async function fetchDriveJson(fileIdOrUrl){
+  const id = parseDriveId(fileIdOrUrl);
+  if(!id) throw new Error("Invalid Google Drive file id/url");
+
+  async function fetchText(u){
+    const r = await fetch(u, {cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const ct = (r.headers.get("content-type")||"").toLowerCase();
+    const txt = await r.text();
+    // Drive ខ្លះអាចតបជា HTML (permission/virus-interstitial) -> មិនមែន JSON
+    if (ct.includes("text/html") || /^\s*<!doctype|<html/i.test(txt)) {
+      throw new Error("Drive returned HTML (permission?)");
+    }
+    return txt;
+  }
+
+  const urls = [
+    `https://drive.google.com/uc?export=download&id=${id}`,
+    `https://drive.usercontent.google.com/uc?id=${id}&export=download`
+  ];
+
+  let lastErr = null;
+  for (const u of urls){
+    try { return JSON.parse(await fetchText(u)); }
+    catch(e){ lastErr = e; }
+  }
+  throw new Error("Drive fetch failed: " + (lastErr ? lastErr.message : ""));
+}
+
+// ================== Loaders (Drive -> fallback API) ==================
+async function loadDepartments(){
+  try{
+    return normalizeRows(await fetchDriveJson(DRIVE_JSON.departments));
+  }catch(err){
+    console.warn("departments from Drive failed:", err);
+    const rows = await fetchFromAppsScript("departments");
+    if (typeof toast === "function") toast("⚠️ អានពី Drive បរាជ័យ — ប្រើ API ជំនួស");
+    return rows;
+  }
+}
+
+async function loadUnits(){
+  try{
+    return normalizeRows(await fetchDriveJson(DRIVE_JSON.units));
+  }catch(err){
+    console.warn("units from Drive failed:", err);
+    const rows = await fetchFromAppsScript("units");
+    if (typeof toast === "function") toast("⚠️ អានពី Drive បរាជ័យ — ប្រើ API ជំនួស");
+    return rows;
+  }
+}
+
+// ================== Boot ==================
+(async ()=>{
+  if (typeof showLoader === "function") showLoader(true);
+  try{
+    const [departments, units] = await Promise.all([loadDepartments(), loadUnits()]);
+    // TODO: បង្កើតម៉ឺនុយ (កម្មវិធី MCH/ឆ្លង/មិនឆ្លង) ពី departments & units
+    //       ប្រើ function ដែលអ្នកមានរួច (ឧ. buildDiseaseMenusFrom(departments, units))
+    if (typeof buildDiseaseMenusFrom === "function") {
+      buildDiseaseMenusFrom(departments, units);
+    }
+  }catch(e){
+    console.error(e);
+    alert("អាន JSON បរាជ័យ: " + e.message);
+  }finally{
+    if (typeof showLoader === "function") showLoader(false);
+  }
+})();
+
   </script>
 </body>
 </html>
