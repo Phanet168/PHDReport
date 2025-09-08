@@ -1,208 +1,114 @@
-<!-- login.html -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="km">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ចូលប្រើប្រព័ន្ធ | PHD Report</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ចូលប្រើប្រាស់ប្រព័ន្ធ</title>
 
-  <!-- YOUR THEME/ASSETS (match repo tree) -->
-  <link rel="stylesheet" href="assets/css/third-party.bundle.css">
-  <link rel="stylesheet" href="assets/css/themes/lite-purple.min.css">
-
-  <!-- Khmer Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@400;500&display=swap" rel="stylesheet">
 
   <style>
-    :root{ --brand:#5b6ef5; --shadow:0 15px 40px rgba(0,0,0,.08); }
-    html,body{ height:100%; background:linear-gradient(135deg,#eef2ff,#f8fafc 45%,#ffffff); font-family:"Noto Sans Khmer",system-ui,Segoe UI,Arial,sans-serif; }
-    .wrap{ min-height:100%; display:grid; place-items:center; padding:24px }
-    .card-login{ width:min(440px,92vw); border-radius:22px; box-shadow:var(--shadow); border:0; overflow:hidden }
-    .card-login .head{ background:#0f172a; color:#fff; padding:22px 24px }
-    .brand{ font-family:"Khmer Moul",system-ui; font-size:28px; letter-spacing:.2px }
-    .muted{ opacity:.9; font-size:12px }
-    .body{ padding:22px 24px 26px; background:#fff }
-    .k-input{ position:relative; margin-bottom:14px }
-    .k-input input{ width:100%; background:#f8fafc; border:1px solid #e5e7eb; border-radius:12px; padding:12px 42px 12px 12px; outline:none }
-    .k-input input:focus{ border-color:#93c5fd; box-shadow:0 0 0 .25rem rgba(147,197,253,.25) }
-    .k-input .icon{ position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#64748b; cursor:pointer }
-    .btn-k{ width:100%; border:0; border-radius:12px; padding:12px 14px; background:var(--brand); color:#fff; font-weight:700 }
-    .btn-k[disabled]{ opacity:.75; cursor:wait }
-    .help{ display:flex; align-items:center; gap:8px; color:#475569; font-size:13px; margin-top:8px }
-    .err{ display:none; margin-top:10px; border-radius:12px; padding:10px 12px; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca }
-    .foot{ padding:12px 24px 18px; font-size:12px; color:#64748b; background:#fff }
-    .api-link{ text-decoration:none; color:#64748b }
+    body{
+      margin:0; display:flex; align-items:center; justify-content:center;
+      height:100vh; background:#f4f6fb; font-family:"Noto Sans Khmer",sans-serif;
+    }
+    .card{
+      width:360px; background:#fff; border-radius:14px;
+      box-shadow:0 8px 24px rgba(0,0,0,.08);
+      padding:24px;
+    }
+    h1{
+      font-family:"Khmer Moul"; font-size:22px; margin:0 0 20px; text-align:center;
+      color:#1a237e;
+    }
+    label{display:block; margin:10px 0 6px}
+    .field{
+      position:relative;
+    }
+    .field input{
+      width:100%; padding:10px 38px 10px 12px;
+      border:1px solid #ccc; border-radius:8px; font-size:15px;
+    }
+    .field .toggle{
+      position:absolute; right:10px; top:50%; transform:translateY(-50%);
+      cursor:pointer; opacity:.6;
+    }
+    button{
+      width:100%; margin-top:16px; padding:12px; font-size:16px;
+      border:none; border-radius:8px; cursor:pointer;
+      background:#3f51b5; color:#fff; font-family:"Noto Sans Khmer";
+    }
+    button:hover{background:#303f9f}
+    .msg{margin-top:12px; font-size:14px; color:#d32f2f; text-align:center; display:none}
   </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="card card-login">
-    <div class="head">
-      <div class="brand">ប្រព័ន្ធរាយការណ៍សុខភាព</div>
-      <div class="muted">សូមចូលប្រើជាមួយគណនីដែលបានផ្តល់ជូន</div>
-    </div>
-
-    <form id="f" class="body" autocomplete="on">
-      <label class="form-label">ឈ្មោះអ្នកប្រើ</label>
-      <div class="k-input">
-        <input id="u" name="username" placeholder="ឈ្មោះអ្នកប្រើ" required autofocus>
-        <i class="icon i-Administrator"></i>
+  <div class="card">
+    <h1>ប្រព័ន្ធរាយការណ៍សុខាភិបាល</h1>
+    <form id="loginForm">
+      <label>ឈ្មោះអ្នកប្រើ</label>
+      <div class="field">
+        <input id="username" required />
       </div>
 
-      <label class="form-label">ពាក្យសម្ងាត់</label>
-      <div class="k-input">
-        <input id="p" name="password" type="password" placeholder="ពាក្យសម្ងាត់" required>
-        <i id="toggle" class="icon i-Eye"></i>
+      <label>ពាក្យសម្ងាត់</label>
+      <div class="field">
+        <input id="password" type="password" required />
+        <span id="btnTogglePw" class="toggle">👁</span>
       </div>
 
-      <button id="btn" class="btn-k" type="submit">ចូលប្រើប្រព័ន្ធ</button>
-      <div id="err" class="err">ចូលប្រើបរាជ័យ៖ សូមពិនិត្យឈ្មោះអ្នកប្រើ/ពាក្យសម្ងាត់ម្តងទៀត។</div>
-
-      <div class="help">
-        <i class="i-Security-Block"></i>
-        <span>សិទ្ធិ Supper Admin អាចចូលគ្រប់ការិយាល័យ។ អ្នកប្រើធម្មតាចូលបានតែការិយាល័យរបស់ខ្លួន។</span>
-      </div>
+      <button type="submit">ចូលប្រើប្រាស់</button>
+      <div id="msg" class="msg"></div>
     </form>
-
-    <div class="foot">
-      <a class="api-link" href="#" title="API in code">API ត្រូវបានកំណត់ក្នុងកូដ</a>
-    </div>
   </div>
-</div>
 
-<!-- Core JS from your template -->
-<script src="assets/js/jquery-3.3.1.min.js"></script>
-<script src="assets/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API = "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
 
-<script>
-const GAS = "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
-const ls  = window.localStorage;
+    const ls = window.localStorage;
+    const form = document.getElementById("loginForm");
+    const msg = document.getElementById("msg");
 
-function getAuth(){ try{ return JSON.parse(ls.getItem("AUTH")||"null"); }catch(e){ return null; } }
+    // Toggle show/hide password
+    document.getElementById("btnTogglePw").onclick = ()=>{
+      const pw = document.getElementById("password");
+      pw.type = pw.type==="password" ? "text" : "password";
+    };
 
-// -------- Sidebar open/close --------
-const sidebar = document.getElementById('sidebar');
-const btnToggle = document.getElementById('btnToggleSidebar');
-const SIDEBAR_KEY = "PHDSIDEBAR_OPEN";
+    form.onsubmit = async (e)=>{
+      e.preventDefault();
+      msg.style.display="none";
 
-function setSidebar(open){
-  sidebar.classList.toggle('collapsed', !open);
-  btnToggle.setAttribute('aria-expanded', String(open));
-  ls.setItem(SIDEBAR_KEY, open ? "1" : "0");
-}
-btnToggle.addEventListener('click', ()=> setSidebar(sidebar.classList.contains('collapsed')) );
-setSidebar(ls.getItem(SIDEBAR_KEY)!=="0"); // default open
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value;
 
-// Accordion open/remember
-document.querySelectorAll('.menu-toggle').forEach(btn=>{
-  const li = btn.closest('.has-children');
-  const sub = li.querySelector('.submenu');
-  const key = "OPEN_" + (li.id || btn.textContent.trim());
-  const open = ls.getItem(key)==="1";
-  sub.classList.toggle('open', open);
-  btn.setAttribute('aria-expanded', String(open));
-  btn.addEventListener('click', ()=>{
-    const now = !sub.classList.contains('open');
-    sub.classList.toggle('open', now);
-    btn.setAttribute('aria-expanded', String(now));
-    ls.setItem(key, now ? "1":"0");
-  });
-});
-
-// -------- Helpers to call GAS --------
-async function gasGet(route, qs={}){
-  const u = new URL(GAS);
-  u.searchParams.set("api","1");
-  u.searchParams.set("route", route);
-  u.searchParams.set("op","list");
-  Object.entries(qs).forEach(([k,v])=>u.searchParams.set(k, v));
-  const res = await fetch(u.toString(), { cache:"no-store" });
-  if(!res.ok) throw new Error("HTTP "+res.status);
-  const j = await res.json();
-  if(j.error) throw new Error(j.error);
-  return j.rows || [];
-}
-
-// -------- Build Departments + Units --------
-async function buildDeptMenu(){
-  const auth = getAuth();
-  const deptUL = document.getElementById("deptList");
-  deptUL.innerHTML = `<li class="px-3 py-2 text-muted">កំពុងឡូដ...</li>`;
-
-  // 1) departments (filter by user if not super)
-  let deps = await gasGet("departments");
-  if(!(auth && (String(auth.user_type).toLowerCase()==="superuser" || String(auth.user_root).toLowerCase()==="all"))){
-    if(auth?.department_id) deps = deps.filter(d => String(d.department_id)===String(auth.department_id));
-  }
-
-  // 2) render each department + load units for each
-  const frag = document.createDocumentFragment();
-
-  for(const d of deps){
-    // container
-    const li = document.createElement('li');
-    li.className = "has-children";
-
-    const btn = document.createElement('button');
-    btn.className = "menu-toggle";
-    btn.innerHTML = `<i class="fa fa-building me-2"></i> ${d.department_name}<i class="fa fa-chevron-down ms-auto small"></i>`;
-    btn.setAttribute('aria-expanded','false');
-
-    const sub = document.createElement('ul');
-    sub.className = "submenu";
-    sub.innerHTML = `<li class="px-3 py-2 text-muted">កំពុងឡូដផ្នែក...</li>`;
-
-    // remember open state per department
-    const key = "OPEN_DEPT_" + d.department_id;
-    const wasOpen = ls.getItem(key)==="1";
-    sub.classList.toggle('open', wasOpen);
-    btn.setAttribute('aria-expanded', String(wasOpen));
-    btn.addEventListener('click', ()=>{
-      const now = !sub.classList.contains('open');
-      sub.classList.toggle('open', now);
-      btn.setAttribute('aria-expanded', String(now));
-      ls.setItem(key, now?"1":"0");
-    });
-
-    li.append(btn, sub);
-    frag.appendChild(li);
-
-    // load units
-    try{
-      const units = await gasGet("units", { department_id: d.department_id });
-      sub.innerHTML = "";
-      units.forEach(u=>{
-        const a = document.createElement('a');
-        a.href = `#/dept/${d.department_id}/unit/${u.unit_id}`;
-        a.textContent = u.unit_name;
-        a.addEventListener('click', (ev)=>{
-          // redirect to your unit page
-          ev.preventDefault();
-          window.location.href = `./pages/departments/${d.department_id}/units/${u.unit_id}/index.html`;
-        });
-        const li2 = document.createElement('li');
-        li2.appendChild(a);
-        sub.appendChild(li2);
-      });
-      if(units.length===0){
-        sub.innerHTML = `<li class="px-3 py-2 text-muted">គ្មានផ្នែក</li>`;
+      if(!username || !password){
+        msg.textContent="សូមបំពេញឈ្មោះ និង ពាក្យសម្ងាត់";
+        msg.style.display="block"; return;
       }
-    }catch(e){
-      sub.innerHTML = `<li class="px-3 py-2 text-danger">អានផ្នែកបរាជ័យ</li>`;
-    }
-  }
-  deptUL.innerHTML = "";
-  deptUL.appendChild(frag);
-}
 
-buildDeptMenu().catch(err=>{
-  document.getElementById("deptList").innerHTML =
-    `<li class="px-3 py-2 text-danger">អានការិយាល័យបរាជ័យ: ${err.message}</li>`;
-});
-</script>
-
-
+      try{
+        const url = API + "?api=1&route=auth&op=login";
+        const res = await fetch(url, {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({username,password})
+        });
+        const j = await res.json();
+        if(j.error){
+          msg.textContent = j.error;
+          msg.style.display="block"; return;
+        }
+        // Save profile
+        ls.setItem("AUTH", JSON.stringify(j));
+        // Redirect
+        location.href="index.html";
+      }catch(err){
+        msg.textContent="បរាជ័យក្នុងការភ្ជាប់ API: "+err.message;
+        msg.style.display="block";
+      }
+    };
+  </script>
 </body>
 </html>
