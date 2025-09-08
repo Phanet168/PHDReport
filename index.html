@@ -1,376 +1,262 @@
-<!-- index.html (for your current assets tree) -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="km">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>PHD Report System – Dashboard</title>
-
-  <!-- ====== YOUR THEME FILES (match screenshot) ====== -->
-  <link rel="stylesheet" href="assets/css/third-party.bundle.css">
-  <link rel="stylesheet" href="assets/css/themes/lite-purple.min.css">
-  <link rel="stylesheet" href="assets/styles.css"><!-- optional: if you use it -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PHD Report – ផ្ទាំងគ្រប់គ្រង</title>
 
   <!-- Khmer fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet">
 
   <style>
-    :root{ --brand:#5b6ef5; --shadow:0 10px 25px rgba(0,0,0,.06); }
-    html,body{ font-family:"Noto Sans Khmer",system-ui,Segoe UI,Arial,sans-serif; background:#f4f6fb; }
-    .h-khmer{ font-family:"Khmer Moul", system-ui; letter-spacing:.3px }
-    .k-card{ border-radius:18px!important; box-shadow:var(--shadow); border:0!important; background:#fff; }
-    .k-input{ background:#f8fafc; border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px }
-    .k-btn{ border:0; border-radius:12px; padding:10px 14px; font-weight:600 }
-    .k-btn-primary{ background:var(--brand); color:#fff }
-    .k-btn-muted{ background:#e5e7eb; color:#111827 }
-    .k-btn-danger{ background:#ef4444; color:#fff }
-    .sidebar{ width:290px; min-height:100vh; background:#0f172a; color:#cbd5e1; position:sticky; top:0 }
-    .sidebar a{ color:#e2e8f0; text-decoration:none; border-radius:8px; display:block; padding:.55rem .8rem }
-    .sidebar a:hover{ background:#1f2937 }
-    .sidebar .section-title{ font-size:12px; text-transform:uppercase; color:#93c5fd; margin-top:16px; margin-bottom:6px }
-    .menu-toggle{ display:none }
-    .badge-k{ display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; background:#eef2ff; color:#3730a3 }
-    .table thead th{ white-space:nowrap }
-    .collapse-btn{ cursor:pointer }
-    @media (max-width: 992px){
-      .sidebar{ position:fixed; left:0; transform:translateX(-100%); transition:.25s }
-      .sidebar.open{ transform:translateX(0) }
-      .menu-toggle{ display:inline-flex }
+    :root{
+      --bg:#0f1a26; --bg-2:#111e30; --text:#cfe0ff; --primary:#6b5bff;
+      --card:#ffffff; --ink:#0b1220; --muted:#6b7b95; --ring:#e9eef7;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:#f5f7fb; color:#111; font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    /* Top bar */
+    .topbar{
+      height:56px; display:flex; align-items:center; gap:10px;
+      padding:0 16px; background:#fff; border-bottom:1px solid var(--ring);
+      position:sticky; top:0; z-index:40;
+    }
+    .brand{font-family:"Khmer Moul"; color:var(--primary); font-size:22px; letter-spacing:.5px}
+    .spacer{flex:1}
+    .topbar .btn{
+      border:1px solid var(--ring); background:#fff; padding:8px 12px;
+      border-radius:10px; cursor:pointer;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      width:270px; background:var(--bg); color:var(--text);
+      position:fixed; inset:56px auto 0 0; padding:10px 0; overflow:auto;
+      transform:translateX(0); transition:transform .25s ease;
+    }
+    .sidebar.collapsed{ transform:translateX(-100%); }
+    .menu{list-style:none; margin:0; padding:0}
+    .menu > li > a, .menu-toggle{
+      width:100%; display:flex; align-items:center; justify-content:space-between;
+      padding:12px 16px; color:var(--text); text-decoration:none; background:transparent; border:none; cursor:pointer;
+    }
+    .menu > li > a:hover, .menu-toggle:hover{ background:var(--bg-2); }
+    .submenu{
+      list-style:none; margin:0; padding:0 0 6px 8px; display:none; background:#0d1828;
+    }
+    .submenu.open{ display:block; }
+    .submenu a{
+      display:block; padding:10px 16px; color:#e5eeff; text-decoration:none; border-left:2px solid transparent;
+    }
+    .submenu a:hover{ background:#0b1626; border-left-color:var(--primary) }
+
+    /* Main */
+    .main{
+      margin-left:270px; padding:18px; min-height:calc(100% - 56px);
+      transition:margin-left .25s ease;
+    }
+    .sidebar.collapsed ~ .main{ margin-left:0; }
+
+    /* Cards */
+    .cards{display:grid; grid-template-columns:repeat(12,1fr); gap:16px}
+    .card{
+      grid-column:span 12; background:var(--card); border:1px solid var(--ring);
+      border-radius:14px; padding:16px; box-shadow:0 8px 18px rgba(10,22,50,.04);
+    }
+    .card h3{margin:0 0 8px 0; font-size:18px}
+    .muted{color:var(--muted); font-size:14px}
+
+    /* Small */
+    @media (min-width: 900px){
+      .card--half{grid-column:span 6}
+      .card--third{grid-column:span 4}
     }
   </style>
 </head>
 <body>
 
-<div class="d-flex">
+  <!-- Top bar -->
+  <div class="topbar">
+    <button id="btnToggle" class="btn">☰</button>
+    <div class="brand">ផ្ទាំងគ្រប់គ្រង PHD</div>
+    <div class="spacer"></div>
+    <input id="q" class="btn" style="min-width:220px" placeholder="ស្វែងរក..." />
+    <a id="btnLogin" class="btn" href="login.html">ចូលប្រើប្រាស់</a>
+  </div>
+
   <!-- Sidebar -->
-  <!-- Toggle button (លើ header) -->
-<button id="btnToggleSidebar" class="btn btn-sm btn-outline-light ms-2" aria-controls="sidebar" aria-expanded="false">
-  ☰
-</button>
+  <aside id="sidebar" class="sidebar">
+    <ul class="menu" id="menuRoot">
+      <li><a href="#/dashboard">ផ្ទាំងគ្រប់គ្រង</a></li>
 
-<!-- Sidebar -->
-<aside id="sidebar" class="phd-sidebar" aria-label="Main navigation">
-  <nav class="menu">
-    <ul id="menuRoot">
-      <li><a href="#/dashboard"><i class="fa fa-home me-2"></i> ផ្ទាំងគ្រប់គ្រង</a></li>
-
-      <!-- ការិយាល័យ + units (បញ្ចូលដោយ JS) -->
-      <li class="has-children" id="menu-departments">
-        <button class="menu-toggle" aria-expanded="false">
-          <i class="fa fa-building me-2"></i> ការិយាល័យ
-          <i class="fa fa-chevron-down ms-auto small"></i>
-        </button>
-        <ul class="submenu" id="deptList"></ul>
+      <li class="has">
+        <button class="menu-toggle" aria-expanded="false">ការិយាល័យ <span>▾</span></button>
+        <ul class="submenu" id="deptList">
+          <li class="muted" style="padding:10px 16px;">កំពុងទាញទិន្នន័យ...</li>
+        </ul>
       </li>
 
-      <li><a href="#/reports"><i class="fa fa-chart-line me-2"></i> របាយការណ៍</a></li>
-      <li><a href="#/users"><i class="fa fa-users me-2"></i> គ្រប់គ្រងអ្នកប្រើប្រាស់</a></li>
+      <li><a href="#/reports">របាយការណ៍</a></li>
+      <li><a href="#/users">គ្រប់គ្រងអ្នកប្រើប្រាស់</a></li>
 
-      <li class="has-children" id="menu-settings">
-        <button class="menu-toggle" aria-expanded="false">
-          <i class="fa fa-gear me-2"></i> កំណត់ផ្សេងៗ
-          <i class="fa fa-chevron-down ms-auto small"></i>
-        </button>
+      <li class="has">
+        <button class="menu-toggle" aria-expanded="false">កំណត់ផ្សេងៗ <span>▾</span></button>
         <ul class="submenu">
           <li><a href="#/mgmt/departments">គ្រប់គ្រងការិយាល័យ</a></li>
           <li><a href="#/mgmt/units">គ្រប់គ្រងផ្នែក</a></li>
           <li><a href="#/mgmt/periods">គ្រប់គ្រងរយៈពេល</a></li>
-          <li><a href="#/mgmt/indicators">គ្រប់គ្រងសូចនាករ</a></li>
         </ul>
       </li>
     </ul>
-  </nav>
-</aside>
-
+  </aside>
 
   <!-- Main -->
-  <main class="flex-grow-1 p-3 container-fluid">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <div class="h-khmer" id="pageTitle" style="font-size:26px">ផ្ទាំងគ្រប់គ្រង</div>
-      <div class="d-flex gap-2 align-items-center">
-        <div class="k-input"><input id="q" type="text" placeholder="ស្វែងរក..."></div>
-        <button class="k-btn k-btn-muted menu-toggle" id="btnToggleMenu">បិទ/បើកម៉ឺនុយ</button>
+  <main id="main" class="main">
+    <div class="cards">
+      <div class="card card--half">
+        <h3>សេចក្តីសង្ខេប</h3>
+        <div class="muted">សូមជ្រើសរើសមេនុយខាងឆ្វេងដើម្បីចាប់ផ្ដើម…</div>
+      </div>
+
+      <div class="card card--half">
+        <h3>ការប្រកាសព័ត៌មាន</h3>
+        <div class="muted">–</div>
+      </div>
+
+      <div class="card card--third">
+        <h3>កំណត់ API</h3>
+        <div class="muted">API បច្ចុប្បន្ន៖ Google Apps Script</div>
       </div>
     </div>
-
-    <!-- HOME -->
-    <section id="page-home" class="row g-3">
-      <div class="col-lg-4">
-        <div class="card k-card p-3">
-          <h5 class="h-khmer mb-2">ស្វាគមន៍</h5>
-          <div id="homeSummary">សូមប្រើម៉ឺនុយខាងឆ្វេងដើម្បីចាប់ផ្តើម។</div>
-        </div>
-      </div>
-      <div class="col-lg-4">
-        <div class="card k-card p-3">
-          <h5 class="h-khmer mb-2">ពត៌មានអ្នកប្រើប្រាស់</h5>
-          <div id="whoami"></div>
-        </div>
-      </div>
-      <div class="col-lg-4">
-        <div class="card k-card p-3">
-          <h5 class="h-khmer mb-2">ស្ថានភាព API</h5>
-          <div id="apiStatus">កំពុងតភ្ជាប់…</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- REPORTS -->
-    <section id="page-reports" class="card k-card p-3 d-none">
-      <h5 class="h-khmer mb-2">របាយការណ៍</h5>
-      <div class="mb-2">សូមជ្រើស ​ការិយាល័យ/ផ្នែក ពីម៉ឺនុយខាងឆ្វេង ដើម្បីចូលទៅទំព័ររបាយការណ៍ទៅតាមផ្នែកនិមួយៗ។</div>
-      <span class="badge-k">Tip</span> អ្នកអាចជ្រើស Unit នៅក្រោមនីមួយៗ (MCH/ឆ្លង/មិនឆ្លង)។
-    </section>
-
-    <!-- MANAGE DEPARTMENTS -->
-    <section id="page-manage-dept" class="card k-card p-3 d-none">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h5 class="h-khmer m-0">គ្រប់គ្រងការិយាល័យ</h5>
-        <button class="k-btn k-btn-primary" id="btnAddDept">បន្ថែមការិយាល័យ</button>
-      </div>
-      <div class="k-input my-2"><input id="qDept" placeholder="ស្វែងរក..."></div>
-      <div class="table-responsive">
-        <table class="table align-middle">
-          <thead><tr><th>ID</th><th>ឈ្មោះការិយាល័យ</th><th>សកម្មភាព</th></tr></thead>
-          <tbody id="tbDept"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- MANAGE UNITS -->
-    <section id="page-manage-unit" class="card k-card p-3 d-none">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h5 class="h-khmer m-0">គ្រប់គ្រងផ្នែក</h5>
-        <button class="k-btn k-btn-primary" id="btnAddUnit">បន្ថែមផ្នែក</button>
-      </div>
-      <div class="row g-2 my-2">
-        <div class="col-md-6"><div class="k-input"><input id="qUnit" placeholder="ស្វែងរក..."></div></div>
-        <div class="col-md-6"><select id="filterDept" class="form-select"><option value="">— ការិយាល័យទាំងអស់ —</option></select></div>
-      </div>
-      <div class="table-responsive">
-        <table class="table align-middle">
-          <thead><tr><th>ID</th><th>ការិយាល័យ</th><th>ឈ្មោះផ្នែក</th><th>សកម្មភាព</th></tr></thead>
-          <tbody id="tbUnit"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- MANAGE PERIODS -->
-    <section id="page-manage-period" class="card k-card p-3 d-none">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h5 class="h-khmer m-0">គ្រប់គ្រងរយៈពេល</h5>
-        <button class="k-btn k-btn-primary" id="btnAddPeriod">បន្ថែមរយៈពេល</button>
-      </div>
-      <div class="k-input my-2"><input id="qPeriod" placeholder="ស្វែងរក..."></div>
-      <div class="table-responsive">
-        <table class="table align-middle">
-          <thead><tr><th>ID</th><th>ឈ្មោះរយៈពេល</th><th>ឆ្នាំ</th><th>ខែ</th><th>សកម្មភាព</th></tr></thead>
-          <tbody id="tbPeriod"></tbody>
-        </table>
-      </div>
-    </section>
-
   </main>
-</div>
 
-<!-- ====== YOUR THEME SCRIPTS (match screenshot) ====== -->
-<script src="assets/js/jquery-3.3.1.min.js"></script>
-<script src="assets/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/perfect-scrollbar.min.js"></script>
-<script src="assets/app.js"></script>
-<script src="assets/admin.js"></script>
+  <script>
+    // ===== Config =====
+    const GAS_BASE = "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
+    const ls = window.localStorage;
 
-<script>
-/* ===== CONFIG ===== */
-const CONFIG = {
-  API_BASE: "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec",
-  DRIVE_JSON: { users:"", departments:"", units:"", periods:"" }
-};
+    // ===== Helpers =====
+    function getAuth(){
+      try{ return JSON.parse(ls.getItem("AUTH")||"null"); }catch(e){ return null; }
+    }
+    function isSuper(auth){
+      return !!auth && (auth.user_type === "superuser" || auth.user_root === "all");
+    }
+    async function gasList(route, params={}){
+      const u = new URL(GAS_BASE);
+      u.searchParams.set("api","1");
+      u.searchParams.set("route",route);
+      u.searchParams.set("op","list");
+      for(const [k,v] of Object.entries(params)) u.searchParams.set(k,v);
+      const res = await fetch(u.toString(), {cache:"no-store"});
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      const j = await res.json();
+      if (j.error) throw new Error(j.error);
+      return Array.isArray(j.rows) ? j.rows : (Array.isArray(j) ? j : []);
+    }
 
-const ls = window.localStorage;
-function $(s,el=document){ return el.querySelector(s); }
-function $all(s,el=document){ return Array.from(el.querySelectorAll(s)); }
-function getAuth(){ try{ return JSON.parse(ls.getItem("AUTH")||"null") }catch(_){ return null } }
-function requireAuth(){ const me=getAuth(); if(!me){ location.href="login.html"; return null } return me; }
-function setAuth(p){ ls.setItem("AUTH", JSON.stringify(p)); }
-function logout(){ ls.removeItem("AUTH"); location.href="login.html"; }
-
-async function jget(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }
-async function jpost(url,body){ const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})}); if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }
-function apiUrl(route, op="list", params={}){ const u=new URL(CONFIG.API_BASE); u.searchParams.set("api","1"); u.searchParams.set("route",route); u.searchParams.set("op",op); Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v)); return u.toString(); }
-async function apiList(route, params){ return jget(apiUrl(route,"list",params)); }
-async function apiUpsert(route, payload){ return jpost(apiUrl(route,"upsert"), payload); }
-async function apiDelete(route, idField, id){ return jpost(apiUrl(route,"delete", {[idField]: id})); }
-
-/* ===== Page ===== */
-const me = requireAuth(); if(!me){} 
-$("#btnLogout").addEventListener("click",(e)=>{e.preventDefault();logout();});
-$("#btnToggleMenu").addEventListener("click",()=>$('#sidebar').classList.toggle('open'));
-
-function showPage(name){
-  $("#pageTitle").textContent =
-    name==="home"?"ផ្ទាំងគ្រប់គ្រង":
-    name==="reports"?"របាយការណ៍":
-    name==="manage-dept"?"គ្រប់គ្រងការិយាល័យ":
-    name==="manage-unit"?"គ្រប់គ្រងផ្នែក":
-    name==="manage-period"?"គ្រប់គ្រងរយៈពេល":name;
-  ["home","reports","manage-dept","manage-unit","manage-period"].forEach(id=>{
-    $("#page-"+id).classList.toggle("d-none", id!==name);
-  });
-}
-$all("#menu a[data-page]").forEach(a=>{
-  a.addEventListener("click",(e)=>{e.preventDefault();showPage(a.dataset.page); if(window.innerWidth<992) $('#sidebar').classList.remove('open');});
-});
-if(me){
-  $("#whoami").textContent=`អ្នកប្រើ៖ ${me.user_name} | ប្រភេទ៖ ${me.user_type||"-"} | ការិយាល័យ៖ ${me.department_id||"-"}`;
-  if(String(me.user_type).toLowerCase()==="superuser" || String(me.user_root).toLowerCase()==="all"){
-    $("#adminSection").style.display="";
-  }
-}
-
-/* ===== Dept + Unit Menu ===== */
-async function buildDeptUnitMenu(){
-  try{
-    $("#apiStatus").textContent="កំពុងទាញ departments / units...";
-    const [{rows:depts},{rows:units}] = await Promise.all([ apiList("departments"), apiList("units") ]);
-    $("#apiStatus").textContent="តភ្ជាប់បានល្អ";
-
-    const sel=$("#filterDept"); sel.innerHTML='<option value="">— ការិយាល័យទាំងអស់ —</option>'+depts.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join("");
-
-    const wrap=$("#deptMenu"); wrap.innerHTML="";
-    depts.forEach(d=>{
-      const id=`dept-${d.department_id}`;
-      const group=document.createElement("div");
-      group.className="mb-1";
-      group.innerHTML=`
-        <div class="d-flex align-items-center justify-content-between collapse-btn px-2 py-1" data-bs-toggle="collapse" data-bs-target="#${id}">
-          <span class="text-white">${d.department_name}</span>
-          <span class="text-info">▾</span>
-        </div>
-        <div class="collapse" id="${id}">
-          <div class="ps-3 py-1" id="${id}-units"></div>
-        </div>`;
-      wrap.appendChild(group);
-
-      const uWrap=$(`#${id}-units`);
-      units.filter(u=>String(u.department_id)===String(d.department_id)).forEach(u=>{
-        const a=document.createElement("a"); a.href="#"; a.textContent=u.unit_name;
-        a.addEventListener("click",(e)=>{ e.preventDefault();
-          location.href=`./units/index.html?unit_id=${encodeURIComponent(u.unit_id)}&unit_name=${encodeURIComponent(u.unit_name)}&department_id=${encodeURIComponent(d.department_id)}`;
-        });
-        uWrap.appendChild(a);
+    // ===== UI: toggle sidebar & submenu =====
+    const sidebar = document.getElementById("sidebar");
+    document.getElementById("btnToggle").onclick = () => {
+      sidebar.classList.toggle("collapsed");
+      document.querySelector(".main").classList.toggle("collapsed");
+    };
+    document.querySelectorAll(".menu-toggle").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const ul = btn.nextElementSibling;
+        ul.classList.toggle("open");
+        btn.setAttribute("aria-expanded", ul.classList.contains("open"));
       });
     });
 
-    renderDeptTable(depts);
-    renderUnitTable(units, depts);
-    await loadPeriods();
-  }catch(err){
-    $("#apiStatus").textContent="API បរាជ័យ: "+err.message;
-  }
-}
+    // ===== Build departments & units =====
+    async function buildDeptMenu(){
+      const auth = getAuth();
+      const box = document.getElementById("deptList");
+      box.innerHTML = '<li class="muted" style="padding:10px 16px;">កំពុងទាញទិន្នន័យ...</li>';
 
-/* ===== Manage: Departments ===== */
-function renderDeptTable(depts){
-  const q=$("#qDept").value?.toLowerCase()||""; const tb=$("#tbDept"); tb.innerHTML="";
-  depts.filter(d=>!q || String(d.department_name).toLowerCase().includes(q)).forEach(d=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${d.department_id}</td><td>${d.department_name}</td>
-      <td><button class="btn btn-sm btn-outline-primary me-1" data-act="edit">កែ</button>
-      <button class="btn btn-sm btn-outline-danger" data-act="del">លុប</button></td>`;
-    tr.querySelector('[data-act="edit"]').addEventListener("click", async ()=>{
-      const name=prompt("ឈ្មោះការិយាល័យ", d.department_name); if(!name) return;
-      await apiUpsert("departments",{department_id:d.department_id, department_name:name}); buildDeptUnitMenu();
-    });
-    tr.querySelector('[data-act="del"]').addEventListener("click", async ()=>{
-      if(!confirm("លុបការិយាល័យនេះ?"))return;
-      await apiDelete("departments","department_id", d.department_id); buildDeptUnitMenu();
-    });
-    tb.appendChild(tr);
-  });
-}
-$("#qDept").addEventListener("input",()=>buildDeptUnitMenu());
-$("#btnAddDept").addEventListener("click", async ()=>{
-  const name=prompt("ឈ្មោះការិយាល័យថ្មី"); if(!name)return;
-  await apiUpsert("departments",{department_name:name}); buildDeptUnitMenu();
-});
+      try{
+        let depts = await gasList("departments");  // GET → no CORS preflight
+        if (!isSuper(auth) && auth?.department_id){
+          depts = depts.filter(d => String(d.department_id) === String(auth.department_id));
+        }
 
-/* ===== Manage: Units ===== */
-let _cache_depts=[];
-function renderUnitTable(units,depts){
-  _cache_depts=depts;
-  const q=$("#qUnit").value?.toLowerCase()||""; const f=$("#filterDept").value||""; const tb=$("#tbUnit"); tb.innerHTML="";
-  units.filter(u=>{
-    const okDept=!f || String(u.department_id)===String(f);
-    const okText=!q || String(u.unit_name).toLowerCase().includes(q);
-    return okDept && okText;
-  }).forEach(u=>{
-    const deptName=(depts.find(d=>String(d.department_id)===String(u.department_id))||{}).department_name || "-";
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${u.unit_id}</td><td>${deptName}</td><td>${u.unit_name}</td>
-      <td><button class="btn btn-sm btn-outline-primary me-1" data-act="edit">កែ</button>
-      <button class="btn btn-sm btn-outline-danger" data-act="del">លុប</button></td>`;
-    tr.querySelector('[data-act="edit"]').addEventListener("click", async ()=>{
-      const name=prompt("ឈ្មោះផ្នែក", u.unit_name); if(!name)return;
-      await apiUpsert("units",{unit_id:u.unit_id, department_id:u.department_id, unit_name:name}); buildDeptUnitMenu();
-    });
-    tr.querySelector('[data-act="del"]').addEventListener("click", async ()=>{
-      if(!confirm("លុបផ្នែកនេះ?"))return;
-      await apiDelete("units","unit_id", u.unit_id); buildDeptUnitMenu();
-    });
-    tb.appendChild(tr);
-  });
-}
-$("#qUnit").addEventListener("input",()=>buildDeptUnitMenu());
-$("#filterDept").addEventListener("change",()=>buildDeptUnitMenu());
-$("#btnAddUnit").addEventListener("click", async ()=>{
-  if(!_cache_depts.length){ alert("មិនទាន់មានការិយាល័យ"); return; }
-  const deptId=prompt("បញ្ចូល ID ការិយាល័យសម្រាប់ផ្នែកថ្មី\n"+_cache_depts.map(d=>`${d.department_id}: ${d.department_name}`).join("\n"));
-  if(!deptId)return;
-  const unitName=prompt("ឈ្មោះផ្នែកថ្មី"); if(!unitName)return;
-  await apiUpsert("units",{department_id:Number(deptId), unit_name:unitName}); buildDeptUnitMenu();
-});
+        if (!depts.length){
+          box.innerHTML = '<li class="muted" style="padding:10px 16px;">គ្មានទិន្នន័យការិយាល័យ</li>';
+          return;
+        }
 
-/* ===== Manage: Periods ===== */
-async function loadPeriods(){ const {rows}=await apiList("periods"); renderPeriodTable(rows); }
-function renderPeriodTable(rows){
-  const q=$("#qPeriod").value?.toLowerCase()||""; const tb=$("#tbPeriod"); tb.innerHTML="";
-  rows.filter(r=>!q || String(r.period_name).toLowerCase().includes(q)).forEach(r=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${r.period_id}</td><td>${r.period_name||""}</td><td>${r.year||""}</td><td>${r.month||""}</td>
-      <td><button class="btn btn-sm btn-outline-primary me-1" data-act="edit">កែ</button>
-      <button class="btn btn-sm btn-outline-danger" data-act="del">លុប</button></td>`;
-    tr.querySelector('[data-act="edit"]').addEventListener("click", async ()=>{
-      const name=prompt("ឈ្មោះរយៈពេល", r.period_name||""); if(!name)return;
-      const year=Number(prompt("ឆ្នាំ", r.year||new Date().getFullYear())||r.year||"");
-      const month=Number(prompt("ខែ (1-12)", r.month||"")||r.month||"");
-      await apiUpsert("periods",{period_id:r.period_id, period_name:name, year, month}); loadPeriods();
-    });
-    tr.querySelector('[data-act="del"]').addEventListener("click", async ()=>{
-      if(!confirm("លុបរយៈពេលនេះ?"))return;
-      await apiDelete("periods","period_id", r.period_id); loadPeriods();
-    });
-    tb.appendChild(tr);
-  });
-}
-$("#qPeriod").addEventListener("input",()=>loadPeriods());
+        box.innerHTML = "";
+        for (const d of depts){
+          const li = document.createElement("li");
+          li.className = "has";
+          const btn = document.createElement("button");
+          btn.className = "menu-toggle";
+          btn.innerHTML = `${d.department_name} <span>▾</span>`;
+          const ul = document.createElement("ul");
+          ul.className = "submenu";
+          li.append(btn, ul);
+          box.appendChild(li);
 
-/* ===== Access control & init ===== */
-(function lockMenus(){
-  if(!me) return;
-  if(!(String(me.user_type).toLowerCase()==="superuser" || String(me.user_root).toLowerCase()==="all")){
-    // hide adminSection already by CSS style
-  } else {
-    $("#adminSection").style.display="";
-  }
-})();
-showPage("home");
-buildDeptUnitMenu();
-window.addEventListener("resize",()=>{ if(window.innerWidth>=992) $('#sidebar').classList.remove('open'); });
-</script>
+          btn.addEventListener("click", ()=>{
+            ul.classList.toggle("open");
+            btn.setAttribute("aria-expanded", ul.classList.contains("open"));
+          });
 
+          // Load units for each department
+          const units = await gasList("units", { department_id: d.department_id });
+          if (!units.length){
+            const empty = document.createElement("li");
+            empty.innerHTML = '<span class="muted" style="padding:10px 16px; display:block;">គ្មានផ្នែក</span>';
+            ul.appendChild(empty);
+          }else{
+            units.forEach(u=>{
+              const item = document.createElement("li");
+              const a = document.createElement("a");
+              a.textContent = u.unit_name;
+              // redirect target page (you can create these pages later)
+              a.href = `pages/departments/${d.department_id}/units/${u.unit_id}/index.html`;
+              item.appendChild(a);
+              ul.appendChild(item);
+            });
+          }
+        }
+      }catch(err){
+        box.innerHTML = `<li class="muted" style="padding:10px 16px;color:#ffb0b0;">អានទិន្នន័យបរាជ័យ: ${err.message}</li>`;
+      }
+    }
+
+    // ===== Init =====
+    (function init(){
+      const auth = getAuth();
+      const btnLogin = document.getElementById("btnLogin");
+      if(auth){
+        btnLogin.textContent = (auth.user_name || "អ្នកប្រើប្រាស់") + " • ចេញ";
+        btnLogin.href = "#";
+        btnLogin.onclick = (e)=>{
+          e.preventDefault();
+          ls.removeItem("AUTH");
+          location.reload();
+        };
+      }else{
+        btnLogin.textContent = "ចូលប្រើប្រាស់";
+        btnLogin.href = "login.html";
+      }
+      buildDeptMenu();
+
+      // filter with "q" (optional – just for demo)
+      document.getElementById("q").addEventListener("input", (e)=>{
+        const q = e.target.value.toLowerCase();
+        document.querySelectorAll("#menuRoot a").forEach(a=>{
+          const ok = a.textContent.toLowerCase().includes(q);
+          a.parentElement.style.display = ok ? "" : "none";
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
-
