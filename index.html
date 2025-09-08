@@ -6,54 +6,67 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
   <title>ផ្ទាំងគ្រប់គ្រង | PHD Report</title>
 
-  <!-- Khmer Fonts -->
+  <!-- Google Khmer Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet" />
-  <style>
-    body{font-family:"Noto Sans Khmer",Nunito,Arial,sans-serif}
-    .brand-kh{font-family:"Khmer Moul";letter-spacing:.2px}
-    <!-- Khmer fonts (already ok, keep or add) -->
-    <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet">
 
-  /* ប្រើ Noto Sans Khmer ជា default */
-  :root { --kh-font: "Noto Sans Khmer", Nunito, Arial, sans-serif; }
-  .brand-kh, .h-kh { font-family: "Khmer Moul","Noto Sans Khmer",sans-serif !important; }
-
-  /* Sidebar ដើម + submenu (ទាំងឆ្វេងទី 1 និងទី 2) */
-  .navigation-left .nav-text,
-  .navigation-left .nav-item-hold,
-  .navigation-left a,
-  .sidebar-left-secondary,
-  .sidebar-left-secondary .childNav .item-name,
-  .sidebar-left-secondary .childNav a,
-  .submenu-area header h6,
-  .submenu-area header p {
-    font-family: var(--kh-font) !important;
-    letter-spacing: 0;
-  }
-
-  /* Buttons ទាំងអស់ (header, cards, dropdown… ) */
-  .btn, .btn * {
-    font-family: var(--kh-font) !important;
-    letter-spacing: 0;
-  }
-
-  /* Input/placeholder ឲ្យស្មើ font */
-  input, textarea, select, .search-input, .search-bar input,
-  .form-control, .form-select, .dropdown-menu, .badge {
-    font-family: var(--kh-font) !important;
-  }
-
-  /* Breadcrumb និង Card title ក៏អោយខ្មែរ */
-  .breadcrumb h1, .breadcrumb ul, .card-title, .app-footer, .customizer {
-    font-family: var(--kh-font) !important;
-  }
-
-
-  </style>
-
-  <!-- Gull CSS (root-relative paths) -->
+  <!-- Gull CSS -->
   <link href="dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
   <link href="dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet" />
+
+  <style>
+    /* ===== Khmer Font Defaults ===== */
+    :root{
+      --kh-font: "Noto Sans Khmer", Nunito, Arial, Helvetica, sans-serif;
+      --kh-head: "Khmer Moul","Noto Sans Khmer", sans-serif;
+    }
+    html, body{
+      font-family: var(--kh-font) !important;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    .brand-kh, .h-kh, .kh-head{
+      font-family: var(--kh-head) !important;
+      letter-spacing: .2px;
+    }
+
+    /* ===== Force Khmer font across common UI elements ===== */
+    /* Sidebar (left primary + secondary) */
+    .navigation-left .nav-text,
+    .navigation-left .nav-item-hold,
+    .navigation-left a,
+    .sidebar-left-secondary,
+    .sidebar-left-secondary .childNav .item-name,
+    .sidebar-left-secondary .childNav a,
+    .submenu-area header h6,
+    .submenu-area header p{
+      font-family: var(--kh-font) !important;
+      letter-spacing: 0;
+    }
+
+    /* Global controls & texts */
+    .btn, .btn *, .badge, .dropdown-menu, .dropdown-item,
+    .form-control, .form-select, .custom-select, .search-input,
+    input, textarea, select, label, small, code, kbd, table, th, td{
+      font-family: var(--kh-font) !important;
+    }
+
+    /* Breadcrumb, cards, footer, customizer */
+    .breadcrumb h1, .breadcrumb ul, .card-title, .app-footer, .customizer{
+      font-family: var(--kh-font) !important;
+    }
+
+    /* Optional: make sidebar secondary logo/title Khmer head */
+    .submenu-area header .logo .brand-kh{
+      font-family: var(--kh-head) !important;
+    }
+
+    /* Keep icon fonts unaffected (only text changes) */
+    i.nav-icon, i[class^="i-"], i[class*=" i-"]{ font-family: inherit; }
+
+    /* Small UX nice-to-haves */
+    .search-bar input::placeholder{ opacity:.8; }
+  </style>
 </head>
 
 <body class="text-start">
@@ -91,7 +104,8 @@
         <i class="sidebar-close i-Close"></i>
         <header class="px-3 pt-3">
           <div class="logo d-flex align-items-center gap-2">
-            <img src="dist-assets/images/logo-text.png" alt="" /><span class="brand-kh">PHD Report</span>
+            <img src="dist-assets/images/logo-text.png" alt="" />
+            <span class="brand-kh">PHD Report</span>
           </div>
         </header>
 
@@ -338,4 +352,3 @@
   </script>
 </body>
 </html>
-
