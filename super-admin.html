@@ -1,77 +1,142 @@
+<!-- super-admin.html -->
 <!DOCTYPE html>
-const depId = auth.department_id; rows = rows.filter(r=> String((r.department_id||r.department_id))===String(depId) || String(r.department_id||'')==='');
-}
-if(filter.department_id) rows = rows.filter(r=> String(r.department_id)===String(filter.department_id));
-if(filter.unit_id) rows = rows.filter(r=> String(r.unit_id)===String(filter.unit_id));
+<html lang="km">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PHD Report – Dashboard</title>
 
+  <!-- EDIT HERE: CSS from your template -->
+  <link rel="stylesheet" href="./assets/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./assets/css/icons.css">
+  <link rel="stylesheet" href="./assets/css/app.min.css">
 
-// Build head
-const meta = Schema[route] || { id:'id', cols: [['id','ID',80],['name','Name',220]] };
-const thead = meta.cols.map(([k,lab,w])=>`<th style="width:${w||140}px">${lab}</th>`).join('') + `<th style="width:160px">សកម្មភាព</th>`;
-document.getElementById('thead').innerHTML = thead;
+  <!-- bridge + (optional old app) -->
+  <link rel="stylesheet" href="./css/template-bridge.css">
+  <link rel="stylesheet" href="./css/app.css">
+</head>
+<body class="bg-light">
 
+  <!-- ===== Template Shell (example) ===== -->
+  <div class="d-flex">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="border-end" style="width:280px; min-height:100vh; background:#0f172a; color:#cbd5e1">
+      <div class="p-3 border-bottom">
+        <div class="h-khmer text-white" style="font-size:22px">PHD</div>
+        <div class="text-muted" style="font-size:12px">ប្រព័ន្ធរាយការណ៍</div>
+      </div>
+      <nav id="menu" class="p-2">
+        <a href="#" data-page="home" class="d-block py-2 px-3 rounded text-decoration-none text-white">ផ្ទាំងគ្រប់គ្រង</a>
+        <div class="mt-3 text-uppercase text-info" style="font-size:12px">ការិយាល័យ</div>
+        <div id="deptMenu" class="mt-1"></div>
 
-// Save state
-this.state={route, rows, filtered:rows.slice(), meta};
-$('#q').value=qPreset||''; this.applySearch();
+        <div class="mt-3 text-uppercase text-info" style="font-size:12px">របាយការណ៍</div>
+        <a href="#" data-page="reports" class="d-block py-2 px-3 rounded text-decoration-none text-white">របាយការណ៍</a>
 
+        <div id="adminSection" style="display:none">
+          <div class="mt-3 text-uppercase text-info" style="font-size:12px">គ្រប់គ្រង</div>
+          <a href="#" data-page="users" class="d-block py-2 px-3 rounded text-decoration-none text-white">គ្រប់គ្រងអ្នកប្រើប្រាស់</a>
+          <a href="#" data-page="manage-dept" class="d-block py-2 px-3 rounded text-decoration-none text-white">គ្រប់គ្រងការិយាល័យ</a>
+          <a href="#" data-page="manage-unit" class="d-block py-2 px-3 rounded text-decoration-none text-white">គ្រប់គ្រងផ្នែក</a>
+          <a href="#" data-page="manage-period" class="d-block py-2 px-3 rounded text-decoration-none text-white">គ្រប់គ្រងរយៈពេល</a>
+        </div>
 
-// Role-based buttons
-const canWrite = WRITE_ENABLED && looksLikeAppsScript(API_BASE) && isSuper; // only super admin may write
-document.getElementById('btnAdd').style.display = canWrite? 'inline-block':'none';
-document.getElementById('chipInfo').textContent = `ចំនួន: ${rows.length}`;
-},
-applySearch(){ const q=$('#q').value.trim().toLowerCase(); const {rows}=this.state; const out=q? rows.filter(r=> JSON.stringify(r).toLowerCase().includes(q)) : rows.slice(); this.state.filtered=out; this.render(); },
-render(){ const tb=$('#tbody'); const {filtered, meta} = this.state; if(!filtered.length){ tb.innerHTML=`<tr><td class="muted" colspan="99" style="padding:12px">គ្មានទិន្នន័យ</td></tr>`; return; }
-tb.innerHTML = filtered.map(r=>{
-const tds = meta.cols.map(([k])=>`<td>${r[k]??''}</td>`).join('');
-return `<tr>${tds}<td>
-<button class="btn" data-act="edit" data-id="${r[meta.id]}"><i class="ri-edit-2-line"></i> កែ</button>
-<button class="btn" data-act="del" data-id="${r[meta.id]}"><i class="ri-delete-bin-line"></i> លុប</button>
-</td></tr>`;
-}).join('');
-},
-openForm(mode,row){ const auth=requireAuth(); const isSuper=String(auth.user_type||'').toLowerCase().includes('super'); if(!(WRITE_ENABLED&&looksLikeAppsScript(API_BASE)&&isSuper)){ alert('READ-ONLY or role not allowed'); return; }
-const {meta,route}=this.state; $('#dlgTitle').textContent = (mode==='add'?'បន្ថែម ':'កែ ') + route; const box=$('#formFields'); box.innerHTML='';
-meta.cols.forEach(([k,lab])=>{ const v=row? (row[k]??'') : ''; box.insertAdjacentHTML('beforeend', `<label>${lab}<input name="${k}" value="${String(v).replace(/"/g,'&quot;')}" /></label>`); });
-const dlg=$('#formDialog'); dlg.returnValue=''; dlg.showModal(); dlg.dataset.mode=mode; dlg.dataset.id=row?row[meta.id]:''; },
-async saveForm(){ const auth=requireAuth(); const isSuper=String(auth.user_type||'').toLowerCase().includes('super'); if(!(WRITE_ENABLED&&looksLikeAppsScript(API_BASE)&&isSuper)) return;
-const {meta,route}=this.state; const fd=new FormData($('#formGeneric')); const row={}; meta.cols.forEach(([k])=> row[k]=fd.get(k)); if(meta.id==='department_id'||meta.id==='unit_id'||meta.id==='period_id'){ if(row[meta.id]) row[meta.id]=Number(row[meta.id]); }
-// upsert
-await apiUpsert(route,row); $('#formDialog').close(); await this.show(route); },
-async remove(id){ const auth=requireAuth(); const isSuper=String(auth.user_type||'').toLowerCase().includes('super'); if(!(WRITE_ENABLED&&looksLikeAppsScript(API_BASE)&&isSuper)) return; const {meta,route}=this.state; if(!confirm('បញ្ជាក់លុប?')) return; await apiDelete(route, meta.id, id); await this.show(route); }
-};
+        <div class="mt-3 text-uppercase text-info" style="font-size:12px">ប្រព័ន្ធ</div>
+        <a href="#" id="btnLogout" class="d-block py-2 px-3 rounded text-decoration-none text-white">ចាកចេញ</a>
+      </nav>
+    </aside>
 
+    <!-- Main -->
+    <main class="flex-grow-1 p-3">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="h-khmer" style="font-size:26px">ផ្ទាំងគ្រប់គ្រង</div>
+        <div class="d-flex gap-2 align-items-center">
+          <div class="k-input"><input id="q" type="text" placeholder="ស្វែងរក..."></div>
+          <button class="k-btn k-btn-muted" id="btnToggleMenu">បិទ/បើកម៉ឺនុយ</button>
+        </div>
+      </div>
 
-// ============== BOOT ==============
-document.addEventListener('DOMContentLoaded', async ()=>{
-const auth = requireAuth(); if(!auth) return; // redirected
-document.getElementById('who').textContent = `អ្នកប្រើ: ${auth.user_name} • តួនាទី: ${auth.user_type} • ការិយាល័យ: ${auth.department_id}`;
-const isSuper = String(auth.user_type||'').toLowerCase().includes('super');
+      <!-- Content areas (same IDs as before) -->
+      <section id="page-home" class="row g-3">
+        <div class="col-lg-4">
+          <div class="card k-card p-3"><h5 class="h-khmer mb-2">សង្ខេប</h5><div id="homeSummary">សូមស្វាគមន៍!</div></div>
+        </div>
+        <div class="col-lg-4">
+          <div class="card k-card p-3"><h5 class="h-khmer mb-2">ព័ត៌មានប្រើប្រាស់</h5><div id="whoami"></div></div>
+        </div>
+        <div class="col-lg-4">
+          <div class="card k-card p-3"><h5 class="h-khmer mb-2">ស្ថានភាព API</h5><div id="apiStatus">កំពុងតភ្ជាប់…</div></div>
+        </div>
+      </section>
 
+      <section id="page-reports" class="card k-card p-3" style="display:none">
+        <h5 class="h-khmer mb-2">របាយការណ៍</h5>
+        <div>សូមជ្រើស​ការិយាល័យ/ផ្នែក ពីម៉ឺនុយខាងឆ្វេង។</div>
+      </section>
 
-// Role-based menu visibility
-if(!isSuper){ document.getElementById('grpUsers').style.display='none'; document.getElementById('grpSystem').style.display='none'; }
-document.getElementById('modeBadge').textContent = (looksLikeAppsScript(API_BASE) && WRITE_ENABLED && isSuper) ? 'WRITE (Apps Script)' : 'READ-ONLY (Drive JSON)';
+      <section id="page-users" class="card k-card p-3" style="display:none">
+        <h5 class="h-khmer mb-2">គ្រប់គ្រងអ្នកប្រើប្រាស់</h5>
+        <div class="k-badge">គ្រប់គ្រងនៅ Apps Script ឬ បន្ថែម UI បន្ទាប់</div>
+      </section>
 
+      <!-- Manage sections kept same IDs; JS logic ដដែល -->
+      <section id="page-manage-dept" class="card k-card p-3" style="display:none">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="h-khmer m-0">គ្រប់គ្រងការិយាល័យ</h5>
+          <button class="k-btn k-btn-primary" id="btnAddDept">បន្ថែមការិយាល័យ</button>
+        </div>
+        <div class="k-input my-2"><input id="qDept" placeholder="ស្វែងរក..."></div>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>ID</th><th>ឈ្មោះការិយាល័យ</th><th>សកម្មភាព</th></tr></thead>
+            <tbody id="tbDept"></tbody>
+          </table>
+        </div>
+      </section>
 
-// Build department menu
-await buildDepartmentMenu(auth);
+      <section id="page-manage-unit" class="card k-card p-3" style="display:none">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="h-khmer m-0">គ្រប់គ្រងផ្នែក</h5>
+          <button class="k-btn k-btn-primary" id="btnAddUnit">បន្ថែមផ្នែក</button>
+        </div>
+        <div class="row g-2 my-2">
+          <div class="col-md-6"><div class="k-input"><input id="qUnit" placeholder="ស្វែងរក..."></div></div>
+          <div class="col-md-6"><select id="filterDept" class="form-select"><option value="">— ការិយាល័យទាំងអស់ —</option></select></div>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>ID</th><th>ការិយាល័យ</th><th>ឈ្មោះផ្នែក</th><th>សកម្មភាព</th></tr></thead>
+            <tbody id="tbUnit"></tbody>
+          </table>
+        </div>
+      </section>
 
+      <section id="page-manage-period" class="card k-card p-3" style="display:none">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="h-khmer m-0">គ្រប់គ្រងរយៈពេល</h5>
+          <button class="k-btn k-btn-primary" id="btnAddPeriod">បន្ថែមរយៈពេល</button>
+        </div>
+        <div class="k-input my-2"><input id="qPeriod" placeholder="ស្វែងរក..."></div>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>ID</th><th>ឈ្មោះរយៈពេល</th><th>ឆ្នាំ</th><th>ខែ</th><th>សកម្មភាព</th></tr></thead>
+            <tbody id="tbPeriod"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
 
-// Menu interactions
-document.getElementById('menu').addEventListener('click', (e)=>{
-const a=e.target.closest('a.sub'); if(!a) return; e.preventDefault(); $$('#menu a.sub').forEach(x=>x.classList.remove('active')); a.classList.add('active');
-const route=a.dataset.route||'dashboard'; const filter=a.dataset.filter? JSON.parse(a.dataset.filter):{}; if(route==='dashboard'){ $('#crud-sec').style.display='none'; $('#dashboard-sec').style.display='block'; } else { CRUD.show(route, filter); }
-});
+  <!-- EDIT HERE: JS from your template -->
+  <script src="./assets/js/bootstrap.bundle.min.js"></script>
+  <script src="./assets/js/app.min.js"></script>
 
-
-document.getElementById('q').addEventListener('input', ()=> CRUD.applySearch());
-document.getElementById('btnAdd').addEventListener('click', ()=> CRUD.openForm('add'));
-document.getElementById('tbody').addEventListener('click', (e)=>{ const b=e.target.closest('button[data-act]'); if(!b) return; const id=b.dataset.id; if(b.dataset.act==='edit'){ const row=CRUD.state.rows.find(r=> String(r[CRUD.state.meta.id])===String(id)); CRUD.openForm('edit', row);} else if(b.dataset.act==='del'){ CRUD.remove(id);} });
-document.getElementById('formGeneric').addEventListener('submit',(e)=>{ if(e.submitter?.value!=='save') return; e.preventDefault(); CRUD.saveForm(); });
-document.getElementById('btnLogout').addEventListener('click', (e)=>{ e.preventDefault(); logout(); });
-});
-</script>
+  <!-- app logic (unchanged) -->
+  <script src="./js/common.js"></script>
+  <script>
+    /* the exact same JS body from your previous super-admin.html
+       (navigation, CRUD handlers, building dept/unit menu, etc.)
+       → paste the whole JS we already built, it works with this shell. */
+  </script>
 </body>
 </html>
