@@ -45,32 +45,45 @@
 
 <div class="d-flex">
   <!-- Sidebar -->
-  <aside id="sidebar" class="sidebar border-end">
-    <div class="p-3 border-bottom border-secondary-subtle">
-      <div class="h-khmer text-white" style="font-size:22px">PHD</div>
-      <div class="text-muted" style="font-size:12px">ប្រព័ន្ធរាយការណ៍</div>
-    </div>
+  <!-- Toggle button (លើ header) -->
+<button id="btnToggleSidebar" class="btn btn-sm btn-outline-light ms-2" aria-controls="sidebar" aria-expanded="false">
+  ☰
+</button>
 
-    <nav id="menu" class="p-2">
-      <a href="#" data-page="home">ផ្ទាំងគ្រប់គ្រង</a>
+<!-- Sidebar -->
+<aside id="sidebar" class="phd-sidebar" aria-label="Main navigation">
+  <nav class="menu">
+    <ul id="menuRoot">
+      <li><a href="#/dashboard"><i class="fa fa-home me-2"></i> ផ្ទាំងគ្រប់គ្រង</a></li>
 
-      <div class="section-title">ការិយាល័យ</div>
-      <div id="deptMenu" class="mb-2"><!-- auto fill --></div>
+      <!-- ការិយាល័យ + units (បញ្ចូលដោយ JS) -->
+      <li class="has-children" id="menu-departments">
+        <button class="menu-toggle" aria-expanded="false">
+          <i class="fa fa-building me-2"></i> ការិយាល័យ
+          <i class="fa fa-chevron-down ms-auto small"></i>
+        </button>
+        <ul class="submenu" id="deptList"></ul>
+      </li>
 
-      <div class="section-title">របាយការណ៍</div>
-      <a href="#" data-page="reports">របាយការណ៍</a>
+      <li><a href="#/reports"><i class="fa fa-chart-line me-2"></i> របាយការណ៍</a></li>
+      <li><a href="#/users"><i class="fa fa-users me-2"></i> គ្រប់គ្រងអ្នកប្រើប្រាស់</a></li>
 
-      <div id="adminSection" style="display:none">
-        <div class="section-title">គ្រប់គ្រង</div>
-        <a href="#" data-page="manage-dept">គ្រប់គ្រងការិយាល័យ</a>
-        <a href="#" data-page="manage-unit">គ្រប់គ្រងផ្នែក</a>
-        <a href="#" data-page="manage-period">គ្រប់គ្រងរយៈពេល</a>
-      </div>
+      <li class="has-children" id="menu-settings">
+        <button class="menu-toggle" aria-expanded="false">
+          <i class="fa fa-gear me-2"></i> កំណត់ផ្សេងៗ
+          <i class="fa fa-chevron-down ms-auto small"></i>
+        </button>
+        <ul class="submenu">
+          <li><a href="#/mgmt/departments">គ្រប់គ្រងការិយាល័យ</a></li>
+          <li><a href="#/mgmt/units">គ្រប់គ្រងផ្នែក</a></li>
+          <li><a href="#/mgmt/periods">គ្រប់គ្រងរយៈពេល</a></li>
+          <li><a href="#/mgmt/indicators">គ្រប់គ្រងសូចនាករ</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+</aside>
 
-      <div class="section-title">ប្រព័ន្ធ</div>
-      <a href="#" id="btnLogout">ចាកចេញ</a>
-    </nav>
-  </aside>
 
   <!-- Main -->
   <main class="flex-grow-1 p-3 container-fluid">
@@ -360,3 +373,4 @@ window.addEventListener("resize",()=>{ if(window.innerWidth>=992) $('#sidebar').
 
 </body>
 </html>
+
