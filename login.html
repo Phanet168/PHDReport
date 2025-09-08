@@ -63,52 +63,62 @@
     </form>
   </div>
 
-  <script>
-    const API = "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
+ <script>
+// ======= CONFIG =======
+const GAS_BASE =
+  "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
 
-    const ls = window.localStorage;
-    const form = document.getElementById("loginForm");
-    const msg = document.getElementById("msg");
+// ======= LOGIN HANDLER (no-preflight) =======
+async function gasLogin(username, password) {
+  const url = GAS_BASE + "?api=1&route=auth&op=login";
 
-    // Toggle show/hide password
-    document.getElementById("btnTogglePw").onclick = ()=>{
-      const pw = document.getElementById("password");
-      pw.type = pw.type==="password" ? "text" : "password";
-    };
+  // 1) កុំប្រើ application/json ដើម្បីជៀស OPTIONS preflight
+  //    ប្រើ text/plain ឬ x-www-form-urlencoded
+  const res = await fetch(url, {
+    method: "POST",
+    // NOTE: កុំដាក់ headers ផ្សេងៗទៀត
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ username, password })  // Apps Script អាន e.postData.contents
+  });
 
-    form.onsubmit = async (e)=>{
-      e.preventDefault();
-      msg.style.display="none";
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
 
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value;
+// ======= UI SUBMIT =======
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value;
 
-      if(!username || !password){
-        msg.textContent="សូមបំពេញឈ្មោះ និង ពាក្យសម្ងាត់";
-        msg.style.display="block"; return;
-      }
+  const msg = document.getElementById("msg");
+  msg.textContent = "";
+  msg.classList.add("d-none");
 
-      try{
-        const url = API + "?api=1&route=auth&op=login";
-        const res = await fetch(url, {
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({username,password})
-        });
-        const j = await res.json();
-        if(j.error){
-          msg.textContent = j.error;
-          msg.style.display="block"; return;
-        }
-        // Save profile
-        ls.setItem("AUTH", JSON.stringify(j));
-        // Redirect
-        location.href="index.html";
-      }catch(err){
-        msg.textContent="បរាជ័យក្នុងការភ្ជាប់ API: "+err.message;
-        msg.style.display="block";
-      }
-    };
-  </script>
+  try {
+    const j = await gasLogin(u, p);
+    if (j && !j.error) {
+      // Save auth profile
+      localStorage.setItem("AUTH", JSON.stringify({
+        user_id: j.user_id,
+        user_name: j.user_name,
+        user_type: j.user_type,
+        user_root: j.user_root,
+        department_id: j.department_id,
+        login_at: Date.now()
+      }));
+      // redirect
+      location.href = "index.html";
+    } else {
+      msg.textContent = j?.error || "Login បរាជ័យ";
+      msg.classList.remove("d-none");
+    }
+  } catch (err) {
+    msg.textContent = "បរាជ័យក្នុងការតភ្ជាប់ API: " + err.message;
+    msg.classList.remove("d-none");
+  }
+});
+</script>
+
 </body>
 </html>
