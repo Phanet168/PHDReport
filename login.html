@@ -1,44 +1,106 @@
+<!-- login.html -->
 <!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PHD Report – Login</title>
 
+  <!-- EDIT HERE: CSS from your template -->
+  <link rel="stylesheet" href="./assets/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./assets/css/icons.css">
+  <link rel="stylesheet" href="./assets/css/app.min.css">
 
-async function loginViaUsersJson(source, username, password){
-const j = await fetchDriveJson(source);
-const rows = Array.isArray(j)? j : (Array.isArray(j?.rows)? j.rows : []);
-const u = rows.find(r=> String(r.user_name).toLowerCase()===username.toLowerCase() && String(r.user_pass)===String(password));
-if(!u) return {ok:false, reason:'ឈ្មោះ ឬ ពាក្យសម្ងាត់មិនត្រឹមត្រូវ'};
-const {user_pass, ...safe} = u; setAuth({...safe, login_at:Date.now()});
-return {ok:true, profile:safe};
-}
+  <!-- bridge (fonts + small tweaks) -->
+  <link rel="stylesheet" href="./css/template-bridge.css">
+  <!-- our old app.css (optional — ifអ្នកចង់រក្សាទុកផ្នែកខ្លះ) -->
+  <link rel="stylesheet" href="./css/app.css">
+</head>
+<body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh;padding:24px">
+  <div class="card k-card p-4" style="width:min(480px,96vw)">
+    <div class="text-center mb-3">
+      <div class="h-khmer" style="font-size:28px;">ប្រព័ន្ធរាយការណ៍ PHD</div>
+      <div class="text-muted">សូមចូលប្រើប្រាស់ដោយគណនីរបស់អ្នក</div>
+    </div>
+    <hr class="my-3"/>
 
+    <form id="fLogin" class="vstack gap-2">
+      <label class="k-label">ឈ្មោះអ្នកប្រើ</label>
+      <div class="k-input"><input id="u" type="text" autocomplete="username" required></div>
 
-async function doLogin(username,password){
-const api = getApiBase();
-if(looksLikeAppsScript(api)){
-const r = await loginViaAppsScript(api, username, password);
-if(r.ok) return r; // success
-}
-if(DRIVE_USERS && DRIVE_USERS!=='PUT_USERS_FILE_ID_OR_URL_HERE'){
-return loginViaUsersJson(DRIVE_USERS, username, password);
-}
-return {ok:false, reason:'មិនអាច Authenticate បាន'};
-}
+      <label class="k-label mt-2">ពាក្យសម្ងាត់</label>
+      <div class="k-input"><input id="p" type="password" autocomplete="current-password" required></div>
 
+      <!-- អាចលាក់បាន ប្រសិនបើមិនចង់ឲ្យគេប្តូរ API -->
+      <div class="k-input mt-2" style="display:none">
+        <input id="api" type="text" placeholder="API URL">
+      </div>
 
-// Events
-document.getElementById('apiInput').value = getApiBase();
-document.getElementById('btnSaveApi').onclick = ()=>{ saveApiBase($('#apiInput').value.trim()); const m=$('#msg'); m.style.display='block'; m.style.color='#065f46'; m.textContent='រក្សាទុក API រួច'; };
+      <div id="msg" class="text-danger fw-semibold mt-2" style="display:none"></div>
 
+      <button class="k-btn k-btn-primary mt-3" type="submit">ចូលប្រើប្រាស់</button>
+    </form>
 
-document.getElementById('loginForm').addEventListener('submit', async (e)=>{
-e.preventDefault(); const u=$('#username').value.trim(); const p=$('#password').value; const m=$('#msg');
-if(!u||!p){ m.style.display='block'; m.textContent='សូមបំពេញឈ្មោះ និង ពាក្យសម្ងាត់'; return; }
-m.style.display='none';
-try{
-const r = await doLogin(u,p);
-if(r.ok){ location.href = DASHBOARD_PAGE; }
-else { m.style.display='block'; m.textContent='បរាជ័យ: '+(r.reason||''); }
-}catch(err){ m.style.display='block'; m.textContent='កំហុស: '+(err.message||err); }
-});
-</script>
+    <div class="text-muted mt-2" style="font-size:12px">
+      ប្រសិនបើ API បរាជ័យ ប្រព័ន្ធនឹង fallback អានពី users.json ក្នុង Google Drive (បើកំណត់)
+    </div>
+  </div>
+
+  <!-- EDIT HERE: JS from your template -->
+  <script src="./assets/js/bootstrap.bundle.min.js"></script>
+  <script src="./assets/js/app.min.js"></script>
+
+  <!-- app logic -->
+  <script src="./js/common.js"></script>
+  <script>
+    // hide API box; still allow override internally if you ever need
+    document.getElementById('api').value = CONFIG.API_BASE;
+
+    async function loginViaApi(username, password){
+      const url = new URL(CONFIG.API_BASE);
+      url.searchParams.set("api","1");
+      url.searchParams.set("route","auth");
+      url.searchParams.set("op","login");
+      const json = await jpost(url.toString(), {username, password});
+      if(json?.error) throw new Error(json.error);
+      return json;
+    }
+    async function loginViaDrive(username, password){
+      const url = CONFIG.DRIVE_JSON.users;
+      if(!url) throw new Error("មិនមាន users.json fallback");
+      const rows = await readDriveJson(url, "rows");
+      const u = rows.find(x => String(x.user_name||"").toLowerCase() === String(username).toLowerCase());
+      if(!u || String(u.user_pass) !== String(password)) throw new Error("ឈ្មោះអ្នកប្រើ ឬ ពាក្យសម្ងាត់ មិនត្រឹមត្រូវ");
+      const {user_pass, ...safe} = u;
+      return safe;
+    }
+
+    document.getElementById('fLogin').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const msg = document.getElementById('msg'); msg.style.display='none';
+      CONFIG.API_BASE = (document.getElementById('api').value || CONFIG.API_BASE).trim();
+      const username = document.getElementById('u').value.trim();
+      const password = document.getElementById('p').value;
+
+      try{
+        let profile = null;
+        try{ profile = await loginViaApi(username, password); }
+        catch(_){ profile = await loginViaDrive(username, password); }
+
+        setAuth({
+          user_id: profile.user_id,
+          user_name: profile.user_name,
+          user_type: profile.user_type,
+          user_root: profile.user_root,
+          department_id: profile.department_id,
+          login_at: Date.now()
+        });
+        location.href = './super-admin.html';
+      }catch(err){
+        msg.textContent = "Login បរាជ័យ: " + err.message;
+        msg.style.display = 'block';
+      }
+    });
+  </script>
 </body>
 </html>
