@@ -31,3 +31,21 @@ html,body{font-family:"Noto Sans Khmer",system-ui,Segoe UI,Arial,sans-serif;}
   display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px;
   background:#eef2ff; color:#3730a3
 }
+.phd-sidebar{
+  width:280px; min-height:100vh; background:#0f1a26; color:#cfe0ff; position:fixed; left:0; top:0;
+  transform:translateX(0); transition:transform .25s ease;
+}
+.phd-sidebar.collapsed{ transform:translateX(-100%); }
+.phd-sidebar a{ display:flex; align-items:center; gap:.5rem; padding:.65rem 1rem; color:#cfe0ff; text-decoration:none; border-radius:.5rem; }
+.phd-sidebar a:hover{ background:#152335; }
+.menu{ padding: .75rem; }
+.menu .has-children{ margin-top:.25rem; }
+.menu-toggle{ width:100%; display:flex; align-items:center; gap:.5rem; background:transparent; border:0; color:#cfe0ff; padding:.65rem 1rem; border-radius:.5rem; }
+.menu-toggle:hover{ background:#152335; }
+.submenu{ display:none; padding-left:.5rem; margin:.25rem 0 .5rem 0; }
+.submenu.open{ display:block; }
+.submenu a{ padding:.5rem 1rem .5rem 2.25rem; }
+@media (max-width: 992px){
+  .phd-sidebar{ position:fixed; z-index:1050; }
+}
+
