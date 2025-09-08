@@ -4,103 +4,144 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>PHD Report – Login</title>
+  <title>ចូលប្រើប្រព័ន្ធ | PHD Report</title>
 
-  <!-- EDIT HERE: CSS from your template -->
-  <link rel="stylesheet" href="./assets/css/bootstrap.min.css">
-  <link rel="stylesheet" href="./assets/css/icons.css">
-  <link rel="stylesheet" href="./assets/css/app.min.css">
+  <!-- YOUR THEME/ASSETS (match repo tree) -->
+  <link rel="stylesheet" href="assets/css/third-party.bundle.css">
+  <link rel="stylesheet" href="assets/css/themes/lite-purple.min.css">
 
-  <!-- bridge (fonts + small tweaks) -->
-  <link rel="stylesheet" href="./css/template-bridge.css">
-  <!-- our old app.css (optional — ifអ្នកចង់រក្សាទុកផ្នែកខ្លះ) -->
-  <link rel="stylesheet" href="./css/app.css">
+  <!-- Khmer Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{ --brand:#5b6ef5; --shadow:0 15px 40px rgba(0,0,0,.08); }
+    html,body{ height:100%; background:linear-gradient(135deg,#eef2ff,#f8fafc 45%,#ffffff); font-family:"Noto Sans Khmer",system-ui,Segoe UI,Arial,sans-serif; }
+    .wrap{ min-height:100%; display:grid; place-items:center; padding:24px }
+    .card-login{ width:min(440px,92vw); border-radius:22px; box-shadow:var(--shadow); border:0; overflow:hidden }
+    .card-login .head{ background:#0f172a; color:#fff; padding:22px 24px }
+    .brand{ font-family:"Khmer Moul",system-ui; font-size:28px; letter-spacing:.2px }
+    .muted{ opacity:.9; font-size:12px }
+    .body{ padding:22px 24px 26px; background:#fff }
+    .k-input{ position:relative; margin-bottom:14px }
+    .k-input input{ width:100%; background:#f8fafc; border:1px solid #e5e7eb; border-radius:12px; padding:12px 42px 12px 12px; outline:none }
+    .k-input input:focus{ border-color:#93c5fd; box-shadow:0 0 0 .25rem rgba(147,197,253,.25) }
+    .k-input .icon{ position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#64748b; cursor:pointer }
+    .btn-k{ width:100%; border:0; border-radius:12px; padding:12px 14px; background:var(--brand); color:#fff; font-weight:700 }
+    .btn-k[disabled]{ opacity:.75; cursor:wait }
+    .help{ display:flex; align-items:center; gap:8px; color:#475569; font-size:13px; margin-top:8px }
+    .err{ display:none; margin-top:10px; border-radius:12px; padding:10px 12px; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca }
+    .foot{ padding:12px 24px 18px; font-size:12px; color:#64748b; background:#fff }
+    .api-link{ text-decoration:none; color:#64748b }
+  </style>
 </head>
-<body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh;padding:24px">
-  <div class="card k-card p-4" style="width:min(480px,96vw)">
-    <div class="text-center mb-3">
-      <div class="h-khmer" style="font-size:28px;">ប្រព័ន្ធរាយការណ៍ PHD</div>
-      <div class="text-muted">សូមចូលប្រើប្រាស់ដោយគណនីរបស់អ្នក</div>
+<body>
+<div class="wrap">
+  <div class="card card-login">
+    <div class="head">
+      <div class="brand">ប្រព័ន្ធរាយការណ៍សុខភាព</div>
+      <div class="muted">សូមចូលប្រើជាមួយគណនីដែលបានផ្តល់ជូន</div>
     </div>
-    <hr class="my-3"/>
 
-    <form id="fLogin" class="vstack gap-2">
-      <label class="k-label">ឈ្មោះអ្នកប្រើ</label>
-      <div class="k-input"><input id="u" type="text" autocomplete="username" required></div>
-
-      <label class="k-label mt-2">ពាក្យសម្ងាត់</label>
-      <div class="k-input"><input id="p" type="password" autocomplete="current-password" required></div>
-
-      <!-- អាចលាក់បាន ប្រសិនបើមិនចង់ឲ្យគេប្តូរ API -->
-      <div class="k-input mt-2" style="display:none">
-        <input id="api" type="text" placeholder="API URL">
+    <form id="f" class="body" autocomplete="on">
+      <label class="form-label">ឈ្មោះអ្នកប្រើ</label>
+      <div class="k-input">
+        <input id="u" name="username" placeholder="ឈ្មោះអ្នកប្រើ" required autofocus>
+        <i class="icon i-Administrator"></i>
       </div>
 
-      <div id="msg" class="text-danger fw-semibold mt-2" style="display:none"></div>
+      <label class="form-label">ពាក្យសម្ងាត់</label>
+      <div class="k-input">
+        <input id="p" name="password" type="password" placeholder="ពាក្យសម្ងាត់" required>
+        <i id="toggle" class="icon i-Eye"></i>
+      </div>
 
-      <button class="k-btn k-btn-primary mt-3" type="submit">ចូលប្រើប្រាស់</button>
+      <button id="btn" class="btn-k" type="submit">ចូលប្រើប្រព័ន្ធ</button>
+      <div id="err" class="err">ចូលប្រើបរាជ័យ៖ សូមពិនិត្យឈ្មោះអ្នកប្រើ/ពាក្យសម្ងាត់ម្តងទៀត។</div>
+
+      <div class="help">
+        <i class="i-Security-Block"></i>
+        <span>សិទ្ធិ Supper Admin អាចចូលគ្រប់ការិយាល័យ។ អ្នកប្រើធម្មតាចូលបានតែការិយាល័យរបស់ខ្លួន។</span>
+      </div>
     </form>
 
-    <div class="text-muted mt-2" style="font-size:12px">
-      ប្រសិនបើ API បរាជ័យ ប្រព័ន្ធនឹង fallback អានពី users.json ក្នុង Google Drive (បើកំណត់)
+    <div class="foot">
+      <a class="api-link" href="#" title="API in code">API ត្រូវបានកំណត់ក្នុងកូដ</a>
     </div>
   </div>
+</div>
 
-  <!-- EDIT HERE: JS from your template -->
-  <script src="./assets/js/bootstrap.bundle.min.js"></script>
-  <script src="./assets/js/app.min.js"></script>
+<!-- Core JS from your template -->
+<script src="assets/js/jquery-3.3.1.min.js"></script>
+<script src="assets/js/bootstrap.bundle.min.js"></script>
 
-  <!-- app logic -->
-  <script src="./js/common.js"></script>
-  <script>
-    // hide API box; still allow override internally if you ever need
-    document.getElementById('api').value = CONFIG.API_BASE;
+<script>
+/* ===== CONFIG: API URL (embedded, not shown on UI) ===== */
+const API_BASE = "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
+const DASHBOARD = "index.html";
 
-    async function loginViaApi(username, password){
-      const url = new URL(CONFIG.API_BASE);
-      url.searchParams.set("api","1");
-      url.searchParams.set("route","auth");
-      url.searchParams.set("op","login");
-      const json = await jpost(url.toString(), {username, password});
-      if(json?.error) throw new Error(json.error);
-      return json;
-    }
-    async function loginViaDrive(username, password){
-      const url = CONFIG.DRIVE_JSON.users;
-      if(!url) throw new Error("មិនមាន users.json fallback");
-      const rows = await readDriveJson(url, "rows");
-      const u = rows.find(x => String(x.user_name||"").toLowerCase() === String(username).toLowerCase());
-      if(!u || String(u.user_pass) !== String(password)) throw new Error("ឈ្មោះអ្នកប្រើ ឬ ពាក្យសម្ងាត់ មិនត្រឹមត្រូវ");
-      const {user_pass, ...safe} = u;
-      return safe;
-    }
+/* ===== helpers ===== */
+function setAuth(profile){ localStorage.setItem("AUTH", JSON.stringify(profile)); }
+async function gasLogin(username,password){
+  const url = API_BASE + (API_BASE.includes("?") ? "&" : "?") + "api=1&route=auth&op=login";
+  const res = await fetch(url, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ username, password })
+  });
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const json = await res.json();
+  if(json && !json.error) return json; // server already removed user_pass
+  throw new Error(json?.error || "Login failed");
+}
 
-    document.getElementById('fLogin').addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const msg = document.getElementById('msg'); msg.style.display='none';
-      CONFIG.API_BASE = (document.getElementById('api').value || CONFIG.API_BASE).trim();
-      const username = document.getElementById('u').value.trim();
-      const password = document.getElementById('p').value;
+/* ===== UI logic ===== */
+const $ = (s,el=document)=>el.querySelector(s);
+const u = $("#u");
+const p = $("#p");
+const btn = $("#btn");
+const form = $("#f");
+const err = $("#err");
 
-      try{
-        let profile = null;
-        try{ profile = await loginViaApi(username, password); }
-        catch(_){ profile = await loginViaDrive(username, password); }
+$("#toggle").addEventListener("click", ()=>{
+  p.type = p.type==="password" ? "text" : "password";
+  $("#toggle").classList.toggle("i-Eye-Blocked");
+});
 
-        setAuth({
-          user_id: profile.user_id,
-          user_name: profile.user_name,
-          user_type: profile.user_type,
-          user_root: profile.user_root,
-          department_id: profile.department_id,
-          login_at: Date.now()
-        });
-        location.href = './super-admin.html';
-      }catch(err){
-        msg.textContent = "Login បរាជ័យ: " + err.message;
-        msg.style.display = 'block';
-      }
-    });
-  </script>
+form.addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  err.style.display="none";
+  btn.disabled = true;
+  btn.textContent = "កំពុងចូល...";
+
+  try{
+    const user = await gasLogin(u.value.trim(), p.value);
+    // keep only safe profile fields (server already safe)
+    const profile = {
+      user_id: user.user_id,
+      user_name: user.user_name,
+      user_type: user.user_type,
+      user_root: user.user_root,
+      department_id: user.department_id,
+      login_at: Date.now()
+    };
+    setAuth(profile);
+    location.replace(DASHBOARD);
+  }catch(ex){
+    err.textContent = "ចូលប្រើបរាជ័យ៖ " + ex.message;
+    err.style.display = "block";
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "ចូលប្រើប្រព័ន្ធ";
+  }
+});
+
+/* ប្រសិនបើមាន AUTH ស្រាប់ ត្រឡប់ទៅ Dashboard */
+try{
+  const me = JSON.parse(localStorage.getItem("AUTH")||"null");
+  if(me && me.user_id){ location.replace(DASHBOARD); }
+}catch(_){}
+</script>
 </body>
 </html>
