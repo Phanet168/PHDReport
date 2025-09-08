@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PHD Report – ផ្ទាំងគ្រប់គ្រង</title>
 
-  <!-- Khmer fonts -->
+  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Gull theme CSS (use root-relative path) -->
+  <link rel="stylesheet" href="dist-assets/css/themes/lite-purple.min.css" />
 
   <style>
     :root{
@@ -16,7 +19,8 @@
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
-      margin:0; background:#f5f7fb; color:#111; font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin:0; background:#f5f7fb; color:#111;
+      font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     }
 
     /* Top bar */
@@ -42,7 +46,8 @@
     .menu{list-style:none; margin:0; padding:0}
     .menu > li > a, .menu-toggle{
       width:100%; display:flex; align-items:center; justify-content:space-between;
-      padding:12px 16px; color:var(--text); text-decoration:none; background:transparent; border:none; cursor:pointer;
+      padding:12px 16px; color:var(--text); text-decoration:none;
+      background:transparent; border:none; cursor:pointer;
     }
     .menu > li > a:hover, .menu-toggle:hover{ background:var(--bg-2); }
     .submenu{
@@ -70,7 +75,6 @@
     .card h3{margin:0 0 8px 0; font-size:18px}
     .muted{color:var(--muted); font-size:14px}
 
-    /* Small */
     @media (min-width: 900px){
       .card--half{grid-column:span 6}
       .card--third{grid-column:span 4}
@@ -134,32 +138,41 @@
     </div>
   </main>
 
+  <!-- ===== Vendor JS (from Gull template) – place BEFORE your app script ===== -->
+  <script src="dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
+  <script src="dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
+  <script src="dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
+  <script src="dist-assets/js/scripts/script.min.js"></script>
+  <script src="dist-assets/js/scripts/sidebar.compact.script.min.js"></script>
+  <script src="dist-assets/js/scripts/customizer.script.min.js"></script>
+  <!-- (Optional) charts on dashboard -->
+  <script src="dist-assets/js/plugins/echarts.min.js"></script>
+  <script src="dist-assets/js/scripts/echart.options.min.js"></script>
+  <script src="dist-assets/js/scripts/dashboard.v1.script.min.js"></script>
+
+  <!-- ===== App script ===== -->
   <script>
     // ===== Config =====
     const GAS_BASE = "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
     const ls = window.localStorage;
 
-    // ===== Helpers =====
-    function getAuth(){
-      try{ return JSON.parse(ls.getItem("AUTH")||"null"); }catch(e){ return null; }
-    }
-    function isSuper(auth){
-      return !!auth && (auth.user_type === "superuser" || auth.user_root === "all");
-    }
+    // Helpers
+    const getAuth = () => { try { return JSON.parse(ls.getItem("AUTH")||"null"); } catch { return null; } };
+    const isSuper = (a) => !!a && (a.user_type === "superuser" || a.user_root === "all");
     async function gasList(route, params={}){
       const u = new URL(GAS_BASE);
       u.searchParams.set("api","1");
       u.searchParams.set("route",route);
       u.searchParams.set("op","list");
-      for(const [k,v] of Object.entries(params)) u.searchParams.set(k,v);
-      const res = await fetch(u.toString(), {cache:"no-store"});
-      if(!res.ok) throw new Error("HTTP "+res.status);
-      const j = await res.json();
-      if (j.error) throw new Error(j.error);
+      Object.entries(params).forEach(([k,v]) => u.searchParams.set(k,v));
+      const r = await fetch(u, {cache:"no-store"});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j = await r.json();
+      if(j.error) throw new Error(j.error);
       return Array.isArray(j.rows) ? j.rows : (Array.isArray(j) ? j : []);
     }
 
-    // ===== UI: toggle sidebar & submenu =====
+    // UI: toggle sidebar & submenu
     const sidebar = document.getElementById("sidebar");
     document.getElementById("btnToggle").onclick = () => {
       sidebar.classList.toggle("collapsed");
@@ -173,14 +186,14 @@
       });
     });
 
-    // ===== Build departments & units =====
+    // Build departments/units menu
     async function buildDeptMenu(){
       const auth = getAuth();
       const box = document.getElementById("deptList");
       box.innerHTML = '<li class="muted" style="padding:10px 16px;">កំពុងទាញទិន្នន័យ...</li>';
 
       try{
-        let depts = await gasList("departments");  // GET → no CORS preflight
+        let depts = await gasList("departments");
         if (!isSuper(auth) && auth?.department_id){
           depts = depts.filter(d => String(d.department_id) === String(auth.department_id));
         }
@@ -207,7 +220,6 @@
             btn.setAttribute("aria-expanded", ul.classList.contains("open"));
           });
 
-          // Load units for each department
           const units = await gasList("units", { department_id: d.department_id });
           if (!units.length){
             const empty = document.createElement("li");
@@ -218,7 +230,6 @@
               const item = document.createElement("li");
               const a = document.createElement("a");
               a.textContent = u.unit_name;
-              // redirect target page (you can create these pages later)
               a.href = `pages/departments/${d.department_id}/units/${u.unit_id}/index.html`;
               item.appendChild(a);
               ul.appendChild(item);
@@ -230,25 +241,21 @@
       }
     }
 
-    // ===== Init =====
+    // Init
     (function init(){
       const auth = getAuth();
       const btnLogin = document.getElementById("btnLogin");
       if(auth){
         btnLogin.textContent = (auth.user_name || "អ្នកប្រើប្រាស់") + " • ចេញ";
         btnLogin.href = "#";
-        btnLogin.onclick = (e)=>{
-          e.preventDefault();
-          ls.removeItem("AUTH");
-          location.reload();
-        };
+        btnLogin.onclick = (e)=>{ e.preventDefault(); ls.removeItem("AUTH"); location.reload(); };
       }else{
         btnLogin.textContent = "ចូលប្រើប្រាស់";
         btnLogin.href = "login.html";
       }
       buildDeptMenu();
 
-      // filter with "q" (optional – just for demo)
+      // simple client filter
       document.getElementById("q").addEventListener("input", (e)=>{
         const q = e.target.value.toLowerCase();
         document.querySelectorAll("#menuRoot a").forEach(a=>{
