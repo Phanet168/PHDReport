@@ -1,467 +1,77 @@
 <!DOCTYPE html>
-<html lang="km">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PHD Report – Admin (Plan B: Google Drive JSON)</title>
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Moul&family=Noto+Sans+Khmer:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css" rel="stylesheet">
-  <style>
-    :root{
-      --bg:#f6f7fb; --surface:#ffffff; --text:#1f2937; --muted:#6b7280; --primary:#6d28d9; --primary-2:#8b5cf6; --ring:#d8b4fe;
-      --radius:16px; --shadow:0 10px 25px rgba(29, 23, 41, .08), 0 2px 8px rgba(29, 23, 41, .05);
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:'Noto Sans Khmer',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    h1,h2,h3,.kh-title{font-family:'Moul', serif; letter-spacing:.2px}
+const depId = auth.department_id; rows = rows.filter(r=> String((r.department_id||r.department_id))===String(depId) || String(r.department_id||'')==='');
+}
+if(filter.department_id) rows = rows.filter(r=> String(r.department_id)===String(filter.department_id));
+if(filter.unit_id) rows = rows.filter(r=> String(r.unit_id)===String(filter.unit_id));
 
-    .app{display:grid;grid-template-columns:290px 1fr;min-height:100dvh}
-    .sidebar{background:var(--surface);box-shadow:var(--shadow);padding:14px 12px;position:sticky;top:0;height:100dvh;overflow:auto}
-    .brand{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px}
-    .brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--primary),var(--primary-2));display:grid;place-items:center;color:#fff;box-shadow:0 6px 16px rgba(109,40,217,.3)}
-    .brand .name{font-weight:700}
 
-    details.group{border-radius:12px;margin:4px 2px}
-    details.group[open] {background:rgba(109,40,217,.04)}
-    details.group > summary{list-style:none;display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-radius:12px;user-select:none;transition:background .2s}
-    details.group > summary:hover{background:rgba(109,40,217,.08)}
-    details.group .item i{font-size:20px;color:var(--primary)}
-    details.group .label{font-weight:600}
-    details.group .caret{margin-left:auto;transition:transform .2s ease}
-    details.group[open] .caret{transform:rotate(180deg)}
+// Build head
+const meta = Schema[route] || { id:'id', cols: [['id','ID',80],['name','Name',220]] };
+const thead = meta.cols.map(([k,lab,w])=>`<th style="width:${w||140}px">${lab}</th>`).join('') + `<th style="width:160px">សកម្មភាព</th>`;
+document.getElementById('thead').innerHTML = thead;
 
-    .sub-wrap{display:flex;flex-direction:column;padding:6px 10px 12px 34px}
-    a.sub{padding:8px 10px;border-radius:10px;text-decoration:none;color:var(--text);display:flex;align-items:center;gap:8px}
-    a.sub:hover{background:#f1efff}
-    a.sub.active{background:#ede9fe;color:#3b2a88;box-shadow:inset 0 0 0 1px var(--ring)}
-    .muted{color:var(--muted)}
 
-    .topbar{display:flex;align-items:center;gap:10px;padding:16px 18px}
-    .topbar .title{font-size:22px}
+// Save state
+this.state={route, rows, filtered:rows.slice(), meta};
+$('#q').value=qPreset||''; this.applySearch();
 
-    .content{padding:18px}
-    .card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow)}
 
-    .crud{display:flex;flex-direction:column;gap:14px}
-    .crud .header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #eee}
-    .badge{padding:5px 10px;border-radius:999px;font-size:12px;background:#efeafe;color:#4c1d95}
+// Role-based buttons
+const canWrite = WRITE_ENABLED && looksLikeAppsScript(API_BASE) && isSuper; // only super admin may write
+document.getElementById('btnAdd').style.display = canWrite? 'inline-block':'none';
+document.getElementById('chipInfo').textContent = `ចំនួន: ${rows.length}`;
+},
+applySearch(){ const q=$('#q').value.trim().toLowerCase(); const {rows}=this.state; const out=q? rows.filter(r=> JSON.stringify(r).toLowerCase().includes(q)) : rows.slice(); this.state.filtered=out; this.render(); },
+render(){ const tb=$('#tbody'); const {filtered, meta} = this.state; if(!filtered.length){ tb.innerHTML=`<tr><td class="muted" colspan="99" style="padding:12px">គ្មានទិន្នន័យ</td></tr>`; return; }
+tb.innerHTML = filtered.map(r=>{
+const tds = meta.cols.map(([k])=>`<td>${r[k]??''}</td>`).join('');
+return `<tr>${tds}<td>
+<button class="btn" data-act="edit" data-id="${r[meta.id]}"><i class="ri-edit-2-line"></i> កែ</button>
+<button class="btn" data-act="del" data-id="${r[meta.id]}"><i class="ri-delete-bin-line"></i> លុប</button>
+</td></tr>`;
+}).join('');
+},
+openForm(mode,row){ const auth=requireAuth(); const isSuper=String(auth.user_type||'').toLowerCase().includes('super'); if(!(WRITE_ENABLED&&looksLikeAppsScript(API_BASE)&&isSuper)){ alert('READ-ONLY or role not allowed'); return; }
+const {meta,route}=this.state; $('#dlgTitle').textContent = (mode==='add'?'បន្ថែម ':'កែ ') + route; const box=$('#formFields'); box.innerHTML='';
+meta.cols.forEach(([k,lab])=>{ const v=row? (row[k]??'') : ''; box.insertAdjacentHTML('beforeend', `<label>${lab}<input name="${k}" value="${String(v).replace(/"/g,'&quot;')}" /></label>`); });
+const dlg=$('#formDialog'); dlg.returnValue=''; dlg.showModal(); dlg.dataset.mode=mode; dlg.dataset.id=row?row[meta.id]:''; },
+async saveForm(){ const auth=requireAuth(); const isSuper=String(auth.user_type||'').toLowerCase().includes('super'); if(!(WRITE_ENABLED&&looksLikeAppsScript(API_BASE)&&isSuper)) return;
+const {meta,route}=this.state; const fd=new FormData($('#formGeneric')); const row={}; meta.cols.forEach(([k])=> row[k]=fd.get(k)); if(meta.id==='department_id'||meta.id==='unit_id'||meta.id==='period_id'){ if(row[meta.id]) row[meta.id]=Number(row[meta.id]); }
+// upsert
+await apiUpsert(route,row); $('#formDialog').close(); await this.show(route); },
+async remove(id){ const auth=requireAuth(); const isSuper=String(auth.user_type||'').toLowerCase().includes('super'); if(!(WRITE_ENABLED&&looksLikeAppsScript(API_BASE)&&isSuper)) return; const {meta,route}=this.state; if(!confirm('បញ្ជាក់លុប?')) return; await apiDelete(route, meta.id, id); await this.show(route); }
+};
 
-    .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:0 16px 16px}
-    .search{position:relative;flex:1;min-width:220px}
-    .search input{width:100%;padding:10px 12px 10px 36px;border:1px solid #e5e7eb;border-radius:12px;outline:0}
-    .search .ri-search-line{position:absolute;left:10px;top:9px;color:#9ca3af}
 
-    .btn{padding:10px 14px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
-    .btn.primary{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border-color:transparent}
-    .btn[disabled]{opacity:.5;cursor:not-allowed}
+// ============== BOOT ==============
+document.addEventListener('DOMContentLoaded', async ()=>{
+const auth = requireAuth(); if(!auth) return; // redirected
+document.getElementById('who').textContent = `អ្នកប្រើ: ${auth.user_name} • តួនាទី: ${auth.user_type} • ការិយាល័យ: ${auth.department_id}`;
+const isSuper = String(auth.user_type||'').toLowerCase().includes('super');
 
-    table{width:100%;border-collapse:separate;border-spacing:0 10px}
-    thead th{font-size:12px;text-transform:uppercase;color:#6b7280;text-align:left;padding:0 12px}
-    tbody tr{background:#fff;box-shadow:var(--shadow)}
-    tbody td{padding:12px 12px;border-top-left-radius:10px;border-bottom-left-radius:10px}
-    tbody td:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
 
-    .row-actions{display:flex;gap:6px}
-    .chip{padding:2px 8px;border-radius:999px;font-size:12px;background:#f3f4f6}
+// Role-based menu visibility
+if(!isSuper){ document.getElementById('grpUsers').style.display='none'; document.getElementById('grpSystem').style.display='none'; }
+document.getElementById('modeBadge').textContent = (looksLikeAppsScript(API_BASE) && WRITE_ENABLED && isSuper) ? 'WRITE (Apps Script)' : 'READ-ONLY (Drive JSON)';
 
-    /* Dialog */
-    dialog.modal{border:0;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.15);width:min(520px,95vw)}
-    .modal .head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #eee}
-    .modal form{padding:14px 16px;display:grid;gap:12px}
-    .field label{font-weight:600;display:block;margin-bottom:6px}
-    .field input, .field select{width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px}
-    .actions{display:flex;gap:8px;justify-content:flex-end;padding:0 16px 16px}
 
-    /* Toast */
-    .toast{position:fixed;right:16px;bottom:16px;background:#111827;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:var(--shadow);opacity:0;transform:translateY(10px);transition:.25s}
-    .toast.show{opacity:1;transform:translateY(0)}
+// Build department menu
+await buildDepartmentMenu(auth);
 
-    /* Khmer headings */
-    .app-title{font-family:'Moul';font-size:24px}
-  </style>
-</head>
-<body>
-  <div class="app">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="logo"><i class="ri-shield-cross-line"></i></div>
-        <div>
-          <div class="app-title">ផេចឌី រ៉ីផត</div>
-          <div class="muted" style="font-size:12px">Admin Console</div>
-        </div>
-      </div>
-      <nav id="menu">
-        <details class="group" open>
-          <summary class="item"><i class="ri-dashboard-line"></i><span class="label">ផ្ទាំងគ្រប់គ្រង</span><i class="ri-arrow-down-s-line caret"></i></summary>
-          <div class="sub-wrap">
-            <a class="sub" href="#" data-route="dashboard">• សង្ខេប</a>
-          </div>
-        </details>
 
-        <details class="group">
-          <summary class="item"><i class="ri-briefcase-3-line"></i><span class="label">រដ្ឋបាល</span><i class="ri-arrow-down-s-line caret"></i></summary>
-          <div class="sub-wrap">
-            <a class="sub" href="#" data-route="departments">• នាយកដ្ឋាន</a>
-          </div>
-        </details>
+// Menu interactions
+document.getElementById('menu').addEventListener('click', (e)=>{
+const a=e.target.closest('a.sub'); if(!a) return; e.preventDefault(); $$('#menu a.sub').forEach(x=>x.classList.remove('active')); a.classList.add('active');
+const route=a.dataset.route||'dashboard'; const filter=a.dataset.filter? JSON.parse(a.dataset.filter):{}; if(route==='dashboard'){ $('#crud-sec').style.display='none'; $('#dashboard-sec').style.display='block'; } else { CRUD.show(route, filter); }
+});
 
-        <details class="group">
-          <summary class="item"><i class="ri-calculator-line"></i><span class="label">គណនេយ្យ</span><i class="ri-arrow-down-s-line caret"></i></summary>
-          <div class="sub-wrap">
-            <a class="sub" href="#" data-route="accounting">• ទូទៅ</a>
-          </div>
-        </details>
 
-        <!-- Dynamic programs from Drive JSON -->
-        <details class="group" open id="grpDisease">
-          <summary class="item"><i class="ri-hospital-line"></i><span class="label">បង្ការនិងគ្រប់គ្រងជំងឺ</span><i class="ri-arrow-down-s-line caret"></i></summary>
-          <div class="sub-wrap" id="diseaseUnits">
-            <div class="sub muted">កំពុងទាញទិន្នន័យ...</div>
-          </div>
-        </details>
-
-        <details class="group">
-          <summary class="item"><i class="ri-government-line"></i><span class="label">និយ័តកម្មសុខាភិបាល</span><i class="ri-arrow-down-s-line caret"></i></summary>
-          <div class="sub-wrap">
-            <a class="sub" href="#" data-route="reg">• ទូទៅ</a>
-          </div>
-        </details>
-
-        <details class="group">
-          <summary class="item"><i class="ri-file-chart-line"></i><span class="label">របាយការណ៍</span><i class="ri-arrow-down-s-line caret"></i></summary>
-          <div class="sub-wrap">
-            <a class="sub" href="#" data-route="reports">• សង្ខេប</a>
-          </div>
-        </details>
-
-        <details class="group">
-          <summary class="item"><i class="ri-user-settings-line"></i><span class="label">គ្រប់គ្រងអ្នកប្រើប្រាស់</span><i class="ri-arrow-down-s-line caret"></i></summary>
-          <div class="sub-wrap">
-            <a class="sub" href="#" data-route="users">• បញ្ជីអ្នកប្រើ</a>
-          </div>
-        </details>
-
-        <details class="group">
-          <summary class="item"><i class="ri-settings-3-line"></i><span class="label">គ្រប់គ្រងប្រព័ន្ធ</span><i class="ri-arrow-down-s-line caret"></i></summary>
-          <div class="sub-wrap">
-            <a class="sub" href="#" data-route="periods">• Periods</a>
-            <a class="sub" href="#" data-route="indicators">• Indicators</a>
-          </div>
-        </details>
-      </nav>
-    </aside>
-
-    <!-- Main -->
-    <main>
-      <div class="topbar">
-        <div class="title">ផ្ទាំងគ្រប់គ្រង</div>
-        <span class="badge" id="modeBadge">READ-ONLY (Drive JSON)</span>
-        <span class="muted" style="margin-left:auto">Form loading & menu animation បានដាក់រួច</span>
-      </div>
-
-      <div class="content">
-        <!-- Dashboard card -->
-        <section id="dashboard-sec" class="card" style="padding:18px">
-          <h2 class="kh-title" style="margin:0 0 6px">សេចក្តីសង្ខេប</h2>
-          <div class="muted">ជ្រើសរើសមុខម៉ឺនុយខាងឆ្វេង ដើម្បី CRUD</div>
-        </section>
-
-        <!-- CRUD section -->
-        <section id="crud-sec" class="card" style="display:none">
-          <div class="crud">
-            <div class="header">
-              <h3 id="crud-title" class="kh-title" style="margin:0">Units</h3>
-              <span class="chip" id="chipInfo"></span>
-            </div>
-            <div class="toolbar">
-              <div class="search">
-                <i class="ri-search-line"></i>
-                <input id="q" placeholder="ស្វែងរក..." />
-              </div>
-              <button id="btnAdd" class="btn primary" title="បន្ថែម" disabled>+ បន្ថែម</button>
-            </div>
-            <div style="padding:0 16px 16px">
-              <table>
-                <thead>
-                  <tr><th style="width:80px">ID</th><th>ឈ្មោះ</th><th style="width:140px">សកម្មភាព</th></tr>
-                </thead>
-                <tbody id="tbody"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      </div>
-    </main>
-  </div>
-
-  <!-- Modal (Add/Edit) -->
-  <dialog class="modal" id="formDialog">
-    <div class="head"><strong class="kh-title" id="dlgTitle">ទម្រង់</strong></div>
-    <form id="formUnit" method="dialog">
-      <div class="field">
-        <label>ឈ្មោះកម្មវិធី</label>
-        <input id="f_unit_name" required />
-      </div>
-      <div class="field">
-        <label>Department ID</label>
-        <input id="f_department_id" type="number" min="1" required />
-      </div>
-      <input id="f_unit_id" type="hidden" />
-      <div class="actions">
-        <button class="btn" value="cancel">បោះបង់</button>
-        <button class="btn primary" id="btnSave" value="save">រក្សាទុក</button>
-      </div>
-    </form>
-  </dialog>
-
-  <div class="toast" id="toast"></div>
-
-  <script>
-  // ================== CONFIG (Plan B) ==================
-  // 👉 Replace with your real Google Drive file IDs OR sharable URLs
-  const DRIVE_JSON = {
-    // Accepts either a pure fileId (e.g. "1abc...") OR a full sharing URL
-    departments: "PUT_DEPARTMENTS_FILE_ID_OR_URL_HERE",
-    units:       "PUT_UNITS_FILE_ID_OR_URL_HERE"
-  };
-
-  // Persist mode: 'read_only' (Drive JSON) or 'apps_script'
-  const PERSIST_MODE = 'read_only'; // Change to 'apps_script' if you later wire a backend
-  const API_BASE = ""; // If PERSIST_MODE==='apps_script', place your Apps Script web app url here
-
-  // ================== Utilities ==================
-  const $ = (s,el=document)=>el.querySelector(s);
-  const $$ = (s,el=document)=>Array.from(el.querySelectorAll(s));
-
-  function toast(msg, ms=1800){
-    const t = $('#toast');
-    t.textContent = msg; t.classList.add('show');
-    setTimeout(()=>t.classList.remove('show'), ms);
-  }
-
-  function parseDriveId(idOrUrl){
-    if(!idOrUrl) return '';
-    if(/https?:\/\//.test(idOrUrl)){
-      // Try to extract file id from common Drive URL patterns
-      const m = idOrUrl.match(/\/d\/([\w-]+)/) || idOrUrl.match(/[?&]id=([\w-]+)/);
-      return m ? m[1] : idOrUrl;
-    }
-    return idOrUrl; // already an id
-  }
-
-  async function fetchDriveJson(fileIdOrUrl){
-    const id = parseDriveId(fileIdOrUrl);
-    if(!id) throw new Error('Missing Google Drive file id/url');
-    // Use export=download to get raw content
-    const url = `https://drive.google.com/uc?export=download&id=${id}`;
-    const res = await fetch(url, {cache:'no-store'});
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const text = await res.text();
-    try{
-      return JSON.parse(text);
-    }catch(err){
-      // Sometimes Drive wraps JSON in HTML if not shared publicly – surface a clearer message
-      throw new Error('Failed to parse JSON. Make sure file is shared: Anyone with the link (Viewer).');
-    }
-  }
-
-  function normalizeRows(j){
-    if(Array.isArray(j)) return j;
-    if(Array.isArray(j?.rows)) return j.rows;
-    if(Array.isArray(j?.data)) return j.data;
-    return [];
-  }
-
-  // ================== Data Cache ==================
-  const Cache = { data: {},
-    async get(key){
-      if(!this.data[key]){
-        if(key==='departments'){
-          const j = await fetchDriveJson(DRIVE_JSON.departments);
-          this.data.departments = normalizeRows(j);
-        }else if(key==='units'){
-          const j = await fetchDriveJson(DRIVE_JSON.units);
-          this.data.units = normalizeRows(j);
-        }else{
-          this.data[key] = [];
-        }
-      }
-      return this.data[key];
-    },
-    clear(){ this.data = {}; }
-  };
-
-  // ================== Dynamic Programs Menu ==================
-  const ProgramsMenu = {
-    box: $('#diseaseUnits'),
-    async init(){
-      this.box.innerHTML = `<div class="sub muted">កំពុងទាញទិន្នន័យ...</div>`;
-      try{
-        const deps  = await Cache.get('departments');
-        const units = await Cache.get('units');
-        const dep   = deps.find(d => /បង្ការ/.test(String(d.department_name)))
-                    || deps.find(d => Number(d.department_id)===2) || null;
-        if(!dep){ this.box.innerHTML = `<div class="sub muted">រកមិនឃើញនាយកដ្ឋាន</div>`; return; }
-        const list = units.filter(u => Number(u.department_id)===Number(dep.department_id));
-        if(!list.length){ this.box.innerHTML = `<div class="sub muted">គ្មាន Unit សម្រាប់នាយកដ្ឋាននេះ</div>`; return; }
-        this.box.innerHTML = list.map(u=>
-          `<a class="sub" href="#" data-route="units" data-filter='${JSON.stringify({department_id:dep.department_id, unit_id:u.unit_id})}' data-q="${(u.unit_name||'').replace(/\"/g,'\\"')}">• ${u.unit_name||('Unit #'+u.unit_id)}</a>`
-        ).join('');
-      }catch(err){
-        console.error(err);
-        this.box.innerHTML = `<div class="sub muted">អានពី Google Drive បរាជ័យ</div>`;
-      }
-    }
-  };
-
-  // ================== CRUD (READ-ONLY for Plan B) ==================
-  const CRUD = {
-    state:{ route:'', rows:[], filtered:[], depId:null },
-
-    async show(route, filter={}, qPreset=''){
-      $('#dashboard-sec').style.display='none';
-      $('#crud-sec').style.display='block';
-      $('#crud-title').textContent = route==='units' ? 'កម្មវិធីក្រោមនាយកដ្ឋាន' : route;
-      $('#btnAdd').disabled = (PERSIST_MODE!=='apps_script');
-
-      if(route==='units'){
-        const units = await Cache.get('units');
-        let rows = units;
-        if(filter.department_id) rows = rows.filter(r=> String(r.department_id)===String(filter.department_id));
-        if(filter.unit_id) rows = rows.filter(r=> String(r.unit_id)===String(filter.unit_id));
-        this.state = { route, rows, filtered:rows.slice(), depId: filter.department_id||null };
-        $('#q').value = qPreset||'';
-        this.applySearch();
-        $('#chipInfo').textContent = `ចំនួន: ${rows.length}`;
-      } else {
-        this.state = { route, rows:[], filtered:[] };
-        $('#tbody').innerHTML = `<tr><td colspan="3" class="muted" style="padding:16px 12px">Route នេះមិនទាន់អនុវត្ត</td></tr>`;
-        $('#chipInfo').textContent = '';
-      }
-    },
-
-    applySearch(){
-      const q = $('#q').value.trim().toLowerCase();
-      const { rows } = this.state;
-      const out = q? rows.filter(r=> JSON.stringify(r).toLowerCase().includes(q)) : rows.slice();
-      this.state.filtered = out;
-      this.render();
-    },
-
-    render(){
-      const tb = $('#tbody');
-      const { filtered } = this.state;
-      if(!filtered.length){ tb.innerHTML = `<tr><td colspan="3" class="muted" style="padding:16px 12px">គ្មានទិន្នន័យ</td></tr>`; return; }
-      tb.innerHTML = filtered.map(r=> `
-        <tr>
-          <td>${r.unit_id ?? ''}</td>
-          <td>${r.unit_name ?? ''}</td>
-          <td>
-            <div class="row-actions">
-              <button class="btn" data-act="edit" data-id="${r.unit_id}"><i class="ri-edit-2-line"></i> កែ</button>
-              <button class="btn" data-act="del" data-id="${r.unit_id}"><i class="ri-delete-bin-6-line"></i> លុប</button>
-            </div>
-          </td>
-        </tr>`).join('');
-    },
-
-    openForm(mode, row){
-      if(PERSIST_MODE!=='apps_script'){
-        toast('READ-ONLY: មិនអនុញ្ញាត កែ/បន្ថែម លុប នៅ Plan B');
-        return;
-      }
-      $('#dlgTitle').textContent = mode==='add'? 'បន្ថែម Unit' : 'កែ Unit';
-      $('#f_unit_id').value = row?.unit_id ?? '';
-      $('#f_unit_name').value = row?.unit_name ?? '';
-      $('#f_department_id').value = row?.department_id ?? (this.state.depId || '');
-      $('#formDialog').showModal();
-    },
-
-    async saveForm(){
-      if(PERSIST_MODE!=='apps_script'){ toast('READ-ONLY mode'); return; }
-      const payload = {
-        unit_id: $('#f_unit_id').value ? Number($('#f_unit_id').value) : undefined,
-        unit_name: $('#f_unit_name').value.trim(),
-        department_id: Number($('#f_department_id').value)
-      };
-      // send to Apps Script upsert
-      const url = `${API_BASE}?api=1&route=units&op=upsert`;
-      const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      await res.json();
-      toast('បានរក្សាទុក');
-      $('#formDialog').close();
-      Cache.clear();
-      // reload view
-      CRUD.show('units', {department_id: this.state.depId});
-    },
-
-    async remove(id){
-      if(PERSIST_MODE!=='apps_script'){ toast('READ-ONLY mode'); return; }
-      if(!confirm('បញ្ជាក់លុប?')) return;
-      const url = `${API_BASE}?api=1&route=units&op=delete&unit_id=${encodeURIComponent(id)}`;
-      const res = await fetch(url, {method:'POST'});
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      await res.json();
-      toast('បានលុប');
-      Cache.clear();
-      CRUD.show('units', {department_id: this.state.depId});
-    }
-  };
-
-  // ================== Events ==================
-  document.addEventListener('DOMContentLoaded', async ()=>{
-    // Badge
-    $('#modeBadge').textContent = PERSIST_MODE==='apps_script' ? 'WRITE (Apps Script)' : 'READ-ONLY (Drive JSON)';
-
-    // Build dynamic programs from Drive JSON
-    ProgramsMenu.init();
-
-    // Menu clicks
-    $('#menu').addEventListener('click', (e)=>{
-      const a = e.target.closest('a.sub, a.item'); if(!a) return;
-      e.preventDefault();
-      $$('#menu a.sub').forEach(x=>x.classList.remove('active'));
-      a.classList.add('active');
-
-      const route = a.dataset.route || 'dashboard';
-      const filter = a.dataset.filter? JSON.parse(a.dataset.filter) : {};
-      const q = a.dataset.q || '';
-      if(route==='dashboard'){
-        $('#crud-sec').style.display='none';
-        $('#dashboard-sec').style.display='block';
-      } else {
-        CRUD.show(route, filter, q);
-      }
-    });
-
-    // Search
-    $('#q').addEventListener('input', ()=> CRUD.applySearch());
-
-    // Add
-    $('#btnAdd').addEventListener('click', ()=> CRUD.openForm('add'));
-
-    // Row actions
-    $('#tbody').addEventListener('click', (e)=>{
-      const btn = e.target.closest('button[data-act]'); if(!btn) return;
-      const id = btn.dataset.id;
-      if(btn.dataset.act==='edit'){
-        const row = CRUD.state.rows.find(r=> String(r.unit_id)===String(id));
-        CRUD.openForm('edit', row);
-      } else if(btn.dataset.act==='del'){
-        CRUD.remove(id);
-      }
-    });
-
-    // Form submit
-    $('#formUnit').addEventListener('submit', (e)=>{
-      if(e.submitter?.value!=="save") return; // cancel pressed
-      e.preventDefault(); CRUD.saveForm().catch(err=> toast(err.message||'បរាជ័យ'));
-    });
-  });
-  </script>
+document.getElementById('q').addEventListener('input', ()=> CRUD.applySearch());
+document.getElementById('btnAdd').addEventListener('click', ()=> CRUD.openForm('add'));
+document.getElementById('tbody').addEventListener('click', (e)=>{ const b=e.target.closest('button[data-act]'); if(!b) return; const id=b.dataset.id; if(b.dataset.act==='edit'){ const row=CRUD.state.rows.find(r=> String(r[CRUD.state.meta.id])===String(id)); CRUD.openForm('edit', row);} else if(b.dataset.act==='del'){ CRUD.remove(id);} });
+document.getElementById('formGeneric').addEventListener('submit',(e)=>{ if(e.submitter?.value!=='save') return; e.preventDefault(); CRUD.saveForm(); });
+document.getElementById('btnLogout').addEventListener('click', (e)=>{ e.preventDefault(); logout(); });
+});
+</script>
 </body>
 </html>
