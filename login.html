@@ -77,51 +77,132 @@
 <script src="assets/js/bootstrap.bundle.min.js"></script>
 
 <script>
-const GAS_BASE =
-  "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
+const GAS = "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
+const ls  = window.localStorage;
 
-async function gasLogin(username, password){
-  const url = GAS_BASE + "?api=1&route=auth&op=login";
-  // NOTE: Content-Type: text/plain  -> គ្មាន preflight
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ username, password }),
-    // មិនចាំបាច់: mode:'cors'  (default)
+function getAuth(){ try{ return JSON.parse(ls.getItem("AUTH")||"null"); }catch(e){ return null; } }
+
+// -------- Sidebar open/close --------
+const sidebar = document.getElementById('sidebar');
+const btnToggle = document.getElementById('btnToggleSidebar');
+const SIDEBAR_KEY = "PHDSIDEBAR_OPEN";
+
+function setSidebar(open){
+  sidebar.classList.toggle('collapsed', !open);
+  btnToggle.setAttribute('aria-expanded', String(open));
+  ls.setItem(SIDEBAR_KEY, open ? "1" : "0");
+}
+btnToggle.addEventListener('click', ()=> setSidebar(sidebar.classList.contains('collapsed')) );
+setSidebar(ls.getItem(SIDEBAR_KEY)!=="0"); // default open
+
+// Accordion open/remember
+document.querySelectorAll('.menu-toggle').forEach(btn=>{
+  const li = btn.closest('.has-children');
+  const sub = li.querySelector('.submenu');
+  const key = "OPEN_" + (li.id || btn.textContent.trim());
+  const open = ls.getItem(key)==="1";
+  sub.classList.toggle('open', open);
+  btn.setAttribute('aria-expanded', String(open));
+  btn.addEventListener('click', ()=>{
+    const now = !sub.classList.contains('open');
+    sub.classList.toggle('open', now);
+    btn.setAttribute('aria-expanded', String(now));
+    ls.setItem(key, now ? "1":"0");
   });
-  if(!res.ok){ throw new Error("HTTP " + res.status); }
-  const data = await res.json();   // Apps Script បញ្ជូន JSON
-  if(data.error){ throw new Error(data.error); }
-  return data; // {user_id, user_name, user_type, user_root, department_id, ...}
+});
+
+// -------- Helpers to call GAS --------
+async function gasGet(route, qs={}){
+  const u = new URL(GAS);
+  u.searchParams.set("api","1");
+  u.searchParams.set("route", route);
+  u.searchParams.set("op","list");
+  Object.entries(qs).forEach(([k,v])=>u.searchParams.set(k, v));
+  const res = await fetch(u.toString(), { cache:"no-store" });
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const j = await res.json();
+  if(j.error) throw new Error(j.error);
+  return j.rows || [];
 }
 
-// ហៅពី form submit
-document.getElementById("loginForm").addEventListener("submit", async (e)=>{
-  e.preventDefault();
-  const u = document.getElementById("username").value.trim();
-  const p = document.getElementById("password").value;
-  const msg = document.getElementById("msg");
-  msg.textContent = ""; msg.classList.add("d-none");
+// -------- Build Departments + Units --------
+async function buildDeptMenu(){
+  const auth = getAuth();
+  const deptUL = document.getElementById("deptList");
+  deptUL.innerHTML = `<li class="px-3 py-2 text-muted">កំពុងឡូដ...</li>`;
 
-  try{
-    const profile = await gasLogin(u,p);
-
-    // guard: supper/super admin ទៅគ្រប់គ្រងទូលំទូលាយ, otherwise redirect ទៅផ្ទាំងការិយាល័យខ្លួន
-    localStorage.setItem("AUTH", JSON.stringify({ ...profile, login_at: Date.now() }));
-
-    if (String(profile.user_type).toLowerCase()==="superuser" ||
-        String(profile.user_root).toLowerCase()==="all") {
-      location.href = "./pages/super-admin/index.html";
-    } else {
-      // Redirect ទៅផ្ទាំងការិយាល័យតាម department_id
-      location.href = `./pages/departments/${profile.department_id}/index.html`;
-    }
-  }catch(err){
-    msg.textContent = "Login បរាជ័យ: " + err.message;
-    msg.classList.remove("d-none");
+  // 1) departments (filter by user if not super)
+  let deps = await gasGet("departments");
+  if(!(auth && (String(auth.user_type).toLowerCase()==="superuser" || String(auth.user_root).toLowerCase()==="all"))){
+    if(auth?.department_id) deps = deps.filter(d => String(d.department_id)===String(auth.department_id));
   }
+
+  // 2) render each department + load units for each
+  const frag = document.createDocumentFragment();
+
+  for(const d of deps){
+    // container
+    const li = document.createElement('li');
+    li.className = "has-children";
+
+    const btn = document.createElement('button');
+    btn.className = "menu-toggle";
+    btn.innerHTML = `<i class="fa fa-building me-2"></i> ${d.department_name}<i class="fa fa-chevron-down ms-auto small"></i>`;
+    btn.setAttribute('aria-expanded','false');
+
+    const sub = document.createElement('ul');
+    sub.className = "submenu";
+    sub.innerHTML = `<li class="px-3 py-2 text-muted">កំពុងឡូដផ្នែក...</li>`;
+
+    // remember open state per department
+    const key = "OPEN_DEPT_" + d.department_id;
+    const wasOpen = ls.getItem(key)==="1";
+    sub.classList.toggle('open', wasOpen);
+    btn.setAttribute('aria-expanded', String(wasOpen));
+    btn.addEventListener('click', ()=>{
+      const now = !sub.classList.contains('open');
+      sub.classList.toggle('open', now);
+      btn.setAttribute('aria-expanded', String(now));
+      ls.setItem(key, now?"1":"0");
+    });
+
+    li.append(btn, sub);
+    frag.appendChild(li);
+
+    // load units
+    try{
+      const units = await gasGet("units", { department_id: d.department_id });
+      sub.innerHTML = "";
+      units.forEach(u=>{
+        const a = document.createElement('a');
+        a.href = `#/dept/${d.department_id}/unit/${u.unit_id}`;
+        a.textContent = u.unit_name;
+        a.addEventListener('click', (ev)=>{
+          // redirect to your unit page
+          ev.preventDefault();
+          window.location.href = `./pages/departments/${d.department_id}/units/${u.unit_id}/index.html`;
+        });
+        const li2 = document.createElement('li');
+        li2.appendChild(a);
+        sub.appendChild(li2);
+      });
+      if(units.length===0){
+        sub.innerHTML = `<li class="px-3 py-2 text-muted">គ្មានផ្នែក</li>`;
+      }
+    }catch(e){
+      sub.innerHTML = `<li class="px-3 py-2 text-danger">អានផ្នែកបរាជ័យ</li>`;
+    }
+  }
+  deptUL.innerHTML = "";
+  deptUL.appendChild(frag);
+}
+
+buildDeptMenu().catch(err=>{
+  document.getElementById("deptList").innerHTML =
+    `<li class="px-3 py-2 text-danger">អានការិយាល័យបរាជ័យ: ${err.message}</li>`;
 });
 </script>
+
 
 </body>
 </html>
