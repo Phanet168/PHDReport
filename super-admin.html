@@ -52,6 +52,17 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     /* toast */
     .toast{position:fixed;right:14px;bottom:14px;background:#111827;color:#fff;padding:12px 14px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:none;z-index:50}
+ /* collapsible groups */
+.group{margin-top:4px}
+.group>summary{list-style:none;cursor:pointer}
+.group>summary::-webkit-details-marker{display:none}
+.group[open] .caret{transform:rotate(180deg)}
+.caret{margin-left:auto;transition:.2s}
+.sub-wrap{display:grid;gap:6px;padding:4px 0 8px 46px}
+.sub{color:#e5e7eb;text-decoration:none;padding:6px 0;border-radius:8px}
+.sub:hover{color:#fff;text-decoration:underline}
+
+  
   </style>
 </head>
 <body>
@@ -61,15 +72,66 @@
   <aside>
     <div class="brand"><div class="logo">P</div><div class="label">@ Your Company</div></div>
     <div class="search"><i class="ri-search-line"></i><input type="text" placeholder="ស្វែងរកមឺនុយ" oninput="filterMenu(this.value)"></div>
-    <nav id="menu">
-      <a class="item active" href="#dashboard"><i class="ri-home-5-line"></i><span class="label">Dashboard</span></a>
-      <a class="item" href="#users"><i class="ri-user-settings-line"></i><span class="label">អ្នកប្រើប្រាស់</span></a>
-      <a class="item" href="#departments"><i class="ri-building-2-line"></i><span class="label">Departments</span></a>
-      <a class="item" href="#units"><i class="ri-building-4-line"></i><span class="label">Units</span></a>
-      <a class="item" href="#periods"><i class="ri-timer-line"></i><span class="label">Periods</span></a>
-      <a class="item" href="#indicators"><i class="ri-bar-chart-2-line"></i><span class="label">Indicators</span></a>
-      <a class="item" href="#settings"><i class="ri-settings-3-line"></i><span class="label">Settings</span></a>
-    </nav>
+   <nav id="menu">
+  <!-- ផ្ទាំងគ្រប់គ្រង -->
+  <a class="item active" data-route="dashboard" href="#">
+    <i class="ri-home-5-line"></i><span class="label">ផ្ទាំងគ្រប់គ្រង</span>
+  </a>
+
+  <!-- រដ្ឋបាល -->
+  <a class="item" data-route="indicators" data-filter='{"department_id":1}' href="#">
+    <i class="ri-building-2-line"></i><span class="label">រដ្ឋបាល</span>
+  </a>
+
+  <!-- គណនេយ្យ -->
+  <a class="item" data-route="indicators" data-filter='{"department_id":3}' href="#">
+    <i class="ri-bank-card-line"></i><span class="label">គណនេយ្យ</span>
+  </a>
+
+  <!-- បង្ការនិងគ្រប់គ្រងជំងឺ (មានប្លុករង) -->
+  <details class="group" open>
+    <summary class="item">
+      <i class="ri-hospital-line"></i><span class="label">បង្ការនិងគ្រប់គ្រងជំងឺ</span>
+      <i class="ri-arrow-down-s-line caret"></i>
+    </summary>
+    <div class="sub-wrap">
+      <!-- បើក CRUD ទៅ Units ហើយ filter ទៅ department_id=2 + ដាក់ q ស្វែងរក -->
+      <a class="sub" data-route="units" data-filter='{"department_id":2}' data-q="MCH" href="#">• កម្មវិធី MCH</a>
+      <a class="sub" data-route="units" data-filter='{"department_id":2}' data-q="ឆ្លង" href="#">• កម្មវិធីគ្រប់គ្រងជំងឺឆ្លង</a>
+      <a class="sub" data-route="units" data-filter='{"department_id":2}' data-q="មិនឆ្លង" href="#">• កម្មវិធីគ្រប់គ្រងជំងឺមិនឆ្លង</a>
+      <!-- ប្រសិនបើចង់មើលសូចនាកររបស់នាយកដ្ឋាននេះទាំងមូល -->
+      <a class="sub" data-route="indicators" data-filter='{"department_id":2}' href="#">• សូចនាករនាយកដ្ឋាន</a>
+    </div>
+  </details>
+
+  <!-- និយ័តកម្មសុខាភិបាល -->
+  <a class="item" data-route="indicators" data-filter='{"department_id":4}' href="#">
+    <i class="ri-verified-badge-line"></i><span class="label">និយ័តកម្មសុខាភិបាល</span>
+  </a>
+
+  <!-- របាយការណ៍ -->
+  <a class="item" data-route="reports" href="#">
+    <i class="ri-bar-chart-2-line"></i><span class="label">របាយការណ៍</span>
+  </a>
+
+  <!-- គ្រប់គ្រងអ្នកប្រើប្រាស់ -->
+  <a class="item" data-route="users" href="#">
+    <i class="ri-user-settings-line"></i><span class="label">គ្រប់គ្រងអ្នកប្រើប្រាស់</span>
+  </a>
+
+  <!-- គ្រប់គ្រងប្រព័ន្ធ (Periods/Indicators) -->
+  <details class="group">
+    <summary class="item">
+      <i class="ri-settings-3-line"></i><span class="label">គ្រប់គ្រងប្រព័ន្ធ</span>
+      <i class="ri-arrow-down-s-line caret"></i>
+    </summary>
+    <div class="sub-wrap">
+      <a class="sub" data-route="periods" href="#">• Periods</a>
+      <a class="sub" data-route="indicators" href="#">• Indicators</a>
+    </div>
+  </details>
+</nav>
+
   </aside>
 
   <header>
