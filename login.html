@@ -6,22 +6,73 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
   <title>ចូលប្រើប្រាស់ | PHD Report</title>
 
-  <!-- Fonts Khmer + Nunito -->
-  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@400;500&display=swap" rel="stylesheet" />
-
+  <!-- Khmer + Nunito -->
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
-  <!-- Gull Theme CSS -->
+  <!-- Gull theme -->
   <link href="dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
 
   <style>
-    body { font-family:"Noto Sans Khmer",sans-serif; }
-    .auth-layout-wrap { min-height:100vh; }
-    .auth-logo img { max-height:60px; }
-    .form-control { font-size:15px; }
-    .toggle-eye { position:absolute; right:14px; top:50%; transform:translateY(-50%); cursor:pointer; }
-    .alert { font-size:14px; }
+    :root{
+      --boxH: 46px;         /* កម្ពស់ field */
+      --radius: 12px;       /* Radius ស្មើគ្នា */
+      --shadow: 0 10px 24px rgba(24,24,40,.08);
+      --bd: #E5E7EB;
+      --bd-focus: #7C4DFF33;
+    }
+    body{ font-family:"Noto Sans Khmer",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+    .auth-layout-wrap{ min-height:100vh; backdrop-filter:saturate(120%); }
+    .card.o-hidden{ border:0; border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
+
+    /* ===== nicer heading ===== */
+    .kh-title{ font-family:"Khmer Moul"; color:#4A148C; letter-spacing:.2px; }
+
+    /* ===== input group polish ===== */
+    .input-group{
+      height:var(--boxH);
+      border:1px solid var(--bd);
+      border-radius:var(--radius);
+      overflow:hidden;
+      background:#fff;
+      transition: box-shadow .2s, border-color .2s;
+    }
+    .input-group:focus-within{
+      border-color:#7C4DFF;
+      box-shadow:0 0 0 4px var(--bd-focus);
+    }
+    .input-group-text{
+      background:#fff;
+      border:0;
+      padding:0 12px;
+      color:#6B7280;
+      display:flex; align-items:center; justify-content:center;
+      width:44px;
+    }
+    .form-control{
+      border:0 !important;
+      height:var(--boxH);
+      padding:0 12px;
+      font-size:15px;
+      box-shadow:none !important;
+    }
+    .eye-btn{
+      cursor:pointer;
+      user-select:none;
+    }
+    /* nicer primary button */
+    .btn-primary{
+      background:#6C2BD9;
+      border-color:#6C2BD9;
+      border-radius:14px;
+      height:48px;
+      font-weight:600;
+    }
+    .btn-primary:hover{ background:#5B21B6; border-color:#5B21B6; }
+
+    /* left panel breathing */
+    .p-hero{ padding:42px 34px 34px; }
+    .auth-logo img{ height:62px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.12)); }
   </style>
 </head>
 
@@ -29,85 +80,105 @@
   <div class="auth-layout-wrap" style="background-image:url(dist-assets/images/photo-wide-4.jpg)">
     <div class="auth-content">
       <div class="card o-hidden">
-        <div class="row">
+        <div class="row no-gutters">
           <!-- LEFT -->
-          <div class="col-md-6">
-            <div class="p-4">
-              <div class="auth-logo text-center mb-4">
-                <img src="dist-assets/images/logo.png" alt="logo"/>
+          <div class="col-lg-6">
+            <div class="p-hero">
+              <div class="auth-logo text-center mb-3">
+                <img src="dist-assets/images/logo.png" alt="logo">
               </div>
-              <h1 class="mb-2 text-18 font-weight-bold text-center" style="font-family:'Khmer Moul'">
-                ប្រព័ន្ធរាយការណ៍សុខាភិបាល
-              </h1>
-              <p class="mb-3 text-muted text-center">សូមបញ្ចូលឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់</p>
+              <h2 class="kh-title text-center mb-1">ប្រព័ន្ធរាយការណ៍សុខាភិបាល</h2>
+              <p class="text-muted text-center mb-4">សូមបញ្ចូលឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់</p>
 
               <div id="msg" class="alert alert-danger d-none" role="alert"></div>
 
               <form id="loginForm" novalidate>
                 <div class="form-group">
-                  <label for="username">ឈ្មោះអ្នកប្រើ</label>
+                  <label for="username" class="mb-1">ឈ្មោះអ្នកប្រើ</label>
                   <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-person"></i></span>
-                    <input class="form-control form-control-rounded" id="username" required />
+                    <input id="username" class="form-control" autocomplete="username" required>
                   </div>
                 </div>
 
-                <div class="form-group position-relative">
-                  <label for="password">ពាក្យសម្ងាត់</label>
+                <div class="form-group">
+                  <label for="password" class="mb-1">ពាក្យសម្ងាត់</label>
                   <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                    <input class="form-control form-control-rounded" id="password" type="password" required />
-                    <span id="btnTogglePw" class="input-group-text toggle-eye"><i class="bi bi-eye"></i></span>
+                    <input id="password" type="password" class="form-control" autocomplete="current-password" required>
+                    <span id="btnTogglePw" class="input-group-text eye-btn" title="បង្ហាញ/លាក់"><i class="bi bi-eye"></i></span>
                   </div>
                 </div>
 
-                <button id="btnLogin" type="submit" class="btn btn-rounded btn-primary w-100 mt-3">
+                <button id="btnLogin" type="submit" class="btn btn-primary w-100 mt-3">
                   <span id="btnText">ចូលប្រើប្រាស់</span>
                 </button>
-              </form>
 
-              <div class="mt-3 text-center">
-                <a class="text-muted" href="forgot.html"><u>ភ្លេចពាក្យសម្ងាត់?</u></a>
-              </div>
+                <div class="mt-3 text-center">
+                  <a class="text-muted" href="#"><u>ភ្លេចពាក្យសម្ងាត់?</u></a>
+                </div>
+              </form>
             </div>
           </div>
 
-          <!-- RIGHT -->
-          <div class="col-md-6 text-center" style="background-size:cover;background-image:url(dist-assets/images/photo-long-3.jpg)"></div>
+          <!-- RIGHT visual panel -->
+          <div class="col-lg-6 d-none d-lg-block" style="background:#fff url(dist-assets/images/photo-long-3.jpg) center/cover no-repeat;"></div>
         </div>
       </div>
     </div>
   </div>
 
 <script>
+  // ===== Apps Script endpoint =====
   const GAS_BASE = "https://script.google.com/macros/s/AKfycbwdeEgEMYK8bCZqU0xmOEERIvqbqu21tUwDKDuBb9tUXhOVwb463Hjk2XZsz9T9lBmLZQ/exec";
 
-  const $ = (s)=>document.querySelector(s);
-  function showMsg(t){const el=$("#msg");if(!t){el.classList.add("d-none");return;}el.textContent=t;el.classList.remove("d-none");}
-  $("#btnTogglePw").addEventListener("click",()=>{const i=$("#password");i.type=i.type==="password"?"text":"password";});
+  const $ = sel => document.querySelector(sel);
+  const msgBox = $("#msg");
 
-  async function gasLogin(u,p){
-    const res=await fetch(GAS_BASE+"?api=1&route=auth&op=login",{
-      method:"POST",
-      headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({username:u,password:p})
+  $("#btnTogglePw").addEventListener("click", () => {
+    const inp = $("#password");
+    const ico = $("#btnTogglePw i");
+    if (inp.type === "password") { inp.type = "text"; ico.className = "bi bi-eye-slash"; }
+    else { inp.type = "password"; ico.className = "bi bi-eye"; }
+  });
+
+  function showMsg(t){
+    if(!t){ msgBox.classList.add("d-none"); msgBox.textContent=""; return; }
+    msgBox.textContent = t; msgBox.classList.remove("d-none");
+  }
+
+  async function gasLogin(username, password){
+    const res = await fetch(GAS_BASE + "?api=1&route=auth&op=login", {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"}, // no-preflight
+      body: JSON.stringify({ username, password })
     });
-    if(!res.ok) throw new Error("HTTP "+res.status);
+    if(!res.ok) throw new Error("HTTP " + res.status);
     return res.json();
   }
 
-  $("#loginForm").addEventListener("submit",async(e)=>{
+  $("#loginForm").addEventListener("submit", async (e)=>{
     e.preventDefault();
+    const u = $("#username").value.trim();
+    const p = $("#password").value;
+    if(!u || !p){ showMsg("សូមបំពេញទាំងពីរ "); return; }
+
+    $("#btnLogin").disabled = true; $("#btnText").textContent = "កំពុងចូល...";
     showMsg("");
-    const u=$("#username").value.trim(); const p=$("#password").value;
-    if(!u||!p){showMsg("សូមបំពេញឈ្មោះ និងពាក្យសម្ងាត់");return;}
+
     try{
-      const j=await gasLogin(u,p);
-      if(j&&!j.error){
-        localStorage.setItem("AUTH",JSON.stringify(j));
-        location.href="index.html";
-      } else { showMsg(j?.error||"Login បរាជ័យ"); }
-    }catch(err){ showMsg("API Error: "+err.message); }
+      const j = await gasLogin(u,p);
+      if(j && !j.error){
+        localStorage.setItem("AUTH", JSON.stringify(j));
+        location.href = "index.html";
+      }else{
+        showMsg(j?.error || "Login បរាជ័យ");
+      }
+    }catch(err){
+      showMsg("API Error: " + err.message);
+    }finally{
+      $("#btnLogin").disabled = false; $("#btnText").textContent = "ចូលប្រើប្រាស់";
+    }
   });
 </script>
 </body>
