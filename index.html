@@ -1,158 +1,212 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="km">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PHD Report – ផ្ទាំងគ្រប់គ្រង</title>
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>ផ្ទាំងគ្រប់គ្រង | PHD Report</title>
 
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet">
-
-  <!-- Gull theme CSS (use root-relative path) -->
-  <link rel="stylesheet" href="dist-assets/css/themes/lite-purple.min.css" />
-
+  <!-- Khmer Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <style>
-    :root{
-      --bg:#0f1a26; --bg-2:#111e30; --text:#cfe0ff; --primary:#6b5bff;
-      --card:#ffffff; --ink:#0b1220; --muted:#6b7b95; --ring:#e9eef7;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; background:#f5f7fb; color:#111;
-      font-family:"Noto Sans Khmer", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    }
-
-    /* Top bar */
-    .topbar{
-      height:56px; display:flex; align-items:center; gap:10px;
-      padding:0 16px; background:#fff; border-bottom:1px solid var(--ring);
-      position:sticky; top:0; z-index:40;
-    }
-    .brand{font-family:"Khmer Moul"; color:var(--primary); font-size:22px; letter-spacing:.5px}
-    .spacer{flex:1}
-    .topbar .btn{
-      border:1px solid var(--ring); background:#fff; padding:8px 12px;
-      border-radius:10px; cursor:pointer;
-    }
-
-    /* Sidebar */
-    .sidebar{
-      width:270px; background:var(--bg); color:var(--text);
-      position:fixed; inset:56px auto 0 0; padding:10px 0; overflow:auto;
-      transform:translateX(0); transition:transform .25s ease;
-    }
-    .sidebar.collapsed{ transform:translateX(-100%); }
-    .menu{list-style:none; margin:0; padding:0}
-    .menu > li > a, .menu-toggle{
-      width:100%; display:flex; align-items:center; justify-content:space-between;
-      padding:12px 16px; color:var(--text); text-decoration:none;
-      background:transparent; border:none; cursor:pointer;
-    }
-    .menu > li > a:hover, .menu-toggle:hover{ background:var(--bg-2); }
-    .submenu{
-      list-style:none; margin:0; padding:0 0 6px 8px; display:none; background:#0d1828;
-    }
-    .submenu.open{ display:block; }
-    .submenu a{
-      display:block; padding:10px 16px; color:#e5eeff; text-decoration:none; border-left:2px solid transparent;
-    }
-    .submenu a:hover{ background:#0b1626; border-left-color:var(--primary) }
-
-    /* Main */
-    .main{
-      margin-left:270px; padding:18px; min-height:calc(100% - 56px);
-      transition:margin-left .25s ease;
-    }
-    .sidebar.collapsed ~ .main{ margin-left:0; }
-
-    /* Cards */
-    .cards{display:grid; grid-template-columns:repeat(12,1fr); gap:16px}
-    .card{
-      grid-column:span 12; background:var(--card); border:1px solid var(--ring);
-      border-radius:14px; padding:16px; box-shadow:0 8px 18px rgba(10,22,50,.04);
-    }
-    .card h3{margin:0 0 8px 0; font-size:18px}
-    .muted{color:var(--muted); font-size:14px}
-
-    @media (min-width: 900px){
-      .card--half{grid-column:span 6}
-      .card--third{grid-column:span 4}
-    }
+    body{font-family:"Noto Sans Khmer",Nunito,Arial,sans-serif}
+    .brand-kh{font-family:"Khmer Moul";letter-spacing:.2px}
   </style>
+
+  <!-- Gull CSS (root-relative paths) -->
+  <link href="dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
+  <link href="dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet" />
 </head>
-<body>
 
-  <!-- Top bar -->
-  <div class="topbar">
-    <button id="btnToggle" class="btn">☰</button>
-    <div class="brand">ផ្ទាំងគ្រប់គ្រង PHD</div>
-    <div class="spacer"></div>
-    <input id="q" class="btn" style="min-width:220px" placeholder="ស្វែងរក..." />
-    <a id="btnLogin" class="btn" href="login.html">ចូលប្រើប្រាស់</a>
-  </div>
+<body class="text-start">
+  <div class="app-admin-wrap layout-sidebar-compact sidebar-dark-purple sidenav-open clearfix">
+    <div class="side-content-wrap">
+      <!-- Primary left -->
+      <div class="sidebar-left open rtl-ps-none" data-perfect-scrollbar data-suppress-scroll-x="true">
+        <ul class="navigation-left">
+          <li class="nav-item" data-item="dashboard">
+            <a class="nav-item-hold" href="#"><i class="nav-icon i-Bar-Chart"></i><span class="nav-text">ផ្ទាំងគ្រប់គ្រង</span></a><div class="triangle"></div>
+          </li>
 
-  <!-- Sidebar -->
-  <aside id="sidebar" class="sidebar">
-    <ul class="menu" id="menuRoot">
-      <li><a href="#/dashboard">ផ្ទាំងគ្រប់គ្រង</a></li>
+          <!-- Dynamic Departments -->
+          <li class="nav-item active" data-item="depts">
+            <a class="nav-item-hold" href="#"><i class="nav-icon i-Library"></i><span class="nav-text">ការិយាល័យ</span></a>
+            <div class="triangle"></div>
+          </li>
 
-      <li class="has">
-        <button class="menu-toggle" aria-expanded="false">ការិយាល័យ <span>▾</span></button>
-        <ul class="submenu" id="deptList">
-          <li class="muted" style="padding:10px 16px;">កំពុងទាញទិន្នន័យ...</li>
+          <li class="nav-item" data-item="reports">
+            <a class="nav-item-hold" href="#"><i class="nav-icon i-File-Clipboard-File--Text"></i><span class="nav-text">របាយការណ៍</span></a><div class="triangle"></div>
+          </li>
+
+          <li class="nav-item" data-item="users">
+            <a class="nav-item-hold" href="#"><i class="nav-icon i-Administrator"></i><span class="nav-text">អ្នកប្រើប្រាស់</span></a><div class="triangle"></div>
+          </li>
+
+          <li class="nav-item" data-item="settings">
+            <a class="nav-item-hold" href="#"><i class="nav-icon i-Gear-2"></i><span class="nav-text">កំណត់ផ្សេងៗ</span></a><div class="triangle"></div>
+          </li>
         </ul>
-      </li>
-
-      <li><a href="#/reports">របាយការណ៍</a></li>
-      <li><a href="#/users">គ្រប់គ្រងអ្នកប្រើប្រាស់</a></li>
-
-      <li class="has">
-        <button class="menu-toggle" aria-expanded="false">កំណត់ផ្សេងៗ <span>▾</span></button>
-        <ul class="submenu">
-          <li><a href="#/mgmt/departments">គ្រប់គ្រងការិយាល័យ</a></li>
-          <li><a href="#/mgmt/units">គ្រប់គ្រងផ្នែក</a></li>
-          <li><a href="#/mgmt/periods">គ្រប់គ្រងរយៈពេល</a></li>
-        </ul>
-      </li>
-    </ul>
-  </aside>
-
-  <!-- Main -->
-  <main id="main" class="main">
-    <div class="cards">
-      <div class="card card--half">
-        <h3>សេចក្តីសង្ខេប</h3>
-        <div class="muted">សូមជ្រើសរើសមេនុយខាងឆ្វេងដើម្បីចាប់ផ្ដើម…</div>
       </div>
 
-      <div class="card card--half">
-        <h3>ការប្រកាសព័ត៌មាន</h3>
-        <div class="muted">–</div>
-      </div>
+      <!-- Secondary left (submenus) -->
+      <div class="sidebar-left-secondary rtl-ps-none" data-perfect-scrollbar data-suppress-scroll-x="true">
+        <i class="sidebar-close i-Close"></i>
+        <header class="px-3 pt-3">
+          <div class="logo d-flex align-items-center gap-2">
+            <img src="dist-assets/images/logo-text.png" alt="" /><span class="brand-kh">PHD Report</span>
+          </div>
+        </header>
 
-      <div class="card card--third">
-        <h3>កំណត់ API</h3>
-        <div class="muted">API បច្ចុប្បន្ន៖ Google Apps Script</div>
+        <!-- Dashboards submenu -->
+        <div class="submenu-area" data-parent="dashboard">
+          <header><h6>Dashboards</h6><p>មើលស្ថានភាពសរុប</p></header>
+          <ul class="childNav">
+            <li class="nav-item"><a href="#"><i class="nav-icon i-Clock-3"></i><span class="item-name">Version 1</span></a></li>
+          </ul>
+        </div>
+
+        <!-- Departments submenu (built by JS) -->
+        <div class="submenu-area" data-parent="depts">
+          <header><h6>ការិយាល័យ</h6><p>ជ្រើសការិយាល័យ និងផ្នែក</p></header>
+          <ul id="deptMenu" class="childNav">
+            <li class="nav-item"><a href="#"><span class="item-name text-muted">កំពុងទាញទិន្នន័យ...</span></a></li>
+          </ul>
+        </div>
+
+        <!-- Reports -->
+        <div class="submenu-area" data-parent="reports">
+          <header><h6>របាយការណ៍</h6><p>សង្ខេប និងនាំចេញ</p></header>
+          <ul class="childNav">
+            <li class="nav-item"><a href="#"><i class="nav-icon i-Bar-Chart"></i><span class="item-name">សង្ខេបឆ្នាំ</span></a></li>
+          </ul>
+        </div>
+
+        <!-- Users -->
+        <div class="submenu-area" data-parent="users">
+          <header><h6>អ្នកប្រើប្រាស់</h6><p>គ្រប់គ្រងសិទ្ធិ</p></header>
+          <ul class="childNav">
+            <li class="nav-item"><a href="#"><i class="nav-icon i-Male"></i><span class="item-name">បញ្ជីអ្នកប្រើ</span></a></li>
+          </ul>
+        </div>
+
+        <!-- Settings -->
+        <div class="submenu-area" data-parent="settings">
+          <header><h6>កំណត់</h6><p>ទិន្នន័យមេ</p></header>
+          <ul class="childNav">
+            <li class="nav-item"><a href="#/mgmt/departments"><i class="nav-icon i-Building"></i><span class="item-name">គ្រប់គ្រងការិយាល័យ</span></a></li>
+            <li class="nav-item"><a href="#/mgmt/units"><i class="nav-icon i-Library"></i><span class="item-name">គ្រប់គ្រងផ្នែក</span></a></li>
+            <li class="nav-item"><a href="#/mgmt/periods"><i class="nav-icon i-Calendar-4"></i><span class="item-name">រយៈពេល</span></a></li>
+          </ul>
+        </div>
       </div>
     </div>
-  </main>
 
-  <!-- ===== Vendor JS (from Gull template) – place BEFORE your app script ===== -->
+    <!-- Main content -->
+    <div class="main-content-wrap d-flex flex-column">
+      <div class="main-header">
+        <div class="logo"><img src="dist-assets/images/logo.png" alt="" /></div>
+        <div class="menu-toggle"><div></div><div></div><div></div></div>
+        <div class="d-flex align-items-center">
+          <div class="search-bar"><input id="q" type="text" placeholder="ស្វែងរក..." /><i class="search-icon text-muted i-Magnifi-Glass1"></i></div>
+        </div>
+        <div style="margin:auto"></div>
+        <div class="header-part-right">
+          <a id="btnLogin" class="btn btn-outline-primary btn-sm" href="login.html">ចូលប្រើប្រាស់</a>
+        </div>
+      </div>
+
+      <!-- ===== Body ===== -->
+      <div class="main-content">
+        <div class="breadcrumb">
+          <h1 class="me-2">Version 1</h1>
+          <ul><li><a href="#">Dashboard</a></li><li>Version 1</li></ul>
+        </div>
+        <div class="separator-breadcrumb border-top"></div>
+
+        <!-- sample Gull cards/charts (unchanged) -->
+        <div class="row">
+          <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="card card-icon-bg card-icon-bg-primary o-hidden mb-4">
+              <div class="card-body text-center">
+                <i class="i-Add-User"></i>
+                <div class="content"><p class="text-muted mt-2 mb-0">New Leads</p><p class="text-primary text-24 line-height-1 mb-2">205</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="card card-icon-bg card-icon-bg-primary o-hidden mb-4">
+              <div class="card-body text-center">
+                <i class="i-Financial"></i>
+                <div class="content"><p class="text-muted mt-2 mb-0">Sales</p><p class="text-primary text-24 line-height-1 mb-2">$4021</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="card card-icon-bg card-icon-bg-primary o-hidden mb-4">
+              <div class="card-body text-center">
+                <i class="i-Checkout-Basket"></i>
+                <div class="content"><p class="text-muted mt-2 mb-0">Orders</p><p class="text-primary text-24 line-height-1 mb-2">80</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="card card-icon-bg card-icon-bg-primary o-hidden mb-4">
+              <div class="card-body text-center">
+                <i class="i-Money-2"></i>
+                <div class="content"><p class="text-muted mt-2 mb-0">Expense</p><p class="text-primary text-24 line-height-1 mb-2">$1200</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-lg-8 col-md-12">
+            <div class="card mb-4"><div class="card-body"><div class="card-title">This Year Sales</div><div id="echartBar" style="height:300px"></div></div></div>
+          </div>
+          <div class="col-lg-4 col-sm-12">
+            <div class="card mb-4"><div class="card-body"><div class="card-title">Sales by Countries</div><div id="echartPie" style="height:300px"></div></div></div>
+          </div>
+        </div>
+
+        <!-- footer -->
+        <div class="flex-grow-1"></div>
+        <div class="app-footer">
+          <div class="footer-bottom border-top pt-3 d-flex flex-column flex-sm-row align-items-center">
+            <span class="flex-grow-1"></span>
+            <div class="d-flex align-items-center">
+              <img class="logo" src="dist-assets/images/logo.png" alt="" />
+              <div><p class="m-0">&copy; PHD Report</p><p class="m-0">All rights reserved</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- /main-content -->
+    </div>
+  </div>
+
+  <!-- Search UI of Gull (optional) -->
+  <div class="search-ui">
+    <div class="search-header">
+      <img src="dist-assets/images/logo.png" alt="" class="logo" />
+      <button class="search-close btn btn-icon bg-transparent float-end mt-2"><i class="i-Close-Window text-22 text-muted"></i></button>
+    </div>
+    <input type="text" placeholder="Type here" class="search-input" autofocus />
+  </div>
+
+  <!-- Gull JS -->
   <script src="dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
   <script src="dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
   <script src="dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
   <script src="dist-assets/js/scripts/script.min.js"></script>
   <script src="dist-assets/js/scripts/sidebar.compact.script.min.js"></script>
   <script src="dist-assets/js/scripts/customizer.script.min.js"></script>
-  <!-- (Optional) charts on dashboard -->
   <script src="dist-assets/js/plugins/echarts.min.js"></script>
   <script src="dist-assets/js/scripts/echart.options.min.js"></script>
   <script src="dist-assets/js/scripts/dashboard.v1.script.min.js"></script>
 
-  <!-- ===== App script ===== -->
+  <!-- App: build dynamic Dept/Unit menu + login state -->
   <script>
-    // ===== Config =====
+    // === CONFIG ===
     const GAS_BASE = "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
     const ls = window.localStorage;
 
@@ -172,97 +226,76 @@
       return Array.isArray(j.rows) ? j.rows : (Array.isArray(j) ? j : []);
     }
 
-    // UI: toggle sidebar & submenu
-    const sidebar = document.getElementById("sidebar");
-    document.getElementById("btnToggle").onclick = () => {
-      sidebar.classList.toggle("collapsed");
-      document.querySelector(".main").classList.toggle("collapsed");
-    };
-    document.querySelectorAll(".menu-toggle").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const ul = btn.nextElementSibling;
-        ul.classList.toggle("open");
-        btn.setAttribute("aria-expanded", ul.classList.contains("open"));
-      });
-    });
-
-    // Build departments/units menu
     async function buildDeptMenu(){
+      const box = document.getElementById("deptMenu");
+      box.innerHTML = '<li class="nav-item"><a href="#"><span class="item-name text-muted">កំពុងទាញទិន្នន័យ...</span></a></li>';
       const auth = getAuth();
-      const box = document.getElementById("deptList");
-      box.innerHTML = '<li class="muted" style="padding:10px 16px;">កំពុងទាញទិន្នន័យ...</li>';
 
       try{
         let depts = await gasList("departments");
         if (!isSuper(auth) && auth?.department_id){
           depts = depts.filter(d => String(d.department_id) === String(auth.department_id));
         }
-
         if (!depts.length){
-          box.innerHTML = '<li class="muted" style="padding:10px 16px;">គ្មានទិន្នន័យការិយាល័យ</li>';
+          box.innerHTML = '<li class="nav-item"><a href="#"><span class="item-name text-muted">គ្មានទិន្នន័យ</span></a></li>';
           return;
         }
-
         box.innerHTML = "";
         for (const d of depts){
-          const li = document.createElement("li");
-          li.className = "has";
-          const btn = document.createElement("button");
-          btn.className = "menu-toggle";
-          btn.innerHTML = `${d.department_name} <span>▾</span>`;
-          const ul = document.createElement("ul");
-          ul.className = "submenu";
-          li.append(btn, ul);
+          // department row (non-click container)
+          const li = document.createElement("li"); li.className = "nav-item";
+          const a = document.createElement("a"); a.href="#";
+          a.innerHTML = `<i class="nav-icon i-Building"></i><span class="item-name">${d.department_name}</span>`;
+          li.appendChild(a);
           box.appendChild(li);
 
-          btn.addEventListener("click", ()=>{
-            ul.classList.toggle("open");
-            btn.setAttribute("aria-expanded", ul.classList.contains("open"));
-          });
-
+          // units under department
           const units = await gasList("units", { department_id: d.department_id });
           if (!units.length){
-            const empty = document.createElement("li");
-            empty.innerHTML = '<span class="muted" style="padding:10px 16px; display:block;">គ្មានផ្នែក</span>';
-            ul.appendChild(empty);
+            const em = document.createElement("li"); em.className="nav-item";
+            em.innerHTML = `<a href="#"><span class="item-name text-muted ps-4">— គ្មានផ្នែក</span></a>`;
+            box.appendChild(em);
           }else{
             units.forEach(u=>{
-              const item = document.createElement("li");
-              const a = document.createElement("a");
-              a.textContent = u.unit_name;
-              a.href = `pages/departments/${d.department_id}/units/${u.unit_id}/index.html`;
-              item.appendChild(a);
-              ul.appendChild(item);
+              const liu = document.createElement("li"); liu.className="nav-item";
+              const link = document.createElement("a");
+              link.href = `pages/departments/${d.department_id}/units/${u.unit_id}/index.html`;
+              link.innerHTML = `<i class="nav-icon i-Right"></i><span class="item-name ps-3">${u.unit_name}</span>`;
+              liu.appendChild(link);
+              box.appendChild(liu);
             });
           }
         }
       }catch(err){
-        box.innerHTML = `<li class="muted" style="padding:10px 16px;color:#ffb0b0;">អានទិន្នន័យបរាជ័យ: ${err.message}</li>`;
+        box.innerHTML = `<li class="nav-item"><a href="#"><span class="item-name text-danger">បរាជ័យ: ${err.message}</span></a></li>`;
       }
     }
 
-    // Init
     (function init(){
+      // login button
       const auth = getAuth();
       const btnLogin = document.getElementById("btnLogin");
       if(auth){
-        btnLogin.textContent = (auth.user_name || "អ្នកប្រើប្រាស់") + " • ចេញ";
+        btnLogin.textContent = (auth.user_name||"អ្នកប្រើ") + " • ចេញ";
+        btnLogin.classList.remove("btn-outline-primary");
+        btnLogin.classList.add("btn-outline-danger");
         btnLogin.href = "#";
         btnLogin.onclick = (e)=>{ e.preventDefault(); ls.removeItem("AUTH"); location.reload(); };
       }else{
         btnLogin.textContent = "ចូលប្រើប្រាស់";
         btnLogin.href = "login.html";
       }
-      buildDeptMenu();
 
-      // simple client filter
-      document.getElementById("q").addEventListener("input", (e)=>{
+      // search quick filter (optional)
+      document.getElementById("q").addEventListener("input",(e)=>{
         const q = e.target.value.toLowerCase();
-        document.querySelectorAll("#menuRoot a").forEach(a=>{
-          const ok = a.textContent.toLowerCase().includes(q);
-          a.parentElement.style.display = ok ? "" : "none";
+        document.querySelectorAll(".childNav .item-name").forEach(el=>{
+          const ok = el.textContent.toLowerCase().includes(q);
+          el.closest("li").style.display = ok ? "" : "none";
         });
       });
+
+      buildDeptMenu();
     })();
   </script>
 </body>
