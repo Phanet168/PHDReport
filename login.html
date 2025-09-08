@@ -6,24 +6,27 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
   <title>ចូលប្រើប្រាស់ | PHD Report</title>
 
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700,800,900&display=swap" rel="stylesheet" />
+  <!-- Fonts Khmer + Nunito -->
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@400;500&display=swap" rel="stylesheet" />
 
-  <!-- Gull Template CSS (use the same structure you showed) -->
-  <link href="../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Gull Theme CSS -->
+  <link href="dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
 
   <style>
-    .auth-layout-wrap{min-height:100vh}
-    .toggle-eye{position:absolute; right:14px; top:50%; transform:translateY(-50%); cursor:pointer; opacity:.6}
-    .toggle-eye:hover{opacity:1}
-    .position-relative{position:relative}
-    .spinner{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.6);border-top-color:#fff;display:inline-block;vertical-align:middle;animation:spin .9s linear infinite;margin-right:8px}
-    @keyframes spin{to{transform:rotate(1turn)}}
+    body { font-family:"Noto Sans Khmer",sans-serif; }
+    .auth-layout-wrap { min-height:100vh; }
+    .auth-logo img { max-height:60px; }
+    .form-control { font-size:15px; }
+    .toggle-eye { position:absolute; right:14px; top:50%; transform:translateY(-50%); cursor:pointer; }
+    .alert { font-size:14px; }
   </style>
 </head>
 
 <body>
-  <div class="auth-layout-wrap" style="background-image:url(../dist-assets/images/photo-wide-4.jpg)">
+  <div class="auth-layout-wrap" style="background-image:url(dist-assets/images/photo-wide-4.jpg)">
     <div class="auth-content">
       <div class="card o-hidden">
         <div class="row">
@@ -31,27 +34,34 @@
           <div class="col-md-6">
             <div class="p-4">
               <div class="auth-logo text-center mb-4">
-                <img src="../../dist-assets/images/logo.png" alt="logo" />
+                <img src="dist-assets/images/logo.png" alt="logo"/>
               </div>
-              <h1 class="mb-2 text-18 font-weight-bold">ចូលប្រើប្រាស់ប្រព័ន្ធ</h1>
-              <p class="mb-3 text-muted">សូមបញ្ចូលឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់</p>
+              <h1 class="mb-2 text-18 font-weight-bold text-center" style="font-family:'Khmer Moul'">
+                ប្រព័ន្ធរាយការណ៍សុខាភិបាល
+              </h1>
+              <p class="mb-3 text-muted text-center">សូមបញ្ចូលឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់</p>
 
               <div id="msg" class="alert alert-danger d-none" role="alert"></div>
 
               <form id="loginForm" novalidate>
                 <div class="form-group">
                   <label for="username">ឈ្មោះអ្នកប្រើ</label>
-                  <input class="form-control form-control-rounded" id="username" name="username" autocomplete="username" required />
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input class="form-control form-control-rounded" id="username" required />
+                  </div>
                 </div>
 
                 <div class="form-group position-relative">
                   <label for="password">ពាក្យសម្ងាត់</label>
-                  <input class="form-control form-control-rounded" id="password" name="password" type="password" autocomplete="current-password" required />
-                  <span id="btnTogglePw" class="toggle-eye">👁</span>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input class="form-control form-control-rounded" id="password" type="password" required />
+                    <span id="btnTogglePw" class="input-group-text toggle-eye"><i class="bi bi-eye"></i></span>
+                  </div>
                 </div>
 
-                <button id="btnLogin" type="submit" class="btn btn-rounded btn-primary w-100 mt-2">
-                  <span id="spin" class="spinner d-none"></span>
+                <button id="btnLogin" type="submit" class="btn btn-rounded btn-primary w-100 mt-3">
                   <span id="btnText">ចូលប្រើប្រាស់</span>
                 </button>
               </form>
@@ -63,77 +73,42 @@
           </div>
 
           <!-- RIGHT -->
-          <div class="col-md-6 text-center" style="background-size:cover;background-image:url(../dist-assets/images/photo-long-3.jpg)"></div>
+          <div class="col-md-6 text-center" style="background-size:cover;background-image:url(dist-assets/images/photo-long-3.jpg)"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <script>
-    // ====== CONFIG ======
-    const GAS_BASE = "https://script.google.com/macros/s/AKfycbwdeEgEMYK8bCZqU0xmOEERIvqbqu21tUwDKDuBb9tUXhOVwb463Hjk2XZsz9T9lBmLZQ/exec";
+<script>
+  const GAS_BASE = "https://script.google.com/macros/s/AKfycbwdeEgEMYK8bCZqU0xmOEERIvqbqu21tUwDKDuBb9tUXhOVwb463Hjk2XZsz9T9lBmLZQ/exec";
 
-    // ====== DOM helpers ======
-    const $ = (s) => document.querySelector(s);
-    function showMsg(text) {
-      const el = $("#msg");
-      if (!text) { el.classList.add("d-none"); el.textContent = ""; return; }
-      el.textContent = text; el.classList.remove("d-none");
-    }
-    function setLoading(v) {
-      $("#btnLogin").disabled = v;
-      $("#spin").classList.toggle("d-none", !v);
-      $("#btnText").textContent = v ? "កំពុងចូល..." : "ចូលប្រើប្រាស់";
-    }
+  const $ = (s)=>document.querySelector(s);
+  function showMsg(t){const el=$("#msg");if(!t){el.classList.add("d-none");return;}el.textContent=t;el.classList.remove("d-none");}
+  $("#btnTogglePw").addEventListener("click",()=>{const i=$("#password");i.type=i.type==="password"?"text":"password";});
 
-    // ====== Toggle password ======
-    $("#btnTogglePw").addEventListener("click", () => {
-      const i = $("#password");
-      i.type = i.type === "password" ? "text" : "password";
+  async function gasLogin(u,p){
+    const res=await fetch(GAS_BASE+"?api=1&route=auth&op=login",{
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({username:u,password:p})
     });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    return res.json();
+  }
 
-    // ====== CALL GAS (text/plain to avoid preflight) ======
-    async function gasLogin(username, password) {
-      const res = await fetch(GAS_BASE + "?api=1&route=auth&op=login", {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ username, password })
-      });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return res.json();
-    }
-
-    // ====== Submit handler ======
-    $("#loginForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      showMsg("");
-      const u = $("#username").value.trim();
-      const p = $("#password").value;
-      if (!u || !p) { showMsg("សូមបំពេញទាំងពីរទំព័រ"); return; }
-
-      try {
-        setLoading(true);
-        const j = await gasLogin(u, p);
-        if (j && !j.error) {
-          localStorage.setItem("AUTH", JSON.stringify({
-            user_id: j.user_id,
-            user_name: j.user_name,
-            user_type: j.user_type,
-            user_root: j.user_root,
-            department_id: j.department_id,
-            login_at: Date.now()
-          }));
-          // redirect
-          location.href = "index.html";
-        } else {
-          showMsg(j?.error || "ឈ្មោះអ្នកប្រើ ឬ ពាក្យសម្ងាត់ មិនត្រឹមត្រូវ");
-        }
-      } catch (err) {
-        showMsg("បរាជ័យក្នុងការតភ្ជាប់ API: " + err.message);
-      } finally {
-        setLoading(false);
-      }
-    });
-  </script>
+  $("#loginForm").addEventListener("submit",async(e)=>{
+    e.preventDefault();
+    showMsg("");
+    const u=$("#username").value.trim(); const p=$("#password").value;
+    if(!u||!p){showMsg("សូមបំពេញឈ្មោះ និងពាក្យសម្ងាត់");return;}
+    try{
+      const j=await gasLogin(u,p);
+      if(j&&!j.error){
+        localStorage.setItem("AUTH",JSON.stringify(j));
+        location.href="index.html";
+      } else { showMsg(j?.error||"Login បរាជ័យ"); }
+    }catch(err){ showMsg("API Error: "+err.message); }
+  });
+</script>
 </body>
 </html>
