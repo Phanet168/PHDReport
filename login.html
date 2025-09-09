@@ -87,9 +87,11 @@
   const GAS_BASE = "https://script.google.com/macros/s/AKfycbykBUJRGrWXDNmukd47lJ818eifCospKg10wbj88idgLJyBoWN3XSoRirzYrDzZqPg1yA/exec";
 
   // LocalStorage AUTH helpers
-  const LS = window.localStorage;
-  const setAuth = (obj)=>LS.setItem('AUTH', JSON.stringify(obj||null));
-  const getAuth = ()=>{ try { return JSON.parse(LS.getItem('AUTH')||'null'); } catch { return null; } };
+// LocalStorage AUTH helpers (must match app.auth.js)
+const LS_KEY = 'phd_auth';
+const setAuth = (obj)=>localStorage.setItem(LS_KEY, JSON.stringify(obj||null));
+const getAuth = ()=>{ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch { return null; } };
+
 
   // Role helpers (user_type → role UI)
   const isSuper     = a => String(a?.user_type||'').toLowerCase() === 'superuser';
