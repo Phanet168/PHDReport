@@ -250,8 +250,9 @@
   <!-- App: build dynamic Dept/Unit menu + login state (token-aware) -->
 <!-- App: login state + build Dept/Unit menu (token-aware) -->
 <script type="module">
-  import { getAuth, applyLoginButton, isSuper } from './assets/js/app.auth.js';
+  import { getAuth, applyLoginButton, isSuper, requireLogin  } from './assets/js/app.auth.js';
   import { buildDeptMenu } from './assets/js/app.menu.js';
+  const auth = requireLogin();
 
   // ===== Require login =====
   const auth = getAuth();
@@ -289,6 +290,7 @@
 
 </body>
 </html>
+
 
 
 
