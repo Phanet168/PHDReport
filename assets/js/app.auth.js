@@ -5,9 +5,10 @@ export const getAuth = () => { try { return JSON.parse(LS.getItem('AUTH')||'null
 export const setAuth = (obj) => LS.setItem('AUTH', JSON.stringify(obj||null));
 export const clearAuth = () => LS.removeItem('AUTH');
 
-export const isSuper     = a => !!a && a.role === 'super';
-export const isDataEntry = a => !!a && a.role === 'dataentry';
-export const isViewer    = a => !!a && a.role === 'viewer';
+// >>> Core change: ស្វែងយល់តាម user_type
+export const isSuper     = a => String(a?.user_type||'').toLowerCase() === 'superuser';
+export const isDataEntry = a => ['admin','dataentry'].includes(String(a?.user_type||'').toLowerCase());
+export const isViewer    = a => String(a?.user_type||'').toLowerCase() === 'viewer';
 
 export function gotoAfterLogin(auth){
   if (isSuper(auth))      return location.replace('index.html');
