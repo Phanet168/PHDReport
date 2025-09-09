@@ -2,7 +2,7 @@
 import { getAuth, isSuper } from './app.auth.js';
 
 // !! ប្រើ URL /exec ដែលអ្នកបាន deploy ចុងក្រោយ
-const GAS_BASE = "https://script.google.com/macros/s/AKfycbwkhRDOYDKb5nqGEhxNKGbHnpoZNGmN4GJlv0-8FTQXNGqJIV1Xfy9XLkXwNfGepC3prQ/exec";
+const GAS_BASE = "https://script.google.com/macros/s/AKfycbzUXPrbr-q3zTP1Jg-f8PX34Jjj23jHFuYiCyaKuOEmP4Qwzb1pXdFcnbypEZVigdF4IA/exec";
 
 async function gasList(route, params = {}) {
   const auth = getAuth();
@@ -86,3 +86,4 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
     `;
   }
 }
+
