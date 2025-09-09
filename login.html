@@ -171,5 +171,16 @@
     }
   });
 </script>
+  <script type="module">
+  import { setAuth } from './assets/js/app.auth.js';
+  // Example: ក្រោយពេល submit form
+  function onLoginSuccess(user){
+    // user = data ពី GAS validate (ក៏បាន) ឬ mock
+    setAuth(user); 
+    location.href = './index.html';
+  }
+  // ... handle form submit & call onLoginSuccess({...})
+</script>
+
 </body>
 </html>
