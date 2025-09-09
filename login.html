@@ -113,6 +113,11 @@
       if (inp.type === "password") { inp.type = "text"; ico.className = "bi bi-eye-slash"; }
       else { inp.type = "password"; ico.className = "bi bi-eye"; }
     });
+    // Alias for router
+function login(username, password) {
+  return login_(username, password);
+}
+
 
     function showMsg(t){
       if(!t){ msgBox.classList.add("d-none"); msgBox.textContent=""; return; }
