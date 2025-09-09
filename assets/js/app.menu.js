@@ -1,6 +1,6 @@
 import { getAuth, isSuper } from './app.auth.js';
 
-const GAS_BASE = "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
+const GAS_BASE = "https://script.google.com/macros/s/AKfycbwuvNrQOG7CoQiEb6LXyz-0KJgir_H5LPjGrcS79Vf9qH-0sU9Mln5N3YvQJn4u_n74HA/exec";
 
 async function gasList(route, params = {}) {
   const u = new URL(GAS_BASE);
@@ -56,3 +56,4 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
     box.innerHTML = `<li class="nav-item"><a href="#"><span class="item-name text-danger">បរាជ័យ: ${err.message}</span></a></li>`;
   }
 }
+
