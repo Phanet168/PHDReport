@@ -250,37 +250,34 @@
   <!-- App: build dynamic Dept/Unit menu + login state (token-aware) -->
 <!-- App: login state + build Dept/Unit menu (token-aware) -->
 <script type="module">
- import { getAuth, applyLoginButton, isSuper } from './assets/js/app.auth.js';
+  import { ensureLoggedIn, getAuth, isSuper, applyLoginButton } from './assets/js/app.auth.js';
   import { buildDeptMenu } from './assets/js/app.menu.js';
-  const auth = requireLogin();
 
-  // ===== Require login =====
+  // 1) Guard page: redirect ទៅ login ប្រសិនបើមិនទាន់ login
+  ensureLoggedIn('login.html');
+
+  // 2) Auth object (ក្រោយ guard នេះ មានតម្លៃជានិច្ច)
   const auth = getAuth();
-  if (!auth) {
-    location.replace('login.html');
-  }
 
-  // ===== Login button =====
+  // 3) Login/Logout button (ប្ដូរទៅ “username • ចេញ” និងចេញបានត្រឹមត្រូវ)
   const btnLogin = document.getElementById('btnLogin');
   if (btnLogin) applyLoginButton(btnLogin);
 
-  // ===== Role-based menu visibility =====
+  // 4) លាក់ម៉ឺនុយសម្រាប់ super-user បើអ្នកប្រើមិនមែនជាស៊ុបឺរ
   if (!isSuper(auth)) {
     document.querySelectorAll('.menu-super-only').forEach(el => el.style.display = 'none');
   }
 
-  // ===== Build Departments submenu (from app.menu.js) =====
-  // NOTE: GAS_BASE ត្រូវកំណត់នៅក្នុង app.menu.js (កុំស្ទួននៅទីនេះ)
+  // 5) បង្កើតម៉ឺនុយ ការិយាល័យ/ផ្នែក ពី GAS (មាន token)
   buildDeptMenu('deptMenu');
 
-  // ===== Search quick filter =====
+  // 6) Quick filter ស្វែងរកនៅ sidebar
   const qEl = document.getElementById('q');
   if (qEl) {
     qEl.addEventListener('input', e => {
       const q = e.target.value.toLowerCase();
       document.querySelectorAll('.childNav .item-name').forEach(el => {
-        const ok = el.textContent.toLowerCase().includes(q);
-        el.closest('li').style.display = ok ? '' : 'none';
+        el.closest('li').style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
       });
     });
   }
@@ -290,6 +287,7 @@
 
 </body>
 </html>
+
 
 
 
