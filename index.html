@@ -350,5 +350,12 @@
       buildDeptMenu();
     })();
   </script>
+  <script type="module">
+  import { applyLoginButton } from './assets/js/app.auth.js';
+  const btn = document.getElementById('btnLogin');
+  if (btn) applyLoginButton(btn);
+</script>
+
 </body>
 </html>
+
