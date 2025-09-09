@@ -5,13 +5,13 @@ export const getAuth = () => { try { return JSON.parse(LS.getItem('AUTH')||'null
 export const setAuth = (obj) => LS.setItem('AUTH', JSON.stringify(obj||null));
 export const clearAuth = () => LS.removeItem('AUTH');
 
-export const isSuper = a => !!a && a.role === 'super';
+export const isSuper     = a => !!a && a.role === 'super';
 export const isDataEntry = a => !!a && a.role === 'dataentry';
-export const isViewer = a => !!a && a.role === 'viewer';
+export const isViewer    = a => !!a && a.role === 'viewer';
 
 export function gotoAfterLogin(auth){
   if (isSuper(auth))      return location.replace('index.html');
-  if (isDataEntry(auth))  return location.replace('pages/admin/index.html'); // data entry landing
+  if (isDataEntry(auth))  return location.replace('pages/admin/index.html');
   if (isViewer(auth))     return location.replace('pages/user/index.html');
   location.replace('index.html');
 }
@@ -23,12 +23,12 @@ export function applyLoginButton(btnEl){
     btnEl.classList.remove('btn-outline-primary');
     btnEl.classList.add('btn-outline-danger');
     btnEl.href = '#';
-    btnEl.onclick = (e)=>{ e.preventDefault(); clearAuth(); location.replace('login.html'); };
+    btnEl.onclick = (e)=>{ e.preventDefault(); clearAuth(); location.replace('../../login.html'); };
   } else {
     btnEl.textContent = 'ចូលប្រើប្រាស់';
     btnEl.classList.add('btn-outline-primary');
     btnEl.classList.remove('btn-outline-danger');
-    btnEl.href = 'login.html';
+    btnEl.href = '../../login.html';
     btnEl.onclick = null;
   }
 }
