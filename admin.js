@@ -30,7 +30,7 @@ const Toast = { el:document.getElementById('toast'), show(t){ this.el.textConten
 
 // ===== API helpers =====
 const API_BASE = localStorage.getItem("API_BASE")
-  || "https://script.google.com/macros/s/AKfycbwnxRudS_il7Dvcdh7-QB36NJaP-6-hl5nMniXrbuKhMpHPK8CCEGkRIc9-okB-P0Z6Zw/exec";
+  || "https://script.google.com/macros/s/AKfycbykBUJRGrWXDNmukd47lJ818eifCospKg10wbj88idgLJyBoWN3XSoRirzYrDzZqPg1yA/exec";
 
 const API = {
   async list(route, params={}){
