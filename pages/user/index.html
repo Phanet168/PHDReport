@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Report Viewer | PHD Report</title>
+  <link href="../../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
+  <style>
+    body{ font-family:"Noto Sans Khmer", system-ui, Arial, sans-serif; }
+    .wrap{ max-width: 1100px; margin: 24px auto; padding: 12px; }
+    .card{ border-radius:14px; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2>របាយការណ៍តាមខែ</h2>
+      <a id="btnLogout" class="btn btn-outline-danger btn-sm">ចេញ</a>
+    </div>
+
+    <div class="card p-3 mb-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-auto">
+          <label class="form-label mb-1">ឆ្នាំ</label>
+          <input id="year" class="form-control" style="width:140px" value="">
+        </div>
+        <div class="col-auto">
+          <label class="form-label mb-1">Indicator</label>
+          <select id="ind" class="form-select" style="min-width:220px">
+            <option value="">— ទាំងអស់ —</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button id="btnLoad" class="btn btn-outline-primary">ទាញ</button>
+          <button id="btnCsv" class="btn btn-outline-secondary">Export CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-3">
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle">
+          <thead><tr><th>#</th><th>Period</th><th>Indicator</th><th>Value</th><th>Dept</th></tr></thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+  import { getAuth, clearAuth } from '../../assets/js/app.auth.js';
+  import { listReports, listIndicators, exportCsv } from '../../assets/js/app.api.js';
+
+  const auth = getAuth(); if(!auth) location.replace('../../login.html');
+  document.getElementById('btnLogout').onclick = ()=>{ clearAuth(); location.replace('../../login.html'); };
+
+  // defaults
+  document.getElementById('year').value = String(new Date().getFullYear());
+
+  // indicators
+  async function loadIndicators(){
+    const j = await listIndicators();
+    const rows = Array.isArray(j.rows)? j.rows : (Array.isArray(j)? j: []);
+    const sel = document.getElementById('ind');
+    sel.insertAdjacentHTML('beforeend', rows.map(r=>`<option value="${r.indicator_id}">${r.indicator_name||('ID '+r.indicator_id)}</option>`).join(''));
+  }
+
+  // render table
+  const $tb = document.getElementById('tb');
+  function renderRows(rows){
+    $tb.innerHTML = rows.map((r,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${r.period_id||''}</td>
+        <td>${r.indicator_id||''}</td>
+        <td>${r.value??0}</td>
+        <td>${r.department_id||''}</td>
+      </tr>
+    `).join('');
+  }
+
+  async function load(){
+    const y = Number(document.getElementById('year').value||new Date().getFullYear());
+    const ind = document.getElementById('ind').value;
+    const filter = {};
+    if (ind) filter.indicator_id = ind;
+    const j = await listReports({ year:y, filter });
+    const rows = Array.isArray(j.rows)? j.rows : (Array.isArray(j)? j: []);
+    renderRows(rows);
+    return rows;
+  }
+
+  document.getElementById('btnLoad').onclick = load;
+  document.getElementById('btnCsv').onclick = async ()=>{
+    const rows = await load();
+    if(!rows.length) return alert('គ្មានទិន្នន័យ');
+    exportCsv(`reports_${document.getElementById('year').value}${document.getElementById('ind').value?('_ind'+document.getElementById('ind').value):''}.csv`, rows);
+  };
+
+  await loadIndicators();
+  await load();
+</script>
+</body>
+</html>
