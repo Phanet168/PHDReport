@@ -375,12 +375,17 @@
     });
   }
 
-  // init
-  buildDeptMenu();
+
 </script>
+<script type="module">
+  import { buildDeptMenu } from './assets/js/app.menu.js';
+  buildDeptMenu('deptMenu'); // id របស់ UL នៅ sidebar secondary
+</script>
+
 
 </body>
 </html>
+
 
 
 
