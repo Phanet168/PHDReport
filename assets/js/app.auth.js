@@ -53,11 +53,18 @@ export function applyLoginButton(btn) {
   btn.classList.remove('btn-outline-primary');
   btn.classList.add('btn-outline-danger');
   btn.href = '#';
-  btn.addEventListener('click', (e) => {
+  btn.onclick = (e) => {
     e.preventDefault();
-    logout('login.html');  // 👈 redirect ក្រោយចុចចេញ
-  }, { once: true }); // once: ជៀស​ការ​ដាក់ event ពិបាកៗពេល re-init
+    logout('login.html'); // 👈 ឥឡូវនេះ logout ដំណើរការ
+  };
 }
+export function logout(redirect = 'login.html') {
+  try {
+    localStorage.removeItem('phd_auth'); // clear auth
+  } catch (_) {}
+  location.replace(redirect); // redirect ទៅ login.html
+}
+
 
 // ===== Convenience: guard pages =====
 export function requireLogin(redirectTo = 'login.html'){
@@ -65,3 +72,4 @@ export function requireLogin(redirectTo = 'login.html'){
   if (!a) location.replace(redirectTo);
   return a;
 }
+
