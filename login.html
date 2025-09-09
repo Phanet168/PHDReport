@@ -83,16 +83,16 @@
   </main>
 
   <!-- ================== LOGIN SCRIPT ================== -->
- <script>
-import { GAS_BASE } from './assets/js/config.js';
-  // LocalStorage AUTH helpers
-// LocalStorage AUTH helpers (must match app.auth.js)
-const LS_KEY = 'phd_auth';
-const setAuth = (obj)=>localStorage.setItem(LS_KEY, JSON.stringify(obj||null));
-const getAuth = ()=>{ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch { return null; } };
+<!-- ================== LOGIN SCRIPT (module) ================== -->
+<script type="module">
+  import { GAS_BASE } from './assets/js/config.js';
 
+  // LocalStorage AUTH helpers (must match app.auth.js)
+  const LS_KEY = 'phd_auth';
+  const setAuth = (obj)=>localStorage.setItem(LS_KEY, JSON.stringify(obj||null));
+  const getAuth = ()=>{ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch { return null; } };
 
-  // Role helpers (user_type → role UI)
+  // Role helpers
   const isSuper     = a => String(a?.user_type||'').toLowerCase() === 'superuser';
   const isDataEntry = a => ['admin','dataentry'].includes(String(a?.user_type||'').toLowerCase());
   const isViewer    = a => String(a?.user_type||'').toLowerCase() === 'viewer';
@@ -108,34 +108,28 @@ const getAuth = ()=>{ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'n
   // UI helpers
   const $ = (s)=>document.querySelector(s);
   const msgBox = $("#msg");
-
   $("#btnTogglePw").addEventListener("click", () => {
     const inp = $("#password"); const ico = $("#btnTogglePw i");
     if (inp.type === "password") { inp.type = "text"; ico.className = "bi bi-eye-slash"; }
     else { inp.type = "password"; ico.className = "bi bi-eye"; }
   });
-
   function showMsg(t){
     if(!t){ msgBox.classList.add("d-none"); msgBox.textContent=""; return; }
     msgBox.textContent = t; msgBox.classList.remove("d-none");
   }
 
-  // ---- API call to GAS (avoid preflight with text/plain) ----
+  // Call GAS
   async function apiLogin(username, password){
     const res = await fetch(GAS_BASE + "?api=1&route=auth&op=login", {
       method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoid preflight
       body: JSON.stringify({ username, password })
     });
     if(!res.ok) throw new Error("HTTP " + res.status + " " + res.statusText);
-    try {
-      return await res.json();
-    } catch {
-      throw new Error("Invalid JSON response");
-    }
+    return await res.json();
   }
 
-  // Submit form
+  // Submit
   $("#loginForm").addEventListener("submit", async (e)=>{
     e.preventDefault();
     const u = $("#username").value.trim();
@@ -150,8 +144,7 @@ const getAuth = ()=>{ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'n
     try{
       const user = await apiLogin(u,p);
       if(user && !user.error){
-        setAuth(user); // មាន token, user_type, role (ពី server)
-        // ប្រសិនបើ server មិនផ្ដល់ role ក៏បាន, អ្នកកំណត់ដោយ user_type ខាងលើ
+        setAuth(user);             // save token & user info
         gotoAfterLogin(user);
       }else{
         showMsg(user?.error || "Login បរាជ័យ");
@@ -165,19 +158,13 @@ const getAuth = ()=>{ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'n
     }
   });
 
-  // Shortcut Enter
-  ['#username','#password'].forEach(sel=>{
-    document.querySelector(sel).addEventListener('keydown', e=>{
-      if(e.key==='Enter') document.getElementById('btnLogin').click();
-    });
-  });
-
-  // Already logged-in → redirect away from login page
-  (function redirectIfAlreadyLoggedIn(){
+  // already logged-in → redirect
+  (function(){
     const a = getAuth();
-    if (a && a.user_type) { gotoAfterLogin(a); }
+    if (a && a.user_type) gotoAfterLogin(a);
   })();
 </script>
+
 
 </body>
 </html>
