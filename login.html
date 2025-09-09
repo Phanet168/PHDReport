@@ -148,15 +148,26 @@
     msgBox.textContent = t; msgBox.classList.remove("d-none");
   }
 
-  async function gasLogin(username, password){
-    const res = await fetch(GAS_BASE + "?api=1&route=auth&op=login", {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"}, // no-preflight CORS
-      body: JSON.stringify({ username, password })
-    });
-    if(!res.ok) throw new Error("HTTP " + res.status);
-    return res.json();
+async function gasLogin(username, password) {
+  const res = await fetch(GAS_BASE + "?api=1&route=auth&op=login", {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ username, password })
+  });
+
+  if (!res.ok) {
+    throw new Error("HTTP " + res.status + " " + res.statusText);
   }
+
+  let j;
+  try {
+    j = await res.json();
+  } catch (err) {
+    throw new Error("Invalid JSON response");
+  }
+  return j;
+}
+
 
   $("#loginForm").addEventListener("submit", async (e)=>{
     e.preventDefault();
