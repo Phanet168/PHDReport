@@ -248,122 +248,31 @@
   <script src="dist-assets/js/scripts/dashboard.v1.script.min.js"></script>
 
   <!-- App: build dynamic Dept/Unit menu + login state (token-aware) -->
- <script type="module">
-  import { getAuth, applyLoginButton, isSuper, isDataEntry, isViewer } from './assets/js/app.auth.js';
+<!-- App: login state + build Dept/Unit menu (token-aware) -->
+<script type="module">
+  import { getAuth, applyLoginButton, isSuper } from './assets/js/app.auth.js';
+  import { buildDeptMenu } from './assets/js/app.menu.js';
 
-  // ===== CONFIG =====
-  const GAS_BASE = "https://script.google.com/macros/s/AKfycbwkhRDOYDKb5nqGEhxNKGbHnpoZNGmN4GJlv0-8FTQXNGqJIV1Xfy9XLkXwNfGepC3prQ/exec"; // <-- Web App /exec
+  // ===== Require login =====
   const auth = getAuth();
+  if (!auth) {
+    location.replace('login.html');
+  }
 
-  // Require login on dashboard
-  if (!auth) location.replace('login.html');
-
-  // Login button
+  // ===== Login button =====
   const btnLogin = document.getElementById('btnLogin');
   if (btnLogin) applyLoginButton(btnLogin);
 
-  // Role-based menu visibility (viewer/dataentry លាក់ទំព័រ super)
+  // ===== Role-based menu visibility =====
   if (!isSuper(auth)) {
     document.querySelectorAll('.menu-super-only').forEach(el => el.style.display = 'none');
   }
 
-  // ---- Generic GAS list (adds token) ----
-  async function gasList(route, params = {}) {
-    const u = new URL(GAS_BASE);
-    u.searchParams.set('api', '1');
-    u.searchParams.set('route', route);
-    u.searchParams.set('op', 'list');
-    // include filters
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== '') {
-        u.searchParams.set(k, String(v));
-      }
-    });
-    // token
-    if (auth?.token) u.searchParams.set('token', auth.token);
+  // ===== Build Departments submenu (from app.menu.js) =====
+  // NOTE: GAS_BASE ត្រូវកំណត់នៅក្នុង app.menu.js (កុំស្ទួននៅទីនេះ)
+  buildDeptMenu('deptMenu');
 
-    const r = await fetch(u.toString(), { cache: 'no-store' });
-    if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
-    const j = await r.json();
-    if (j?.error) throw new Error(j.error);
-    return Array.isArray(j.rows) ? j.rows : (Array.isArray(j) ? j : []);
-  }
-
-  // ---- Build Departments submenu ----
-  async function buildDeptMenu() {
-    const box = document.getElementById('deptMenu');
-    if (!box) return;
-
-    // add management link first
-    box.innerHTML = `
-      <li class="nav-item">
-        <a href="pages/mgmt/departments.html">
-          <i class="nav-icon i-Building"></i>
-          <span class="item-name">គ្រប់គ្រងការិយាល័យ</span>
-        </a>
-      </li>
-      <li class="nav-item"><a href="#"><span class="item-name text-muted">កំពុងទាញទិន្នន័យ...</span></a></li>
-    `;
-
-    try {
-      let depts = await gasList('departments');
-
-      // narrow for non-super (មើលតែ department របស់ខ្លួន)
-      if (!isSuper(auth) && auth?.department_id) {
-        depts = depts.filter(d => String(d.department_id) === String(auth.department_id));
-      }
-
-      const parts = [];
-      if (depts.length === 0) {
-        parts.push(`<li class="nav-item"><a href="#"><span class="item-name text-muted">គ្មានទិន្នន័យ</span></a></li>`);
-      } else {
-        parts.push(`<li class="nav-item"><a href="#"><span class="item-name text-muted">បញ្ជីការិយាល័យ</span></a></li>`);
-        for (const d of depts) {
-          parts.push(`
-            <li class="nav-item">
-              <a href="#">
-                <i class="nav-icon i-Building"></i>
-                <span class="item-name">${d.department_name}</span>
-              </a>
-            </li>
-          `);
-
-          // units under department
-          const units = await gasList('units', { department_id: d.department_id });
-          if (units.length === 0) {
-            parts.push(`
-              <li class="nav-item">
-                <a href="#"><span class="item-name text-muted ps-4">— គ្មានផ្នែក</span></a>
-              </li>
-            `);
-          } else {
-            units.forEach(u => {
-              parts.push(`
-                <li class="nav-item">
-                  <a href="pages/departments/${d.department_id}/units/${u.unit_id}/index.html">
-                    <i class="nav-icon i-Right"></i>
-                    <span class="item-name ps-3">${u.unit_name}</span>
-                  </a>
-                </li>
-              `);
-            });
-          }
-        }
-      }
-
-      // keep the first management link + render list
-      const first = box.firstElementChild?.outerHTML || '';
-      box.innerHTML = first + parts.join('');
-    } catch (err) {
-      box.innerHTML = `
-        <li class="nav-item">
-          <a href="#"><span class="item-name text-danger">បរាជ័យ៖ ${err.message}</span></a>
-        </li>
-      `;
-    }
-  }
-
-  // ---- Search quick filter ----
+  // ===== Search quick filter =====
   const qEl = document.getElementById('q');
   if (qEl) {
     qEl.addEventListener('input', e => {
@@ -374,17 +283,13 @@
       });
     });
   }
-
-
 </script>
-<script type="module">
-  import { buildDeptMenu } from './assets/js/app.menu.js';
-  buildDeptMenu('deptMenu'); // id របស់ UL នៅ sidebar secondary
-</script>
+
 
 
 </body>
 </html>
+
 
 
 
