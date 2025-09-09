@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Data Entry | PHD Report</title>
+  <link href="../../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
+  <style>
+    body{ font-family:"Noto Sans Khmer", system-ui, Arial, sans-serif; }
+    .wrap{ max-width: 980px; margin: 24px auto; padding: 12px; }
+    .card{ border-radius:14px; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+    .form-control[readonly]{ background:#f8fafc; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2>បញ្ចូលសូចនាករ​តាមខែ</h2>
+      <a id="btnLogout" class="btn btn-outline-danger btn-sm">ចេញ</a>
+    </div>
+
+    <div id="roleInfo" class="alert alert-info py-2 mb-3"></div>
+
+    <div class="card p-3 mb-4">
+      <form id="f">
+        <div class="row g-3">
+          <div class="col-sm-4">
+            <label class="form-label">ការិយាល័យ (department_id)</label>
+            <input id="dep" class="form-control" placeholder="ឧ. 2" required>
+            <small class="text-muted">Data Entry នឹង lock ជា ការិយាល័យខ្លួន</small>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label">Indicator</label>
+            <select id="ind" class="form-select" required></select>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label">រយៈពេល (Period ID)</label>
+            <input id="per" class="form-control" placeholder="ឧ. 2025M08" required>
+            <small class="text-muted">គំរូ: YYYYMMM (2025M01), YYYYQn (2025Q3) ឬ YYYYY (2025Y)</small>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label">តម្លៃ Value</label>
+            <input id="val" class="form-control" type="number" min="0" required>
+          </div>
+          <div class="col-sm-8">
+            <label class="form-label">សេចក្ដីអធិប្បាយ (ជ្រៀតជ្រែក)</label>
+            <input id="note" class="form-control" placeholder="Optional note">
+          </div>
+        </div>
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-primary" type="submit">រក្សាទុក</button>
+          <button class="btn btn-outline-secondary" type="button" id="btnReset">សម្អាត</button>
+          <div id="msg" class="ms-3"></div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card p-3">
+      <div class="d-flex align-items-end gap-2 mb-2">
+        <div>
+          <label class="form-label mb-1">ឆ្នាំ</label>
+          <input id="year" class="form-control" style="width:120px" value="">
+        </div>
+        <button id="btnLoad" class="btn btn-outline-primary">ទាញទិន្នន័យ</button>
+        <button id="btnCsv" class="btn btn-outline-secondary">Export CSV</button>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle">
+          <thead>
+            <tr><th>ID</th><th>Period</th><th>Dept</th><th>Indicator</th><th>Value</th><th>កំណត់ត្រា</th><th style="width:1%"></th></tr>
+          </thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+  import { getAuth, isSuper, isDataEntry, isViewer, clearAuth } from '../../assets/js/app.auth.js';
+  import { listIndicators, listReports, upsertReport, deleteReport, yFromPeriod, exportCsv } from '../../assets/js/app.api.js';
+
+  const auth = getAuth(); if(!auth) location.replace('../../login.html');
+  if (isViewer(auth)) { alert('Viewer មិនអនុញ្ញាតបញ្ចូលទិន្នន័យ'); location.replace('../user/index.html'); }
+
+  document.getElementById('btnLogout').onclick = ()=>{ clearAuth(); location.replace('../../login.html'); };
+
+  // Role info
+  document.getElementById('roleInfo').textContent =
+    isSuper(auth) ? 'Role: Super (អាចបញ្ចូលគ្រប់ការិយាល័យ)' :
+    isDataEntry(auth) ? `Role: Data Entry (ការិយាល័យ #${auth.department_id})` :
+    'Role: Viewer';
+
+  // Department lock
+  const depInput = document.getElementById('dep');
+  if (isDataEntry(auth)) { depInput.value = auth.department_id || ''; depInput.readOnly = true; }
+  // Default year
+  document.getElementById('year').value = String(new Date().getFullYear());
+
+  // Load indicators for select
+  const indSel = document.getElementById('ind');
+  async function loadIndicators(){
+    const j = await listIndicators();
+    const rows = Array.isArray(j.rows)? j.rows : (Array.isArray(j)? j: []);
+    indSel.innerHTML = rows.map(r=>`<option value="${r.indicator_id}">${r.indicator_name||('ID '+r.indicator_id)}</option>`).join('');
+  }
+
+  // Table rendering
+  const $tb = document.getElementById('tb');
+  function renderRows(rows){
+    $tb.innerHTML = rows.map(r=>`
+      <tr>
+        <td>${r.report_id||''}</td>
+        <td>${r.period_id||''}</td>
+        <td>${r.department_id||''}</td>
+        <td>${r.indicator_id||''}</td>
+        <td>${r.value??0}</td>
+        <td>${r._updatedAt||r._createdAt||''}</td>
+        <td class="text-nowrap">
+          <button class="btn btn-sm btn-outline-danger" data-del="${r.report_id}" data-year="${yFromPeriod(r.period_id)}">លុប</button>
+        </td>
+      </tr>
+    `).join('');
+    // attach delete
+    $tb.querySelectorAll('[data-del]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        if(!confirm('លុបទិន្នន័យនេះ?')) return;
+        try{
+          await deleteReport(btn.dataset.del, { year: btn.dataset.year });
+          await loadTable();
+        }catch(err){ alert('បរាជ័យ: '+err.message); }
+      });
+    });
+  }
+
+  async function loadTable(){
+    const y = Number(document.getElementById('year').value||new Date().getFullYear());
+    const j = await listReports({ year:y });
+    const rows = Array.isArray(j.rows)? j.rows : (Array.isArray(j)? j: []);
+    renderRows(rows);
+    return rows;
+  }
+
+  // Form submit
+  const form = document.getElementById('f');
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const payload = {
+      department_id: depInput.value || auth.department_id,
+      indicator_id: document.getElementById('ind').value,
+      period_id: document.getElementById('per').value.trim(),
+      value: Number(document.getElementById('val').value||0),
+      note: document.getElementById('note').value.trim()
+    };
+    payload.year = yFromPeriod(payload.period_id);
+    const msg = document.getElementById('msg');
+    try{
+      const r = await upsertReport(payload);
+      msg.textContent = '✅ បានរក្សាទុក (#'+(r.row?.report_id||'')+')';
+      msg.className = 'text-success';
+      form.reset();
+      if (isDataEntry(auth)) depInput.value = auth.department_id || '';
+      await loadTable();
+    }catch(err){
+      msg.textContent = '❌ បរាជ័យ: '+err.message;
+      msg.className = 'text-danger';
+    }
+  });
+  document.getElementById('btnReset').onclick = ()=> form.reset();
+
+  document.getElementById('btnLoad').onclick = loadTable;
+  document.getElementById('btnCsv').onclick = async ()=>{
+    const rows = await loadTable();
+    if(!rows.length) return alert('គ្មានទិន្នន័យ');
+    exportCsv(`reports_${document.getElementById('year').value}.csv`, rows);
+  };
+
+  // Init
+  await loadIndicators();
+  await loadTable();
+</script>
+</body>
+</html>
