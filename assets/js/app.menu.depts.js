@@ -2,7 +2,7 @@
   import { getAuth, isSuper } from './assets/js/app.auth.js';
 
   // ===== GAS web app =====
-  const GAS_BASE = "https://script.google.com/macros/s/AKfycbykBUJRGrWXDNmukd47lJ818eifCospKg10wbj88idgLJyBoWN3XSoRirzYrDzZqPg1yA/exec";
+  const GAS_BASE = "https://script.google.com/macros/s/AKfycbzUXPrbr-q3zTP1Jg-f8PX34Jjj23jHFuYiCyaKuOEmP4Qwzb1pXdFcnbypEZVigdF4IA/exec";
 
   // ===== small helpers =====
   const auth = getAuth();
