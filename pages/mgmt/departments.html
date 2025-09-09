@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>គ្រប់គ្រងការិយាល័យ | PHD Report</title>
+
+  <!-- Gull / theme (ស្របនឹង project) -->
+  <link href="../../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
+  <link href="../../dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet" />
+
+  <style>
+    :root{ --kh:"Noto Sans Khmer", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body, .btn, .form-control, .dropdown-item, table { font-family: var(--kh) !important; }
+    .kh-head { font-weight:700; letter-spacing:.2px; }
+    .table td, .table th { vertical-align: middle; }
+    .badge-id{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  </style>
+</head>
+<body class="text-start">
+
+<div class="container my-3">
+  <div class="d-flex align-items-center mb-3">
+    <h2 class="kh-head me-auto m-0">គ្រប់គ្រងការិយាល័យ</h2>
+    <a class="btn btn-outline-secondary me-2" href="../../index.html">⬅ ត្រឡប់ Dashboard</a>
+    <button id="btnAdd" class="btn btn-primary">បន្ថែមការិយាល័យ</button>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <div class="input-group" style="max-width:320px">
+          <span class="input-group-text">ស្វែងរក</span>
+          <input id="q" type="text" class="form-control" placeholder="បញ្ចូលឈ្មោះការិយាល័យ...">
+        </div>
+        <span id="status" class="text-muted ms-auto"></span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+          <thead class="thead-light">
+            <tr>
+              <th style="width:110px;">#ID</th>
+              <th>ឈ្មោះការិយាល័យ</th>
+              <th style="width:160px;">សកម្មភាព</th>
+            </tr>
+          </thead>
+          <tbody id="tblBody">
+            <tr><td colspan="3" class="text-center text-muted">កំពុងទាញទិន្នន័យ...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Add/Edit -->
+<div class="modal fade" id="depModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="depForm">
+        <div class="modal-header">
+          <h5 class="modal-title kh-head" id="modalTitle">បន្ថែមការិយាល័យ</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="department_id">
+          <div class="mb-3">
+            <label class="form-label">ឈ្មោះការិយាល័យ</label>
+            <input id="department_name" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
+          <button id="btnSave" class="btn btn-primary" type="submit">រក្សាទុក</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- JS libs -->
+<script src="../../dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
+
+<!-- App logic -->
+<script type="module">
+  import { getAuth, isSuper, isDataEntry, isViewer, applyLoginButton } from '../../assets/js/app.auth.js';
+
+  // ====== CONFIG ======
+  const GAS_BASE = "https://script.google.com/macros/s/AKfycbwkhRDOYDKb5nqGEhxNKGbHnpoZNGmN4GJlv0-8FTQXNGqJIV1Xfy9XLkXwNfGepC3prQ/exec";
+  const auth = getAuth();
+  if (!auth) location.replace('../../login.html');
+
+  const canWrite = isSuper(auth) || isDataEntry(auth); // viewer read-only
+
+  // ====== DOM ======
+  const $ = s => document.querySelector(s);
+  const tblBody = $('#tblBody');
+  const status = $('#status');
+  const q = $('#q');
+  const btnAdd = $('#btnAdd');
+
+  // Disable write UI for read-only role
+  if (!canWrite) btnAdd.style.display = 'none';
+
+  // ====== API helpers ======
+  async function gasList(route, params = {}){
+    const u = new URL(GAS_BASE);
+    u.searchParams.set('api','1');
+    u.searchParams.set('route', route);
+    u.searchParams.set('op','list');
+    if (auth?.token) u.searchParams.set('token', auth.token);
+    Object.entries(params).forEach(([k,v])=>{
+      if (v!==undefined && v!=='') u.searchParams.set(k, v);
+    });
+    const r = await fetch(u, { cache:'no-store' });
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    if (j.error) throw new Error(j.error);
+    return j.rows || [];
+  }
+
+  async function gasUpsert(route, payload){
+    const u = new URL(GAS_BASE);
+    u.searchParams.set('api','1');
+    u.searchParams.set('route', route);
+    u.searchParams.set('op','upsert');
+    if (auth?.token) u.searchParams.set('token', auth.token);
+    const r = await fetch(u, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    if (j.error) throw new Error(j.error);
+    return j.row || j;
+  }
+
+  async function gasDelete(route, idField, id){
+    const u = new URL(GAS_BASE);
+    u.searchParams.set('api','1');
+    u.searchParams.set('route', route);
+    u.searchParams.set('op','delete');
+    u.searchParams.set(idField, String(id));
+    if (auth?.token) u.searchParams.set('token', auth.token);
+    const r = await fetch(u, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body:'{}' });
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    if (j.error) throw new Error(j.error);
+    return j;
+  }
+
+  // ====== UI render ======
+  let allRows = [];
+  async function load(){
+    status.textContent = 'កំពុងទាញទិន្នន័យ...';
+    tblBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">កំពុងទាញទិន្នន័យ...</td></tr>`;
+    try{
+      allRows = await gasList('departments');
+      status.textContent = `សរុប ${allRows.length} ការិយាល័យ`;
+      render();
+    }catch(err){
+      status.textContent = 'បរាជ័យ: '+err.message;
+      tblBody.innerHTML = `<tr><td colspan="3" class="text-danger text-center">បរាជ័យ៖ ${err.message}</td></tr>`;
+    }
+  }
+
+  function render(){
+    const term = q.value.trim().toLowerCase();
+    const rows = !term ? allRows : allRows.filter(r => String(r.department_name||'').toLowerCase().includes(term) || String(r.department_id||'').includes(term));
+    if (!rows.length){
+      tblBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">គ្មានទិន្នន័យ</td></tr>`;
+      return;
+    }
+    tblBody.innerHTML = rows.map(r=>`
+      <tr>
+        <td><span class="badge badge-light badge-id">#${r.department_id}</span></td>
+        <td>${escapeHtml(r.department_name || '')}</td>
+        <td class="text-center">
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-primary" data-act="edit" data-id="${r.department_id}">កែប្រែ</button>
+            <button class="btn btn-outline-danger" data-act="del" data-id="${r.department_id}" ${!canWrite?'disabled':''}>លុប</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  // ====== Modal logic ======
+  const depModal = new bootstrap.Modal(document.getElementById('depModal'));
+  const depForm = document.getElementById('depForm');
+
+  btnAdd.addEventListener('click', ()=>{
+    if (!canWrite) return;
+    $('#modalTitle').textContent = 'បន្ថែមការិយាល័យ';
+    $('#department_id').value = '';
+    $('#department_name').value = '';
+    depModal.show();
+  });
+
+  tblBody.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    const act = btn.getAttribute('data-act');
+    const row = allRows.find(x => String(x.department_id) === String(id));
+    if (!row) return;
+
+    if (act === 'edit'){
+      if (!canWrite) return;
+      $('#modalTitle').textContent = 'កែព័ត៌មានការិយាល័យ';
+      $('#department_id').value = row.department_id;
+      $('#department_name').value = row.department_name || '';
+      depModal.show();
+    } else if (act === 'del'){
+      if (!canWrite) return;
+      if (!confirm('តើចង់លុបការិយាល័យ #'+id+' មែនទេ?')) return;
+      try{
+        await gasDelete('departments', 'department_id', id);
+        await load();
+      }catch(err){
+        alert('បរាជ័យក្នុងការលុប: ' + err.message);
+      }
+    }
+  });
+
+  depForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if (!canWrite) return;
+    const payload = {
+      department_id: $('#department_id').value || undefined,
+      department_name: $('#department_name').value.trim()
+    };
+    if (!payload.department_name) { alert('សូមបញ្ចូលឈ្មោះការិយាល័យ'); return; }
+    try{
+      await gasUpsert('departments', payload);
+      depModal.hide();
+      await load();
+    }catch(err){
+      alert('បរាជ័យក្នុងការរក្សាទុក: ' + err.message);
+    }
+  });
+
+  q.addEventListener('input', render);
+
+  // ====== Boot ======
+  load();
+</script>
+</body>
+</html>
