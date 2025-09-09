@@ -107,3 +107,9 @@ export function buildApiUrl(base, params = {}) {
   if (a?.token) u.searchParams.set('token', a.token);
   return u.toString();
 }
+export function ensureLoggedIn(redirect = 'login.html') {
+  const a = getAuth();
+  if (!a) location.replace(redirect);
+}
+
+
