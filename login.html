@@ -7,9 +7,9 @@
 
   <!-- Khmer + Nunito -->
   <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@400;500;600&display=swap" rel="stylesheet">
-  <!-- Bootstrap Icons -->
+  <!-- Bootstrap Icons (សម្រាប់ icon កូនភ្នែក/អ្នកប្រើ) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <!-- Gull theme (utilities/buttons) -->
+  <!-- Gull utilities (ជួយប៊ូតុង/alert classes) -->
   <link href="dist-assets/css/themes/lite-purple.min.css" rel="stylesheet"/>
 
   <style>
@@ -47,7 +47,7 @@
 
   <main class="login-wrap">
     <div class="text-center mb-3">
-      <div class="logo-dot">PHD STG</div>
+      <div class="logo-dot">PHD</div>
     </div>
     <h2 class="kh-title text-center mb-1">ប្រព័ន្ធរាយការណ៍សុខាភិបាល</h2>
     <p class="text-muted text-center mb-4">សូមបញ្ចូលឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់</p>
@@ -82,15 +82,31 @@
     </form>
   </main>
 
-  <!-- កូដ Login ស្រាល និងមាន token + role redirect -->
-  <script type="module">
-    import { setAuth, gotoAfterLogin } from './assets/js/app.auth.js';
-
+  <script>
+    // ================== CONFIG ==================
+    // ✅ CHANGE ME to your latest GAS Web App URL
     const GAS_BASE = "https://script.google.com/macros/s/AKfycbzbOg1XUDjWugGJtwzrEMWYQN1QkWq-WWIlkr1rIRS1fIJr0Qb5r6c3NVoftSUAdV1yWg/exec";
-    const $ = s => document.querySelector(s);
+
+    // ================== AUTH HELPERS ==================
+    const LS = window.localStorage;
+    const setAuth  = (obj) => LS.setItem('AUTH', JSON.stringify(obj||null));
+    const getAuth  = () => { try { return JSON.parse(LS.getItem('AUTH')||'null'); } catch { return null; } };
+
+    const isSuper     = a => String(a?.user_type||'').toLowerCase() === 'superuser';
+    const isDataEntry = a => ['admin','dataentry'].includes(String(a?.user_type||'').toLowerCase());
+    const isViewer    = a => String(a?.user_type||'').toLowerCase() === 'viewer';
+
+    function gotoAfterLogin(auth){
+      if (isSuper(auth))      return location.replace('index.html');
+      if (isDataEntry(auth))  return location.replace('pages/admin/index.html');
+      if (isViewer(auth))     return location.replace('pages/user/index.html');
+      location.replace('index.html');
+    }
+
+    // ================== UI HELPERS ==================
+    const $ = (s)=>document.querySelector(s);
     const msgBox = $("#msg");
 
-    // toggle password
     $("#btnTogglePw").addEventListener("click", () => {
       const inp = $("#password"); const ico = $("#btnTogglePw i");
       if (inp.type === "password") { inp.type = "text"; ico.className = "bi bi-eye-slash"; }
@@ -102,6 +118,7 @@
       msgBox.textContent = t; msgBox.classList.remove("d-none");
     }
 
+    // ================== API ==================
     async function apiLogin(username, password){
       const res = await fetch(GAS_BASE + "?api=1&route=auth&op=login", {
         method: "POST",
@@ -112,37 +129,47 @@
       try { return await res.json(); } catch { throw new Error("Invalid JSON response"); }
     }
 
-    // submit
+    // ================== SUBMIT ==================
     $("#loginForm").addEventListener("submit", async (e)=>{
       e.preventDefault();
       const u = $("#username").value.trim();
       const p = $("#password").value;
       if(!u || !p){ showMsg("សូមបំពេញទាំងពីរ"); return; }
 
-      $("#btnLogin").disabled = true; $("#btnText").textContent = "កំពុងចូល...";
+      $("#btnLogin").disabled = true;
+      $("#btnText").textContent = "កំពុងចូល...";
+      document.body.style.cursor = 'wait';
       showMsg("");
 
       try{
-        const user = await apiLogin(u,p); // server ត្រឡប់ { token, role, department_id, ... }
+        const user = await apiLogin(u,p); // server ត្រូវតែត្រឡប់ JSON មាន user_type/token
         if(user && !user.error){
-          setAuth(user);          // រក្សាទុក AUTH (មាន token)
-          gotoAfterLogin(user);   // បង្វែរ​តាម role: super → index, dataentry → pages/admin, viewer → pages/user
+          setAuth(user);
+          gotoAfterLogin(user);
         }else{
           showMsg(user?.error || "Login បរាជ័យ");
         }
       }catch(err){
         showMsg("API Error: " + err.message);
       }finally{
-        $("#btnLogin").disabled = false; $("#btnText").textContent = "ចូលប្រើប្រាស់";
+        $("#btnLogin").disabled = false;
+        $("#btnText").textContent = "ចូលប្រើប្រាស់";
+        document.body.style.cursor = '';
       }
     });
 
-    // press Enter សម្រាប់ field
+    // Enter shortcut
     ['#username','#password'].forEach(sel=>{
       document.querySelector(sel).addEventListener('keydown', e=>{
         if(e.key==='Enter') document.getElementById('btnLogin').click();
       });
     });
+
+    // OPTIONAL: ប្រសិនបើអ្នកចូលរួចហើយ កុំឲ្យមក login ម្ដងទៀត
+    (function redirectIfAlreadyLoggedIn(){
+      const a = getAuth();
+      if (a && a.user_type) { gotoAfterLogin(a); }
+    })();
   </script>
 </body>
 </html>
