@@ -1,82 +1,81 @@
-// assets/js/app.api.js
-import { getAuth } from './app.auth.js';
+// assets/js/app.auth.js
+// ===================== AUTH UTILITIES (front-end) =====================
+// Source of truth = user_type (នៅក្នុង users.json / server response)
 
-// ==== CHANGE THIS if needed (keep your working one) ====
-export const GAS_BASE = "https://script.google.com/macros/s/AKfycbxFDH-aj7iEQvxoxwTLv75q2O_BeYpRiqKJwITiRx-Uz6H2kexaZqAJekKguqEiS_LWGA/exec";
+const LS = window.localStorage;
 
-async function getJson(url){
-  const r = await fetch(url, { cache:'no-store' });
-  if(!r.ok) throw new Error('HTTP '+r.status+' '+r.statusText);
-  return r.json();
+/** Get current auth object from localStorage */
+export const getAuth = () => {
+  try { return JSON.parse(LS.getItem('AUTH') || 'null'); }
+  catch { return null; }
+};
+
+/** Save auth object (user, token, user_type, etc.) */
+export const setAuth = (obj) => LS.setItem('AUTH', JSON.stringify(obj || null));
+
+/** Clear auth */
+export const clearAuth = () => LS.removeItem('AUTH');
+
+/** Role helpers powered by user_type */
+export const isSuper     = a => String(a?.user_type||'').toLowerCase() === 'superuser';
+export const isDataEntry = a => ['admin','dataentry'].includes(String(a?.user_type||'').toLowerCase());
+export const isViewer    = a => String(a?.user_type||'').toLowerCase() === 'viewer';
+
+/** Convert user_type → normalized text role (for display/use if needed) */
+export function roleOf(a) {
+  if (isSuper(a)) return 'super';
+  if (isDataEntry(a)) return 'dataentry';
+  if (isViewer(a)) return 'viewer';
+  return 'viewer';
 }
-async function postJson(url, data){
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoid preflight
-    body: JSON.stringify(data||{})
-  });
-  if(!r.ok) throw new Error('HTTP '+r.status+' '+r.statusText);
-  return r.json();
+
+/** After-login redirect by user_type */
+export function gotoAfterLogin(auth){
+  if (isSuper(auth))      return location.replace('index.html');
+  if (isDataEntry(auth))  return location.replace('pages/admin/index.html');
+  if (isViewer(auth))     return location.replace('pages/user/index.html');
+  location.replace('index.html');
 }
-function tokenParam(){
+
+/**
+ * Guard page: require auth and (optionally) restrict by allowedRoles.
+ * Example:
+ *   requireAuth({ allowed: ['super','dataentry'] })  // block viewer
+ */
+export function requireAuth(opts = {}){
+  const { allowed = ['super','dataentry','viewer'], redirect = '../../login.html' } = opts;
+  const a = getAuth();
+  if (!a) { location.replace(redirect); return null; }
+  const r = roleOf(a);
+  if (!allowed.includes(r)) {
+    alert('មិនមានសិទ្ធិចូលទំព័រនេះ');
+    // បង្វែរតាម user_type ផ្ទាល់
+    gotoAfterLogin(a);
+    return null;
+  }
+  return a;
+}
+
+/** Attach token to URL as &token=...  (for GET endpoints) */
+export function authTokenParam() {
   const t = getAuth()?.token || '';
   return t ? `&token=${encodeURIComponent(t)}` : '';
 }
 
-// ---- Auth
-export async function apiLogin(username, password){
-  return postJson(`${GAS_BASE}?api=1&route=auth&op=login`, { username, password });
+/** Apply login/logout button behavior on any button/anchor element */
+export function applyLoginButton(btnEl){
+  const auth = getAuth();
+  if (auth){
+    btnEl.textContent = (auth.display_name||auth.user_name||'អ្នកប្រើ') + ' • ចេញ';
+    btnEl.classList.remove('btn-outline-primary');
+    btnEl.classList.add('btn-outline-danger');
+    btnEl.href = '#';
+    btnEl.onclick = (e)=>{ e.preventDefault(); clearAuth(); location.replace('../../login.html'); };
+  } else {
+    btnEl.textContent = 'ចូលប្រើប្រាស់';
+    btnEl.classList.add('btn-outline-primary');
+    btnEl.classList.remove('btn-outline-danger');
+    btnEl.href = '../../login.html';
+    btnEl.onclick = null;
+  }
 }
-
-// ---- Dictionaries (departments, units, indicators, periods)
-export async function listDepartments(params={}){
-  const q = new URLSearchParams(params).toString();
-  return getJson(`${GAS_BASE}?api=1&route=departments&op=list${q?`&${q}`:''}${tokenParam()}`);
-}
-export async function listUnits(params={}){
-  const q = new URLSearchParams(params).toString();
-  return getJson(`${GAS_BASE}?api=1&route=units&op=list${q?`&${q}`:''}${tokenParam()}`);
-}
-export async function listIndicators(params={}){
-  const q = new URLSearchParams(params).toString();
-  return getJson(`${GAS_BASE}?api=1&route=indicators&op=list${q?`&${q}`:''}${tokenParam()}`);
-}
-export async function listPeriods(params={}){
-  const q = new URLSearchParams(params).toString();
-  return getJson(`${GAS_BASE}?api=1&route=periods&op=list${q?`&${q}`:''}${tokenParam()}`);
-}
-
-// ---- Reports
-export async function listReports({ year, filter={} } = {}){
-  const q = new URLSearchParams({ ...(filter||{}), ...(year?{year:String(year)}:{} ) }).toString();
-  return getJson(`${GAS_BASE}?api=1&route=report&op=list${q?`&${q}`:''}${tokenParam()}`);
-}
-export async function upsertReport(payload){
-  // payload should include: department_id, indicator_id, period_id, value, year (optional helps partition)
-  return postJson(`${GAS_BASE}?api=1&route=report&op=upsert${tokenParam()}`, payload);
-}
-export async function deleteReport(report_id, hint={}){
-  const q = new URLSearchParams({ report_id, ...hint }).toString();
-  return getJson(`${GAS_BASE}?api=1&route=report&op=delete&${q}${tokenParam()}`);
-}
-
-// ---- Helpers
-export function yFromPeriod(pid){
-  const m = /^(\d{4})/.exec(String(pid||''));
-  return m? m[1] : String(new Date().getFullYear());
-}
-export function exportCsv(filename, rows){
-  const cols = Object.keys(rows[0]||{});
-  const esc = v => `"${String(v??'').replace(/"/g,'""')}"`;
-  const csv = [cols.join(',')].concat(
-    rows.map(r => cols.map(c => esc(r[c])).join(','))
-  ).join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
