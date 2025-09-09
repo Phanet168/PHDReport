@@ -79,3 +79,13 @@ export function applyLoginButton(btnEl){
     btnEl.onclick = null;
   }
 }
+export function logout() {
+  // Clear token/localStorage
+  window.localStorage.removeItem('auth');
+  window.localStorage.removeItem('user');
+
+  // Redirect ទៅ login.html
+  window.location.replace('login.html');
+}
+
+
