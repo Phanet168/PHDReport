@@ -83,91 +83,100 @@
   </main>
 
   <!-- ================== LOGIN SCRIPT ================== -->
-  <script>
-    const GAS_BASE = "https://script.google.com/macros/s/AKfycbykBUJRGrWXDNmukd47lJ818eifCospKg10wbj88idgLJyBoWN3XSoRirzYrDzZqPg1yA/exec";
+ <script>
+  const GAS_BASE = "https://script.google.com/macros/s/AKfycbykBUJRGrWXDNmukd47lJ818eifCospKg10wbj88idgLJyBoWN3XSoRirzYrDzZqPg1yA/exec";
 
-    // LocalStorage AUTH helpers
-    const LS = window.localStorage;
-    const setAuth = (obj)=>LS.setItem('AUTH', JSON.stringify(obj||null));
-    const getAuth = ()=>{ try { return JSON.parse(LS.getItem('AUTH')||'null'); } catch { return null; } };
+  // LocalStorage AUTH helpers
+  const LS = window.localStorage;
+  const setAuth = (obj)=>LS.setItem('AUTH', JSON.stringify(obj||null));
+  const getAuth = ()=>{ try { return JSON.parse(LS.getItem('AUTH')||'null'); } catch { return null; } };
 
-    // Role helpers
-    const isSuper     = a => String(a?.user_type||'').toLowerCase() === 'superuser';
-    const isDataEntry = a => ['admin','dataentry'].includes(String(a?.user_type||'').toLowerCase());
-    const isViewer    = a => String(a?.user_type||'').toLowerCase() === 'viewer';
+  // Role helpers (user_type → role UI)
+  const isSuper     = a => String(a?.user_type||'').toLowerCase() === 'superuser';
+  const isDataEntry = a => ['admin','dataentry'].includes(String(a?.user_type||'').toLowerCase());
+  const isViewer    = a => String(a?.user_type||'').toLowerCase() === 'viewer';
 
-    // Redirect after login
-    function gotoAfterLogin(auth){
-      if (isSuper(auth))      return location.replace('index.html');
-      if (isDataEntry(auth))  return location.replace('pages/admin/index.html');
-      if (isViewer(auth))     return location.replace('pages/user/index.html');
-      location.replace('index.html');
-    }
-
-    // UI helpers
-    const $ = (s)=>document.querySelector(s);
-    const msgBox = $("#msg");
-
-    $("#btnTogglePw").addEventListener("click", () => {
-      const inp = $("#password"); const ico = $("#btnTogglePw i");
-      if (inp.type === "password") { inp.type = "text"; ico.className = "bi bi-eye-slash"; }
-      else { inp.type = "password"; ico.className = "bi bi-eye"; }
-    });
-    // Alias for router
-function login(username, password) {
-  return login_(username, password);
-}
-
-
-    function showMsg(t){
-      if(!t){ msgBox.classList.add("d-none"); msgBox.textContent=""; return; }
-      msgBox.textContent = t; msgBox.classList.remove("d-none");
-    }
-
-    // API call
-  async function apiLogin(username, password){
-  const res = await fetch(GAS_BASE + "?api=1&route=auth&op=login", {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ username, password })
-  });
-  if(!res.ok) throw new Error("HTTP " + res.status);
-  return res.json();
-}
-
-$("#loginForm").addEventListener("submit", async (e)=>{
-  e.preventDefault();
-  const u = $("#username").value.trim();
-  const p = $("#password").value;
-  try {
-    const user = await apiLogin(u,p);
-    if(user && !user.error){
-      localStorage.setItem("AUTH", JSON.stringify(user));
-      if(user.role === "super")      location.href = "index.html";
-      else if(user.role === "dataentry") location.href = "pages/admin/index.html";
-      else location.href = "pages/user/index.html";
-    }else{
-      showMsg(user?.error || "Login បរាជ័យ");
-    }
-  }catch(err){
-    showMsg("API Error: " + err.message);
+  // Redirect after login
+  function gotoAfterLogin(auth){
+    if (isSuper(auth))      return location.replace('index.html');
+    if (isDataEntry(auth))  return location.replace('pages/admin/index.html');
+    if (isViewer(auth))     return location.replace('pages/user/index.html');
+    location.replace('index.html');
   }
-});
 
-    // Shortcut Enter
-    ['#username','#password'].forEach(sel=>{
-      document.querySelector(sel).addEventListener('keydown', e=>{
-        if(e.key==='Enter') document.getElementById('btnLogin').click();
-      });
+  // UI helpers
+  const $ = (s)=>document.querySelector(s);
+  const msgBox = $("#msg");
+
+  $("#btnTogglePw").addEventListener("click", () => {
+    const inp = $("#password"); const ico = $("#btnTogglePw i");
+    if (inp.type === "password") { inp.type = "text"; ico.className = "bi bi-eye-slash"; }
+    else { inp.type = "password"; ico.className = "bi bi-eye"; }
+  });
+
+  function showMsg(t){
+    if(!t){ msgBox.classList.add("d-none"); msgBox.textContent=""; return; }
+    msgBox.textContent = t; msgBox.classList.remove("d-none");
+  }
+
+  // ---- API call to GAS (avoid preflight with text/plain) ----
+  async function apiLogin(username, password){
+    const res = await fetch(GAS_BASE + "?api=1&route=auth&op=login", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ username, password })
     });
+    if(!res.ok) throw new Error("HTTP " + res.status + " " + res.statusText);
+    try {
+      return await res.json();
+    } catch {
+      throw new Error("Invalid JSON response");
+    }
+  }
 
-    // Auto redirect if already logged in
-    (function redirectIfAlreadyLoggedIn(){
-      const a = getAuth();
-      if (a && a.user_type) { gotoAfterLogin(a); }
-    })();
+  // Submit form
+  $("#loginForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const u = $("#username").value.trim();
+    const p = $("#password").value;
+    if(!u || !p){ showMsg("សូមបំពេញទាំងពីរ"); return; }
 
+    $("#btnLogin").disabled = true;
+    $("#btnText").textContent = "កំពុងចូល...";
+    document.body.style.cursor = 'wait';
+    showMsg("");
 
-  </script>
+    try{
+      const user = await apiLogin(u,p);
+      if(user && !user.error){
+        setAuth(user); // មាន token, user_type, role (ពី server)
+        // ប្រសិនបើ server មិនផ្ដល់ role ក៏បាន, អ្នកកំណត់ដោយ user_type ខាងលើ
+        gotoAfterLogin(user);
+      }else{
+        showMsg(user?.error || "Login បរាជ័យ");
+      }
+    }catch(err){
+      showMsg("API Error: " + err.message);
+    }finally{
+      $("#btnLogin").disabled = false;
+      $("#btnText").textContent = "ចូលប្រើប្រាស់";
+      document.body.style.cursor = '';
+    }
+  });
+
+  // Shortcut Enter
+  ['#username','#password'].forEach(sel=>{
+    document.querySelector(sel).addEventListener('keydown', e=>{
+      if(e.key==='Enter') document.getElementById('btnLogin').click();
+    });
+  });
+
+  // Already logged-in → redirect away from login page
+  (function redirectIfAlreadyLoggedIn(){
+    const a = getAuth();
+    if (a && a.user_type) { gotoAfterLogin(a); }
+  })();
+</script>
+
 </body>
 </html>
