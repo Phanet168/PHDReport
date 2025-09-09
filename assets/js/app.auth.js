@@ -1,91 +1,67 @@
 // assets/js/app.auth.js
-// ===================== AUTH UTILITIES (front-end) =====================
-// Source of truth = user_type (នៅក្នុង users.json / server response)
 
-const LS = window.localStorage;
+// ===== LocalStorage keys =====
+const LS_KEY = 'AUTH';
 
-/** Get current auth object from localStorage */
-export const getAuth = () => {
-  try { return JSON.parse(LS.getItem('AUTH') || 'null'); }
+// ===== AUTH STATE =====
+export function setAuth(obj) {
+  if (!obj) {
+    localStorage.removeItem(LS_KEY);
+  } else {
+    localStorage.setItem(LS_KEY, JSON.stringify(obj));
+  }
+}
+export function getAuth() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); }
   catch { return null; }
-};
+}
 
-/** Save auth object (user, token, user_type, etc.) */
-export const setAuth = (obj) => LS.setItem('AUTH', JSON.stringify(obj || null));
-
-/** Clear auth */
-export const clearAuth = () => LS.removeItem('AUTH');
-
-/** Role helpers powered by user_type */
+// ===== ROLE HELPERS (type comes from users.json: superuser/admin/dataentry/viewer) =====
 export const isSuper     = a => String(a?.user_type||'').toLowerCase() === 'superuser';
 export const isDataEntry = a => ['admin','dataentry'].includes(String(a?.user_type||'').toLowerCase());
 export const isViewer    = a => String(a?.user_type||'').toLowerCase() === 'viewer';
 
-/** Convert user_type → normalized text role (for display/use if needed) */
-export function roleOf(a) {
-  if (isSuper(a)) return 'super';
-  if (isDataEntry(a)) return 'dataentry';
-  if (isViewer(a)) return 'viewer';
-  return 'viewer';
-}
-
-/** After-login redirect by user_type */
+// ===== ROUTING =====
 export function gotoAfterLogin(auth){
-  if (isSuper(auth))      return location.replace('index.html');
-  if (isDataEntry(auth))  return location.replace('pages/admin/index.html');
-  if (isViewer(auth))     return location.replace('pages/user/index.html');
+  // មានតែ index.html ទៅ dashboard; អ្នកអាចកែផ្លូវបាន
   location.replace('index.html');
 }
 
-/**
- * Guard page: require auth and (optionally) restrict by allowedRoles.
- * Example:
- *   requireAuth({ allowed: ['super','dataentry'] })  // block viewer
- */
-export function requireAuth(opts = {}){
-  const { allowed = ['super','dataentry','viewer'], redirect = '../../login.html' } = opts;
-  const a = getAuth();
-  if (!a) { location.replace(redirect); return null; }
-  const r = roleOf(a);
-  if (!allowed.includes(r)) {
-    alert('មិនមានសិទ្ធិចូលទំព័រនេះ');
-    // បង្វែរតាម user_type ផ្ទាល់
-    gotoAfterLogin(a);
-    return null;
+// ===== LOGOUT (with redirect) =====
+export function logout(redir = 'login.html') {
+  try { localStorage.removeItem(LS_KEY); } catch {}
+  // redirect to login
+  location.replace(redir);
+}
+
+// ===== Apply login button behavior =====
+// - បើមិនទាន់ login: បង្ហាញ “ចូលប្រើប្រាស់” href="login.html"
+// - បើ login រួច: បង្ហាញ “{user_name} • ចេញ” ហើយចុច → logout + redirect
+export function applyLoginButton(btn) {
+  const auth = getAuth();
+
+  if (!auth) {
+    btn.textContent = 'ចូលប្រើប្រាស់';
+    btn.classList.remove('btn-outline-danger');
+    btn.classList.add('btn-outline-primary');
+    btn.href = 'login.html';
+    btn.onclick = null;
+    return;
   }
+
+  btn.textContent = `${auth.user_name || 'អ្នកប្រើ'} • ចេញ`;
+  btn.classList.remove('btn-outline-primary');
+  btn.classList.add('btn-outline-danger');
+  btn.href = '#';
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    logout('login.html');  // 👈 redirect ក្រោយចុចចេញ
+  }, { once: true }); // once: ជៀស​ការ​ដាក់ event ពិបាកៗពេល re-init
+}
+
+// ===== Convenience: guard pages =====
+export function requireLogin(redirectTo = 'login.html'){
+  const a = getAuth();
+  if (!a) location.replace(redirectTo);
   return a;
 }
-
-/** Attach token to URL as &token=...  (for GET endpoints) */
-export function authTokenParam() {
-  const t = getAuth()?.token || '';
-  return t ? `&token=${encodeURIComponent(t)}` : '';
-}
-
-/** Apply login/logout button behavior on any button/anchor element */
-export function applyLoginButton(btnEl){
-  const auth = getAuth();
-  if (auth){
-    btnEl.textContent = (auth.display_name||auth.user_name||'អ្នកប្រើ') + ' • ចេញ';
-    btnEl.classList.remove('btn-outline-primary');
-    btnEl.classList.add('btn-outline-danger');
-    btnEl.href = '#';
-    btnEl.onclick = (e)=>{ e.preventDefault(); clearAuth(); location.replace('../../login.html'); };
-  } else {
-    btnEl.textContent = 'ចូលប្រើប្រាស់';
-    btnEl.classList.add('btn-outline-primary');
-    btnEl.classList.remove('btn-outline-danger');
-    btnEl.href = '../../login.html';
-    btnEl.onclick = null;
-  }
-}
-export function logout() {
-  // Clear token/localStorage
-  window.localStorage.removeItem('auth');
-  window.localStorage.removeItem('user');
-
-  // Redirect ទៅ login.html
-  window.location.replace('login.html');
-}
-
-
