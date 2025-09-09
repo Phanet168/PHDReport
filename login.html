@@ -125,44 +125,34 @@ function login(username, password) {
     }
 
     // API call
-    async function apiLogin(username, password){
-      const res = await fetch(GAS_BASE + "?api=1&route=auth&op=login", {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ username, password })
-      });
-      if(!res.ok) throw new Error("HTTP " + res.status + " " + res.statusText);
-      try { return await res.json(); } catch { throw new Error("Invalid JSON response"); }
+  async function apiLogin(username, password){
+  const res = await fetch(GAS_BASE + "?api=1&route=auth&op=login", {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ username, password })
+  });
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
+
+$("#loginForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const u = $("#username").value.trim();
+  const p = $("#password").value;
+  try {
+    const user = await apiLogin(u,p);
+    if(user && !user.error){
+      localStorage.setItem("AUTH", JSON.stringify(user));
+      if(user.role === "super")      location.href = "index.html";
+      else if(user.role === "dataentry") location.href = "pages/admin/index.html";
+      else location.href = "pages/user/index.html";
+    }else{
+      showMsg(user?.error || "Login បរាជ័យ");
     }
-
-    // Submit form
-    $("#loginForm").addEventListener("submit", async (e)=>{
-      e.preventDefault();
-      const u = $("#username").value.trim();
-      const p = $("#password").value;
-      if(!u || !p){ showMsg("សូមបំពេញទាំងពីរ"); return; }
-
-      $("#btnLogin").disabled = true;
-      $("#btnText").textContent = "កំពុងចូល...";
-      document.body.style.cursor = 'wait';
-      showMsg("");
-
-      try{
-        const user = await apiLogin(u,p);
-        if(user && !user.error){
-          setAuth(user);
-          gotoAfterLogin(user);
-        }else{
-          showMsg(user?.error || "Login បរាជ័យ");
-        }
-      }catch(err){
-        showMsg("API Error: " + err.message);
-      }finally{
-        $("#btnLogin").disabled = false;
-        $("#btnText").textContent = "ចូលប្រើប្រាស់";
-        document.body.style.cursor = '';
-      }
-    });
+  }catch(err){
+    showMsg("API Error: " + err.message);
+  }
+});
 
     // Shortcut Enter
     ['#username','#password'].forEach(sel=>{
