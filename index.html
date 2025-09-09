@@ -29,9 +29,7 @@
       font-family: var(--kh-head) !important;
       letter-spacing: .2px;
     }
-
-    /* ===== Force Khmer font across common UI elements ===== */
-    /* Sidebar (left primary + secondary) */
+    /* Sidebar + submenu */
     .navigation-left .nav-text,
     .navigation-left .nav-item-hold,
     .navigation-left a,
@@ -43,29 +41,20 @@
       font-family: var(--kh-font) !important;
       letter-spacing: 0;
     }
-
-    /* Global controls & texts */
     .btn, .btn *, .badge, .dropdown-menu, .dropdown-item,
     .form-control, .form-select, .custom-select, .search-input,
     input, textarea, select, label, small, code, kbd, table, th, td{
       font-family: var(--kh-font) !important;
     }
-
-    /* Breadcrumb, cards, footer, customizer */
     .breadcrumb h1, .breadcrumb ul, .card-title, .app-footer, .customizer{
       font-family: var(--kh-font) !important;
     }
-
-    /* Optional: make sidebar secondary logo/title Khmer head */
-    .submenu-area header .logo .brand-kh{
-      font-family: var(--kh-head) !important;
-    }
-
-    /* Keep icon fonts unaffected (only text changes) */
+    .submenu-area header .logo .brand-kh{ font-family: var(--kh-head) !important; }
     i.nav-icon, i[class^="i-"], i[class*=" i-"]{ font-family: inherit; }
-
-    /* Small UX nice-to-haves */
     .search-bar input::placeholder{ opacity:.8; }
+    /* utility classes for role visibility */
+    .menu-super-only { display: inherit; }
+    .menu-input { display: inherit; }
   </style>
 </head>
 
@@ -89,11 +78,13 @@
             <a class="nav-item-hold" href="#"><i class="nav-icon i-File-Clipboard-File--Text"></i><span class="nav-text">របាយការណ៍</span></a><div class="triangle"></div>
           </li>
 
-          <li class="nav-item" data-item="users">
+          <!-- Users (example super-only section) -->
+          <li class="nav-item menu-super-only" data-item="users">
             <a class="nav-item-hold" href="#"><i class="nav-icon i-Administrator"></i><span class="nav-text">អ្នកប្រើប្រាស់</span></a><div class="triangle"></div>
           </li>
 
-          <li class="nav-item" data-item="settings">
+          <!-- Settings (often super-only) -->
+          <li class="nav-item menu-super-only" data-item="settings">
             <a class="nav-item-hold" href="#"><i class="nav-icon i-Gear-2"></i><span class="nav-text">កំណត់ផ្សេងៗ</span></a><div class="triangle"></div>
           </li>
         </ul>
@@ -134,7 +125,7 @@
         </div>
 
         <!-- Users -->
-        <div class="submenu-area" data-parent="users">
+        <div class="submenu-area menu-super-only" data-parent="users">
           <header><h6>អ្នកប្រើប្រាស់</h6><p>គ្រប់គ្រងសិទ្ធិ</p></header>
           <ul class="childNav">
             <li class="nav-item"><a href="#"><i class="nav-icon i-Male"></i><span class="item-name">បញ្ជីអ្នកប្រើ</span></a></li>
@@ -142,7 +133,7 @@
         </div>
 
         <!-- Settings -->
-        <div class="submenu-area" data-parent="settings">
+        <div class="submenu-area menu-super-only" data-parent="settings">
           <header><h6>កំណត់</h6><p>ទិន្នន័យមេ</p></header>
           <ul class="childNav">
             <li class="nav-item"><a href="#/mgmt/departments"><i class="nav-icon i-Building"></i><span class="item-name">គ្រប់គ្រងការិយាល័យ</span></a></li>
@@ -256,35 +247,65 @@
   <script src="dist-assets/js/scripts/echart.options.min.js"></script>
   <script src="dist-assets/js/scripts/dashboard.v1.script.min.js"></script>
 
-  <!-- App: build dynamic Dept/Unit menu + login state -->
-  <script>
+  <!-- App: build dynamic Dept/Unit menu + login state (token-aware) -->
+  <script type="module">
+    import { getAuth, applyLoginButton, isSuper, isDataEntry, isViewer } from './assets/js/app.auth.js';
+
     // === CONFIG ===
     const GAS_BASE = "https://script.google.com/macros/s/AKfycbyHAneIbzeg4lQpizd232Hc_-70Cwz_2fpPqAA6pdboR4iLfoHb4Lf3M4DBjZP12nHp6g/exec";
     const ls = window.localStorage;
 
-    // Helpers
-    const getAuth = () => { try { return JSON.parse(ls.getItem("AUTH")||"null"); } catch { return null; } };
-    const isSuper = (a) => !!a && (a.user_type === "superuser" || a.user_root === "all");
-    async function gasList(route, params={}){
+    // ---- Guard early: require login on dashboard
+    const auth = getAuth();
+    if (!auth) {
+      location.replace('login.html');
+    }
+
+    // ---- Login button (logout/username)
+    const btnLogin = document.getElementById('btnLogin');
+    if (btnLogin) applyLoginButton(btnLogin);
+
+    // ---- Role-based menu visibility
+    if (isViewer(auth)) {
+      // viewer មិនចាំបាច់ឃើញ user/settings
+      document.querySelectorAll('.menu-super-only').forEach(el => el.style.display = 'none');
+    } else if (!isSuper(auth)) {
+      // dataentry ក៏លាក់ super-only ដែរ
+      document.querySelectorAll('.menu-super-only').forEach(el => el.style.display = 'none');
+    }
+
+    // ---- Helper: token param
+    function tokenParam(){
+      const t = auth?.token || '';
+      return t ? `&token=${encodeURIComponent(t)}` : '';
+    }
+
+    // ---- GAS list helper (token-aware)
+    async function gasList(route, params = {}){
       const u = new URL(GAS_BASE);
-      u.searchParams.set("api","1");
-      u.searchParams.set("route",route);
-      u.searchParams.set("op","list");
-      Object.entries(params).forEach(([k,v]) => u.searchParams.set(k,v));
-      const r = await fetch(u, {cache:"no-store"});
-      if(!r.ok) throw new Error("HTTP "+r.status);
+      u.searchParams.set('api','1');
+      u.searchParams.set('route', route);
+      u.searchParams.set('op','list');
+      Object.entries(params).forEach(([k,v]) => {
+        if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, v);
+      });
+      // attach token
+      if (auth?.token) u.searchParams.set('token', auth.token);
+
+      const r = await fetch(u, { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
-      if(j.error) throw new Error(j.error);
+      if (j.error) throw new Error(j.error);
       return Array.isArray(j.rows) ? j.rows : (Array.isArray(j) ? j : []);
     }
 
     async function buildDeptMenu(){
-      const box = document.getElementById("deptMenu");
+      const box = document.getElementById('deptMenu');
       box.innerHTML = '<li class="nav-item"><a href="#"><span class="item-name text-muted">កំពុងទាញទិន្នន័យ...</span></a></li>';
-      const auth = getAuth();
 
       try{
-        let depts = await gasList("departments");
+        let depts = await gasList('departments');
+        // Client-side narrow (server guard might not apply on departments table)
         if (!isSuper(auth) && auth?.department_id){
           depts = depts.filter(d => String(d.department_id) === String(auth.department_id));
         }
@@ -292,25 +313,25 @@
           box.innerHTML = '<li class="nav-item"><a href="#"><span class="item-name text-muted">គ្មានទិន្នន័យ</span></a></li>';
           return;
         }
-        box.innerHTML = "";
+        box.innerHTML = '';
         for (const d of depts){
-          // department row (non-click container)
-          const li = document.createElement("li"); li.className = "nav-item";
-          const a = document.createElement("a"); a.href="#";
+          // department row
+          const li = document.createElement('li'); li.className = 'nav-item';
+          const a = document.createElement('a'); a.href='#';
           a.innerHTML = `<i class="nav-icon i-Building"></i><span class="item-name">${d.department_name}</span>`;
           li.appendChild(a);
           box.appendChild(li);
 
           // units under department
-          const units = await gasList("units", { department_id: d.department_id });
+          const units = await gasList('units', { department_id: d.department_id });
           if (!units.length){
-            const em = document.createElement("li"); em.className="nav-item";
+            const em = document.createElement('li'); em.className='nav-item';
             em.innerHTML = `<a href="#"><span class="item-name text-muted ps-4">— គ្មានផ្នែក</span></a>`;
             box.appendChild(em);
-          }else{
+          } else {
             units.forEach(u=>{
-              const liu = document.createElement("li"); liu.className="nav-item";
-              const link = document.createElement("a");
+              const liu = document.createElement('li'); liu.className='nav-item';
+              const link = document.createElement('a');
               link.href = `pages/departments/${d.department_id}/units/${u.unit_id}/index.html`;
               link.innerHTML = `<i class="nav-icon i-Right"></i><span class="item-name ps-3">${u.unit_name}</span>`;
               liu.appendChild(link);
@@ -323,39 +344,17 @@
       }
     }
 
-    (function init(){
-      // login button
-      const auth = getAuth();
-      const btnLogin = document.getElementById("btnLogin");
-      if(auth){
-        btnLogin.textContent = (auth.user_name||"អ្នកប្រើ") + " • ចេញ";
-        btnLogin.classList.remove("btn-outline-primary");
-        btnLogin.classList.add("btn-outline-danger");
-        btnLogin.href = "#";
-        btnLogin.onclick = (e)=>{ e.preventDefault(); ls.removeItem("AUTH"); location.reload(); };
-      }else{
-        btnLogin.textContent = "ចូលប្រើប្រាស់";
-        btnLogin.href = "login.html";
-      }
-
-      // search quick filter (optional)
-      document.getElementById("q").addEventListener("input",(e)=>{
-        const q = e.target.value.toLowerCase();
-        document.querySelectorAll(".childNav .item-name").forEach(el=>{
-          const ok = el.textContent.toLowerCase().includes(q);
-          el.closest("li").style.display = ok ? "" : "none";
-        });
+    // ---- Search quick filter
+    document.getElementById('q').addEventListener('input',(e)=>{
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll('.childNav .item-name').forEach(el=>{
+        const ok = el.textContent.toLowerCase().includes(q);
+        el.closest('li').style.display = ok ? '' : 'none';
       });
+    });
 
-      buildDeptMenu();
-    })();
+    // ---- Init
+    buildDeptMenu();
   </script>
-  <script type="module">
-  import { applyLoginButton } from './assets/js/app.auth.js';
-  const btn = document.getElementById('btnLogin');
-  if (btn) applyLoginButton(btn);
-</script>
-
 </body>
 </html>
-
