@@ -2,7 +2,7 @@
 import { getAuth } from './app.auth.js';
 
 // ==== CHANGE THIS if needed (keep your working one) ====
-export const GAS_BASE = "https://script.google.com/macros/s/AKfycbwdeEgEMYK8bCZqU0xmOEERIvqbqu21tUwDKDuBb9tUXhOVwb463Hjk2XZsz9T9lBmLZQ/exec";
+export const GAS_BASE = "https://script.google.com/macros/s/AKfycbxFDH-aj7iEQvxoxwTLv75q2O_BeYpRiqKJwITiRx-Uz6H2kexaZqAJekKguqEiS_LWGA/exec";
 
 async function getJson(url){
   const r = await fetch(url, { cache:'no-store' });
