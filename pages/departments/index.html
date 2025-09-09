@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>គ្រប់គ្រងការិយាល័យ | PHD Report</title>
+
+  <!-- Fonts + Gull CSS (same as your app) -->
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link href="../../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet"/>
+  <link href="../../dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet"/>
+
+  <style>
+    :root{ --kh:"Noto Sans Khmer", system-ui; --kh-head:"Khmer Moul", "Noto Sans Khmer"; }
+    body, input, button, table{ font-family: var(--kh) !important; }
+    .kh-head{ font-family: var(--kh-head) !important; letter-spacing:.2px; }
+    .badge-id{ font-variant-numeric: tabular-nums; }
+    .cursor-pointer{ cursor:pointer; }
+    .table td, .table th{ vertical-align: middle; }
+  </style>
+</head>
+<body class="text-start">
+
+  <div class="app-admin-wrap layout-sidebar-compact sidebar-dark-purple sidenav-open clearfix">
+    <!-- ===== Left Sidebars kept minimal on this page ===== -->
+    <div class="side-content-wrap">
+      <div class="sidebar-left open rtl-ps-none" data-perfect-scrollbar data-suppress-scroll-x="true">
+        <ul class="navigation-left">
+          <li class="nav-item"><a class="nav-item-hold" href="../../index.html"><i class="nav-icon i-Bar-Chart"></i><span class="nav-text">ផ្ទាំង</span></a><div class="triangle"></div></li>
+          <li class="nav-item active"><a class="nav-item-hold" href="#"><i class="nav-icon i-Library"></i><span class="nav-text">ការិយាល័យ</span></a><div class="triangle"></div></li>
+          <li class="nav-item"><a class="nav-item-hold" href="../users/index.html"><i class="nav-icon i-Administrator"></i><span class="nav-text">អ្នកប្រើប្រាស់</span></a><div class="triangle"></div></li>
+        </ul>
+      </div>
+      <div class="sidebar-left-secondary rtl-ps-none" data-perfect-scrollbar data-suppress-scroll-x="true">
+        <i class="sidebar-close i-Close"></i>
+        <div class="submenu-area" data-parent="depts" style="display:block">
+          <header class="px-3 pt-3">
+            <h6 class="m-0 kh-head">គ្រប់គ្រងការិយាល័យ</h6>
+            <p class="text-muted m-0">បញ្ចូល កែប្រែ ឬ លុប</p>
+          </header>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Main ===== -->
+    <div class="main-content-wrap d-flex flex-column">
+      <div class="main-header">
+        <div class="logo"><img src="../../dist-assets/images/logo.png" alt=""/></div>
+        <div class="menu-toggle"><div></div><div></div><div></div></div>
+        <div class="d-flex align-items-center">
+          <div class="search-bar">
+            <input id="q" type="text" placeholder="ស្វែងរកដោយឈ្មោះ..." />
+            <i class="search-icon text-muted i-Magnifi-Glass1"></i>
+          </div>
+        </div>
+        <div style="margin:auto"></div>
+        <div class="header-part-right">
+          <a id="btnLogin" class="btn btn-outline-primary btn-sm" href="../../login.html">ចូលប្រើប្រាស់</a>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="breadcrumb">
+          <h1 class="me-2 kh-head">គ្រប់គ្រងការិយាល័យ</h1>
+          <ul><li><a href="../../index.html">ផ្ទាំង</a></li><li>ការិយាល័យ</li></ul>
+        </div>
+        <div class="separator-breadcrumb border-top"></div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <button id="btnAdd" class="btn btn-primary btn-sm"><i class="i-Add"></i> បន្ថែមការិយាល័យ</button>
+              </div>
+              <div class="text-muted small">
+                <span id="countTxt">0</span> ធាតុ
+              </div>
+            </div>
+
+            <div id="alertBox" class="alert d-none"></div>
+
+            <div class="table-responsive">
+              <table class="table table-hover table-striped" id="tbl">
+                <thead>
+                  <tr>
+                    <th style="width:100px">លេខកូដ</th>
+                    <th>ឈ្មោះការិយាល័យ</th>
+                    <th style="width:120px">សកម្មភាព</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody">
+                  <tr><td colspan="3" class="text-center text-muted">កំពុងទាញទិន្នន័យ...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex-grow-1"></div>
+        <div class="app-footer">
+          <div class="footer-bottom border-top pt-3 d-flex flex-column flex-sm-row align-items-center">
+            <span class="flex-grow-1"></span>
+            <div class="d-flex align-items-center">
+              <img class="logo" src="../../dist-assets/images/logo.png" alt=""/>
+              <div><p class="m-0">&copy; PHD Report</p><p class="m-0">All rights reserved</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /main -->
+
+  </div><!-- /wrap -->
+
+  <!-- ===== Modal (Add/Edit) ===== -->
+  <div class="modal fade" id="depModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="depForm" novalidate>
+          <div class="modal-header">
+            <h5 class="modal-title kh-head" id="mdlTitle">បន្ថែមការិយាល័យ</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">×</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="department_id"/>
+            <div class="mb-3">
+              <label class="form-label">ឈ្មោះការិយាល័យ</label>
+              <input id="department_name" class="form-control" required/>
+              <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះ</div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
+            <button id="btnSave" class="btn btn-primary" type="submit">រក្សាទុក</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== JS ===== -->
+  <script src="../../dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
+  <script src="../../dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
+  <script src="../../dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
+  <script src="../../dist-assets/js/scripts/script.min.js"></script>
+  <script src="../../dist-assets/js/scripts/sidebar.compact.script.min.js"></script>
+
+  <!-- App auth helper (you already have this file in your project) -->
+  <script type="module">
+    import { getAuth, applyLoginButton, isSuper } from '../../assets/js/app.auth.js';
+
+    // ====== CONFIG ======
+    const GAS_BASE = "https://script.google.com/macros/s/AKfycbwkhRDOYDKb5nqGEhxNKGbHnpoZNGmN4GJlv0-8FTQXNGqJIV1Xfy9XLkXwNfGepC3prQ/exec";
+
+    // ====== Guard: login required + super-only ======
+    const auth = getAuth();
+    if (!auth) location.replace('../../login.html');
+
+    // apply login button
+    const btnLogin = document.getElementById('btnLogin');
+    if (btnLogin) applyLoginButton(btnLogin);
+
+    // Only super can manage departments
+    if (!isSuper(auth)) {
+      showAlert('អ្នកមិនមានសិទ្ធិគ្រប់គ្រងការិយាល័យទេ (Super only)', 'danger');
+      document.getElementById('btnAdd').disabled = true;
+    }
+
+    // ====== Small helpers ======
+    function showAlert(msg, type='success'){
+      const box = document.getElementById('alertBox');
+      box.className = 'alert alert-' + type;
+      box.textContent = msg;
+      box.classList.remove('d-none');
+      setTimeout(()=>box.classList.add('d-none'), 3000);
+    }
+    const $ = (s)=>document.querySelector(s);
+    const tbody = $('#tbody');
+
+    function tokenAppend(u){
+      if (auth?.token) u.searchParams.set('token', auth.token);
+      return u;
+    }
+
+    async function gasList(route, params = {}){
+      const u = tokenAppend(new URL(GAS_BASE));
+      u.searchParams.set('api','1'); u.searchParams.set('route', route); u.searchParams.set('op','list');
+      Object.entries(params).forEach(([k,v])=>{ if(v!==undefined && v!=='') u.searchParams.set(k,v); });
+      const r = await fetch(u, { cache:'no-store' });
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const j = await r.json(); if(j.error) throw new Error(j.error);
+      return Array.isArray(j.rows) ? j.rows : (Array.isArray(j) ? j : []);
+    }
+    async function gasUpsert(route, payload){
+      const u = tokenAppend(new URL(GAS_BASE));
+      u.searchParams.set('api','1'); u.searchParams.set('route', route); u.searchParams.set('op','upsert');
+      const r = await fetch(u, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify(payload)
+      });
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const j = await r.json(); if(j.error) throw new Error(j.error);
+      return j.row || j;
+    }
+    async function gasDelete(route, idField, idValue){
+      const u = tokenAppend(new URL(GAS_BASE));
+      u.searchParams.set('api','1'); u.searchParams.set('route', route); u.searchParams.set('op','delete');
+      // Send id both ways to be safe
+      const payload = { [idField]: idValue };
+      const r = await fetch(u, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify(payload)
+      });
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const j = await r.json(); if(j.error) throw new Error(j.error);
+      return j;
+    }
+
+    // ====== UI Logic ======
+    let allRows = [];
+
+    async function loadTable(){
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">កំពុងទាញទិន្នន័យ...</td></tr>`;
+      try{
+        allRows = await gasList('departments');
+        renderRows(allRows);
+      }catch(err){
+        tbody.innerHTML = `<tr><td colspan="3" class="text-danger">បរាជ័យ៖ ${err.message}</td></tr>`;
+      }
+    }
+
+    function renderRows(rows){
+      const q = $('#q').value.trim().toLowerCase();
+      const filtered = rows.filter(r => String(r.department_name||'').toLowerCase().includes(q));
+      $('#countTxt').textContent = filtered.length;
+      if(!filtered.length){
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">គ្មានទិន្នន័យ</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = filtered.map(r=>`
+        <tr data-id="${r.department_id}">
+          <td><span class="badge badge-outline-primary badge-id">#${r.department_id}</span></td>
+          <td>${escapeHtml(r.department_name||'')}</td>
+          <td>
+            <button class="btn btn-link btn-sm text-primary btn-edit">កែ</button>
+            <button class="btn btn-link btn-sm text-danger btn-del">លុប</button>
+          </td>
+        </tr>
+      `).join('');
+
+      // bind actions
+      tbody.querySelectorAll('.btn-edit').forEach(btn=>{
+        btn.addEventListener('click', e=>{
+          const id = e.target.closest('tr').dataset.id;
+          const row = allRows.find(x => String(x.department_id) === String(id));
+          openEdit(row);
+        });
+      });
+      tbody.querySelectorAll('.btn-del').forEach(btn=>{
+        btn.addEventListener('click', async e=>{
+          if(!isSuper(auth)) return;
+          const id = e.target.closest('tr').dataset.id;
+          if(!confirm('លុបធាតុនេះមែនទេ?')) return;
+          try{
+            await gasDelete('departments','department_id', id);
+            showAlert('លុបរួចរាល់', 'success');
+            await loadTable();
+          }catch(err){ showAlert('បរាជ័យ៖ '+err.message, 'danger'); }
+        });
+      });
+    }
+
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    // Modal helpers
+    const mdl = new bootstrap.Modal(document.getElementById('depModal'));
+    function openAdd(){
+      $('#mdlTitle').textContent = 'បន្ថែមការិយាល័យ';
+      $('#department_id').value = '';
+      $('#department_name').value = '';
+      $('#department_name').classList.remove('is-invalid');
+      mdl.show();
+    }
+    function openEdit(row){
+      $('#mdlTitle').textContent = 'កែប្រែការិយាល័យ';
+      $('#department_id').value = row?.department_id || '';
+      $('#department_name').value = row?.department_name || '';
+      $('#department_name').classList.remove('is-invalid');
+      mdl.show();
+    }
+
+    // Events
+    document.getElementById('btnAdd').addEventListener('click', ()=>{
+      if(!isSuper(auth)) return showAlert('Super only', 'danger');
+      openAdd();
+    });
+    document.getElementById('q').addEventListener('input', ()=>renderRows(allRows));
+
+    document.getElementById('depForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      if(!isSuper(auth)) return;
+      const id = $('#department_id').value.trim();
+      const name = $('#department_name').value.trim();
+      if(!name){ $('#department_name').classList.add('is-invalid'); return; }
+      $('#department_name').classList.remove('is-invalid');
+
+      try{
+        const payload = { department_name: name };
+        if(id) payload.department_id = Number(id);
+        await gasUpsert('departments', payload);
+        mdl.hide();
+        showAlert('រក្សាទុករួចរាល់', 'success');
+        await loadTable();
+      }catch(err){
+        showAlert('បរាជ័យ៖ '+err.message, 'danger');
+      }
+    });
+
+    // First load
+    await loadTable();
+  </script>
+</body>
+</html>
