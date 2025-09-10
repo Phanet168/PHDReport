@@ -3,21 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
   <title>សូចនាករ | Settings | PHD Report</title>
 
   <!-- Google Khmer Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
-  <!-- Gull CSS -->
-  <link href="../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
-  <link href="../dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet" />
-  <link href="../dist-assets/css/plugins/datatables.min.css" rel="stylesheet" />
+  <!-- Gull CSS (⬅️ from ../../ because we’re two levels deep) -->
+  <link href="../../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
+  <link href="../../dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet" />
+  <link href="../../dist-assets/css/plugins/datatables.min.css" rel="stylesheet" />
 
   <style>
-    :root {
-      --kh-font: "Noto Sans Khmer", Nunito, Arial, Helvetica, sans-serif;
-      --kh-head: "Khmer Moul","Noto Sans Khmer", sans-serif;
-    }
+    :root { --kh-font: "Noto Sans Khmer", Nunito, Arial, Helvetica, sans-serif; --kh-head: "Khmer Moul","Noto Sans Khmer", sans-serif; }
     body { font-family: var(--kh-font) !important; }
     .kh-head { font-family: var(--kh-head) !important; }
   </style>
@@ -26,12 +24,12 @@
 <body class="text-start">
 <div class="app-admin-wrap layout-sidebar-compact sidebar-dark-purple sidenav-open clearfix">
 
-  <!-- ========== Sidebar giống index.html ========== -->
+  <!-- Sidebar (primary) -->
   <div class="side-content-wrap">
     <div class="sidebar-left open rtl-ps-none" data-perfect-scrollbar data-suppress-scroll-x="true">
       <ul class="navigation-left">
         <li class="nav-item" data-item="dashboard">
-          <a class="nav-item-hold" href="../index.html">
+          <a class="nav-item-hold" href="../../index.html">
             <i class="nav-icon i-Bar-Chart"></i><span class="nav-text">ផ្ទាំងគ្រប់គ្រង</span>
           </a>
           <div class="triangle"></div>
@@ -44,12 +42,12 @@
     </div>
   </div>
 
-  <!-- ========== Main content ========== -->
+  <!-- Main content -->
   <div class="main-content-wrap d-flex flex-column">
 
-    <!-- Header giống index -->
+    <!-- Header -->
     <div class="main-header">
-      <div class="logo"><img src="../dist-assets/images/logo.png" alt="" /></div>
+      <div class="logo"><img src="../../dist-assets/images/logo.png" alt="" /></div>
       <div class="menu-toggle"><div></div><div></div><div></div></div>
       <div style="margin:auto"></div>
       <div class="header-part-right">
@@ -62,7 +60,7 @@
       <div class="breadcrumb">
         <h1 class="me-2 kh-head">ការកំណត់</h1>
         <ul>
-          <li><a href="../index.html">Dashboard</a></li>
+          <li><a href="../../index.html">Dashboard</a></li>
           <li>Settings</li>
           <li>Indicators</li>
         </ul>
@@ -84,7 +82,7 @@
                   <th>ឈ្មោះសូចនាករ</th>
                   <th>ប្រភេទ</th>
                   <th>នាយកដ្ឋាន</th>
-                  <th>ចូលរួម</th>
+                  <th>សកម្មភាព</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -94,13 +92,13 @@
       </div>
     </div>
 
-    <!-- Footer giống index -->
+    <!-- Footer -->
     <div class="flex-grow-1"></div>
     <div class="app-footer">
       <div class="footer-bottom border-top pt-3 d-flex flex-column flex-sm-row align-items-center">
         <span class="flex-grow-1"></span>
         <div class="d-flex align-items-center">
-          <img class="logo" src="../dist-assets/images/logo.png" alt="" />
+          <img class="logo" src="../../dist-assets/images/logo.png" alt="" />
           <div>
             <p class="m-0">&copy; PHD Report</p>
             <p class="m-0">All rights reserved</p>
@@ -140,90 +138,99 @@
   </div>
 </div>
 
-<!-- Scripts Gull -->
-<script src="../dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
-<script src="../dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
-<script src="../dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
-<script src="../dist-assets/js/plugins/datatables.min.js"></script>
-<script src="../dist-assets/js/scripts/script.min.js"></script>
-<script src="../dist-assets/js/scripts/sidebar.compact.script.min.js"></script>
-<script src="../dist-assets/js/scripts/customizer.script.min.js"></script>
+<!-- Gull Scripts (⬅️ all from ../../) -->
+<script src="../../dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
+<script src="../../dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
+<script src="../../dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
+<script src="../../dist-assets/js/plugins/datatables.min.js"></script>
+<script src="../../dist-assets/js/scripts/script.min.js"></script>
+<script src="../../dist-assets/js/scripts/sidebar.compact.script.min.js"></script>
+<script src="../../dist-assets/js/scripts/customizer.script.min.js"></script>
 
-<!-- Custom -->
-    <!-- Gull JS -->
-  <script src="dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
-  <script src="dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
-  <script src="dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
-  <script src="dist-assets/js/scripts/script.min.js"></script>
-  <script src="dist-assets/js/scripts/sidebar.compact.script.min.js"></script>
-  <script src="dist-assets/js/scripts/customizer.script.min.js"></script>
-  <script src="dist-assets/js/plugins/echarts.min.js"></script>
-  <script src="dist-assets/js/scripts/echart.options.min.js"></script>
-  <script src="dist-assets/js/scripts/dashboard.v1.script.min.js"></script>
-
-  <!-- App: build dynamic Dept/Unit menu + login state (token-aware) -->
+<!-- App script -->
 <script type="module">
-import { getAuth, ensureLoggedIn, applyLoginButton } from '../assets/js/app.auth.js';
-import { gasList } from '../../assets/js/app.menu.js';
+  import { ensureLoggedIn, applyLoginButton } from '../../assets/js/app.auth.js';
+  import { gasList } from '../../assets/js/app.menu.js';
 
-ensureLoggedIn('../../login.html');
-applyLoginButton(document.getElementById('btnLogin'));
+  ensureLoggedIn('../../login.html');
+  applyLoginButton(document.getElementById('btnLogin'));
 
-let tbl;
-async function loadIndicators(){
-  const [indicators,depts] = await Promise.all([
-    gasList('indicators'),
-    gasList('departments')
-  ]);
-  const deptMap = Object.fromEntries(depts.map(d=>[d.department_id,d.department_name]));
-  tbl.clear();
-  indicators.forEach(ind=>{
-    tbl.row.add([
-      ind.indicator_id,
-      ind.indicator_name,
-      ind.indicator_type,
-      deptMap[ind.department_id]||'',
-      `<button class="btn btn-sm btn-warning btnEdit">កែ</button>
-       <button class="btn btn-sm btn-danger btnDel">លុប</button>`
+  let tbl;
+
+  async function loadDepartmentsToSelect(list){
+    const depts = await gasList('departments');
+    const sel = document.getElementById('department_id');
+    sel.innerHTML = '<option value="">-- ជ្រើសរើស --</option>';
+    depts.forEach(d=>{
+      const opt = document.createElement('option');
+      opt.value = d.department_id;
+      opt.textContent = d.department_name;
+      sel.appendChild(opt);
+    });
+    if (list && list.department_id) sel.value = list.department_id;
+  }
+
+  async function loadIndicators(){
+    const [indicators,depts] = await Promise.all([
+      gasList('indicators'),
+      gasList('departments')
     ]);
-  });
-  tbl.draw();
-}
+    const deptMap = Object.fromEntries(depts.map(d=>[d.department_id,d.department_name]));
+    tbl.clear();
+    indicators.forEach(ind=>{
+      tbl.row.add([
+        ind.indicator_id,
+        ind.indicator_name,
+        ind.indicator_type || '',
+        deptMap[ind.department_id] || '',
+        `<button class="btn btn-sm btn-warning btnEdit">កែ</button>
+         <button class="btn btn-sm btn-danger btnDel">លុប</button>`
+      ]);
+    });
+    tbl.draw();
+  }
 
-$(document).ready(function(){
-  tbl = $('#tblIndicators').DataTable();
-  loadIndicators();
+  $(document).ready(function(){
+    tbl = $('#tblIndicators').DataTable();
+    loadIndicators();
 
-  $('#btnAdd').on('click',()=>{
-    $('#frmIndicator')[0].reset();
-    $('#indicator_id').val('');
-    $('#mdlIndicator').modal('show');
-  });
+    // Add
+    $('#btnAdd').on('click', async ()=>{
+      $('#frmIndicator')[0].reset();
+      $('#indicator_id').val('');
+      await loadDepartmentsToSelect();
+      $('#mdlIndicator').modal('show');
+    });
 
-  $('#frmIndicator').on('submit',async e=>{
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target).entries());
-    console.log('save',data); // TODO connect to GAS save
-    $('#mdlIndicator').modal('hide');
-    await loadIndicators();
-  });
-
-  $('#tblIndicators').on('click','.btnEdit',function(){
-    const row = tbl.row($(this).closest('tr')).data();
-    $('#indicator_id').val(row[0]);
-    $('#indicator_name').val(row[1]);
-    $('#indicator_type').val(row[2]);
-    $('#mdlIndicator').modal('show');
-  });
-
-  $('#tblIndicators').on('click','.btnDel',async function(){
-    if(confirm('Delete this indicator?')){
-      const id = tbl.row($(this).closest('tr')).data()[0];
-      console.log('delete',id); // TODO connect to GAS delete
+    // Save (TODO: hook to GAS create/update)
+    $('#frmIndicator').on('submit', async e=>{
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      console.log('save', data);
+      $('#mdlIndicator').modal('hide');
       await loadIndicators();
-    }
+    });
+
+    // Edit
+    $('#tblIndicators').on('click','.btnEdit', async function(){
+      const row = tbl.row($(this).closest('tr')).data();
+      const current = { indicator_id: row[0], indicator_name: row[1], indicator_type: row[2], department_id: '' };
+      $('#indicator_id').val(current.indicator_id);
+      $('#indicator_name').val(current.indicator_name);
+      $('#indicator_type').val(current.indicator_type);
+      await loadDepartmentsToSelect(current);
+      $('#mdlIndicator').modal('show');
+    });
+
+    // Delete (TODO: hook to GAS delete)
+    $('#tblIndicators').on('click','.btnDel', async function(){
+      if(confirm('លុបសូចនាករនេះ?')){
+        const id = tbl.row($(this).closest('tr')).data()[0];
+        console.log('delete', id);
+        await loadIndicators();
+      }
+    });
   });
-});
 </script>
 </body>
 </html>
