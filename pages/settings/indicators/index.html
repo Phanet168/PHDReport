@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>សូចនាករ | Settings | PHD Report</title>
+
+  <!-- Google Khmer Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+  <!-- Gull CSS -->
+  <link href="../../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
+  <link href="../../dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet" />
+  <link href="../../dist-assets/css/plugins/datatables.min.css" rel="stylesheet" />
+
+  <style>
+    :root {
+      --kh-font: "Noto Sans Khmer", Nunito, Arial, Helvetica, sans-serif;
+      --kh-head: "Khmer Moul","Noto Sans Khmer", sans-serif;
+    }
+    body { font-family: var(--kh-font) !important; }
+    .kh-head { font-family: var(--kh-head) !important; }
+  </style>
+</head>
+
+<body class="text-start">
+<div class="app-admin-wrap layout-sidebar-compact sidebar-dark-purple sidenav-open clearfix">
+
+  <!-- ========== Sidebar & Header giống index.html ========== -->
+  <div class="side-content-wrap">
+    <div class="sidebar-left open rtl-ps-none" data-perfect-scrollbar>
+      <ul class="navigation-left">
+        <li class="nav-item" data-item="dashboard">
+          <a class="nav-item-hold" href="../../index.html">
+            <i class="nav-icon i-Bar-Chart"></i><span class="nav-text">ផ្ទាំងគ្រប់គ្រង</span>
+          </a>
+          <div class="triangle"></div>
+        </li>
+        <li class="nav-item" data-item="settings" class="active">
+          <a class="nav-item-hold" href="#"><i class="nav-icon i-Gear-2"></i><span class="nav-text">កំណត់</span></a>
+          <div class="triangle"></div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ========== Main content ========== -->
+  <div class="main-content-wrap d-flex flex-column">
+
+    <!-- Header -->
+    <div class="main-header">
+      <div class="logo"><img src="../../dist-assets/images/logo.png" alt="" /></div>
+      <div class="menu-toggle"><div></div><div></div><div></div></div>
+      <div style="margin:auto"></div>
+      <div class="header-part-right">
+        <a id="btnLogin" class="btn btn-outline-primary btn-sm" href="../../login.html">ចូលប្រើប្រាស់</a>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="main-content">
+      <div class="breadcrumb">
+        <h1 class="me-2 kh-head">ការកំណត់</h1>
+        <ul><li><a href="../../index.html">Dashboard</a></li><li>Settings</li><li>Indicators</li></ul>
+      </div>
+      <div class="separator-breadcrumb border-top"></div>
+
+      <!-- Card -->
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between mb-3">
+            <h4 class="card-title kh-head">បញ្ជីសូចនាករ</h4>
+            <button class="btn btn-primary btn-sm" id="btnAdd">➕ បន្ថែម</button>
+          </div>
+          <div class="table-responsive">
+            <table id="tblIndicators" class="display table table-striped" style="width:100%">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ឈ្មោះសូចនាករ</th>
+                  <th>ប្រភេទ</th>
+                  <th>នាយកដ្ឋាន</th>
+                  <th>ចូលរួម</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex-grow-1"></div>
+    <div class="app-footer">
+      <div class="footer-bottom border-top pt-3 d-flex flex-column flex-sm-row align-items-center">
+        <span class="flex-grow-1"></span>
+        <div class="d-flex align-items-center">
+          <img class="logo" src="../../dist-assets/images/logo.png" alt="" />
+          <div><p class="m-0">&copy; PHD Report</p><p class="m-0">All rights reserved</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Form -->
+<div class="modal fade" id="mdlIndicator" tabindex="-1">
+  <div class="modal-dialog">
+    <form id="frmIndicator" class="modal-content">
+      <div class="modal-header"><h5 class="modal-title kh-head">ព័ត៌មានសូចនាករ</h5></div>
+      <div class="modal-body">
+        <input type="hidden" id="indicator_id" name="indicator_id" />
+        <div class="mb-3">
+          <label class="form-label">ឈ្មោះសូចនាករ</label>
+          <input type="text" class="form-control" id="indicator_name" name="indicator_name" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">ប្រភេទ</label>
+          <input type="text" class="form-control" id="indicator_type" name="indicator_type" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">នាយកដ្ឋាន</label>
+          <select class="form-select" id="department_id" name="department_id"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+        <button type="submit" class="btn btn-primary">រក្សាទុក</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="../../dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
+<script src="../../dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
+<script src="../../dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
+<script src="../../dist-assets/js/plugins/datatables.min.js"></script>
+<script type="module">
+import { getAuth, ensureLoggedIn, applyLoginButton } from '../../assets/js/app.auth.js';
+import { gasList } from '../../assets/js/app.menu.js'; // អាច refactor function ទៅ utils
+
+ensureLoggedIn('../../login.html');
+applyLoginButton(document.getElementById('btnLogin'));
+
+let tbl;
+async function loadIndicators(){
+  const [indicators,depts] = await Promise.all([
+    gasList('indicators'),
+    gasList('departments')
+  ]);
+  const deptMap = Object.fromEntries(depts.map(d=>[d.department_id,d.department_name]));
+  tbl.clear();
+  indicators.forEach(ind=>{
+    tbl.row.add([
+      ind.indicator_id,
+      ind.indicator_name,
+      ind.indicator_type,
+      deptMap[ind.department_id]||'',
+      `<button class="btn btn-sm btn-warning btnEdit">កែ</button>
+       <button class="btn btn-sm btn-danger btnDel">លុប</button>`
+    ]);
+  });
+  tbl.draw();
+}
+
+// Init DataTable
+$(document).ready(function(){
+  tbl = $('#tblIndicators').DataTable();
+  loadIndicators();
+
+  // Add
+  $('#btnAdd').on('click',()=>{
+    $('#frmIndicator')[0].reset();
+    $('#indicator_id').val('');
+    $('#mdlIndicator').modal('show');
+  });
+
+  // Submit form
+  $('#frmIndicator').on('submit',async e=>{
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    // TODO: call GAS API to save
+    console.log('save',data);
+    $('#mdlIndicator').modal('hide');
+    await loadIndicators();
+  });
+
+  // Edit/Delete
+  $('#tblIndicators').on('click','.btnEdit',function(){
+    const row = tbl.row($(this).closest('tr')).data();
+    $('#indicator_id').val(row[0]);
+    $('#indicator_name').val(row[1]);
+    $('#indicator_type').val(row[2]);
+    // TODO: set department
+    $('#mdlIndicator').modal('show');
+  });
+  $('#tblIndicators').on('click','.btnDel',async function(){
+    if(confirm('Delete this indicator?')){
+      const id = tbl.row($(this).closest('tr')).data()[0];
+      // TODO: call GAS API delete
+      console.log('delete',id);
+      await loadIndicators();
+    }
+  });
+});
+</script>
+</body>
+</html>
