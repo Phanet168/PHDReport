@@ -103,6 +103,16 @@ export async function buildSettingsMenu(targetUlId='settingsMenu', basePath='pag
     </li>`;
 
   const auth = getAuth();
+  // ⬇️ បន្ថែមផ្នែកនេះខាងក្រោម const auth = getAuth();
+const showSettingsTop = isSuper(auth) || isDataEntry(auth);
+const topSettingsItem = document.querySelector('li.nav-item[data-item="settings"]');
+if (topSettingsItem) {
+  // បើកឬបិទ menu ខ្ពស់
+  topSettingsItem.style.display = showSettingsTop ? '' : 'none';
+  // បំបាត់ class ដែលអាចលាក់ដោយ CSS
+  topSettingsItem.classList.remove('menu-super-only');
+}
+
   try {
     const itemsAll = [
       { key: 'indicators',  label: 'សូចនាករ (Indicators)',  icon: 'i-Bar-Chart', href: `${basePath}/indicators/index.html` },
@@ -155,3 +165,4 @@ export async function initMenus() {
     buildSettingsMenu('settingsMenu')
   ]);
 }
+
