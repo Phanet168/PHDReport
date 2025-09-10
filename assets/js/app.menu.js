@@ -157,6 +157,14 @@ if (topSettingsItem) {
     box.innerHTML = `<li class="nav-item"><a href="#"><span class="item-name text-danger">បរាជ័យ៖ ${err.message}</span></a></li>`;
   }
 }
+export async function gasList(route, params = {}) {
+  const u = new URL(GAS_BASE);
+  u.searchParams.set('api','1');
+  u.searchParams.set('route', route);
+  u.searchParams.set('op','list');
+  ...
+}
+
 
 /* ------------------ One-call init (optional) ------------------ */
 export async function initMenus() {
@@ -165,4 +173,5 @@ export async function initMenus() {
     buildSettingsMenu('settingsMenu')
   ]);
 }
+
 
