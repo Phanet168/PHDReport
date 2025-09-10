@@ -251,33 +251,94 @@
 <!-- App: login state + build Dept/Unit menu (token-aware) -->
 <script type="module">
   import { ensureLoggedIn, getAuth, isSuper, applyLoginButton } from './assets/js/app.auth.js';
-  import { buildDeptMenu, buildSettingsMenu } from './assets/js/app.menu.js';  // ⬅️ add this
+  import { buildDeptMenu, buildSettingsMenu } from './assets/js/app.menu.js';
 
   ensureLoggedIn('login.html');
-  const auth = getAuth();
+  if (document.getElementById('btnLogin')) applyLoginButton(document.getElementById('btnLogin'));
 
-  const btnLogin = document.getElementById('btnLogin');
-  if (btnLogin) applyLoginButton(btnLogin);
+  // menus (ទុក index ជា shell)
+  buildDeptMenu('deptMenu');
+  buildSettingsMenu('settingsMenu');
 
-  // ⚠️ បម្លែងវិធីលាក់ menu-super-only ដើម្បីជៀស FOUC (មើលផ្នែក C)
-  if (isSuper(auth)) {
-    document.querySelectorAll('.menu-super-only').forEach(el => el.style.display = '');
-  } else {
-    document.querySelectorAll('.menu-super-only').forEach(el => el.style.display = 'none');
+  // ---- Simple hash router ----
+  const outlet = document.getElementById('route-outlet');
+
+  // base path of repo (GitHub Pages)
+  const REPO = location.pathname.split('/')[1];           // e.g. "PHDRReport"
+  const ROOT = `/${REPO}/`;                                // "/PHDRReport/"
+  const viewUrl = (path) => `${ROOT}${path}`;              // helper
+
+  // Map route -> HTML partial (view) + optional init()
+  const routes = {
+    '':            { view: 'pages/home.html' }, // dashboard body (optional)
+    'settings/indicators': { view: 'pages/settings/indicators/view.html', init: initIndicators },
+    'settings/departments': { view: 'pages/settings/departments/view.html' },
+    'settings/units':       { view: 'pages/settings/units/view.html' },
+    'settings/periods':     { view: 'pages/settings/periods/view.html' },
+  };
+
+  async function render(path){
+    const conf = routes[path] || routes[''];
+    const url  = viewUrl(conf.view);
+    try{
+      const html = await (await fetch(url, {cache:'no-store'})).text();
+      outlet.innerHTML = html;
+      // ផ្ញើព្រឹត្តិការណ៍ឲ្យ view ទទួល (បើចាំបាច់)
+      outlet.dispatchEvent(new CustomEvent('view:mounted', {detail:{path}}));
+      if (typeof conf.init === 'function') conf.init(); // run view init
+    }catch(e){
+      outlet.innerHTML = `<div class="alert alert-danger m-3">មិនអាចផ្ទុកទំព័រ៖ ${e.message}</div>`;
+    }
   }
 
-  // Build menus
-  buildDeptMenu('deptMenu');
-  buildSettingsMenu('settingsMenu'); // ⬅️ add this
+  function parseHash(){
+    const h = (location.hash || '#/').replace(/^#\//,'');
+    return h; // e.g. "settings/indicators"
+  }
 
-  // Quick filter
-  const qEl = document.getElementById('q');
-  if (qEl) {
-    qEl.addEventListener('input', e => {
-      const q = e.target.value.toLowerCase();
-      document.querySelectorAll('.childNav .item-name').forEach(el => {
-        el.closest('li').style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
-      });
+  window.addEventListener('hashchange', ()=>render(parseHash()));
+  render(parseHash());
+
+  // ====== View inits ======
+  async function initIndicators(){
+    // Scripts Gull/DataTables មានរួចក្នុង index → ស្រាប់
+    const { gasList } = await import(`${ROOT}assets/js/app.menu.js`);
+    const tableEl = document.querySelector('#tblIndicators');
+    if (!tableEl) return;
+
+    // fill departments in modal when opened
+    const depSel = document.getElementById('department_id');
+    if (depSel) {
+      const depts = await gasList('departments');
+      depSel.innerHTML = `<option value="">-- ជ្រើស --</option>` + 
+        depts.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+    }
+
+    // build table
+    const indicators = await gasList('indicators');
+    const depts = await gasList('departments');
+    const deptMap = Object.fromEntries(depts.map(d=>[d.department_id,d.department_name]));
+    const rows = indicators.map(ind=>[
+      ind.indicator_id,
+      ind.indicator_name,
+      ind.indicator_type||'',
+      deptMap[ind.department_id]||'',
+      `<button class="btn btn-sm btn-warning btnEdit">កែ</button>
+       <button class="btn btn-sm btn-danger btnDel">លុប</button>`
+    ]);
+
+    // init DataTable
+    const tbl = $(tableEl).DataTable();
+    tbl.clear(); tbl.rows.add(rows).draw();
+
+    // wire buttons (demo)
+    $('#btnAdd').on('click',()=> $('#mdlIndicator').modal('show'));
+    $('#tblIndicators').on('click','.btnEdit',function(){
+      const data = tbl.row($(this).closest('tr')).data();
+      $('#indicator_id').val(data[0]);
+      $('#indicator_name').val(data[1]);
+      $('#indicator_type').val(data[2]);
+      $('#mdlIndicator').modal('show');
     });
   }
 </script>
@@ -287,6 +348,7 @@
 
 </body>
 </html>
+
 
 
 
