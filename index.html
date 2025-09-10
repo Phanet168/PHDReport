@@ -251,27 +251,26 @@
 <!-- App: login state + build Dept/Unit menu (token-aware) -->
 <script type="module">
   import { ensureLoggedIn, getAuth, isSuper, applyLoginButton } from './assets/js/app.auth.js';
-  import { buildDeptMenu } from './assets/js/app.menu.js';
+  import { buildDeptMenu, buildSettingsMenu } from './assets/js/app.menu.js';  // ⬅️ add this
 
-  // 1) Guard page: redirect ទៅ login ប្រសិនបើមិនទាន់ login
   ensureLoggedIn('login.html');
-
-  // 2) Auth object (ក្រោយ guard នេះ មានតម្លៃជានិច្ច)
   const auth = getAuth();
 
-  // 3) Login/Logout button (ប្ដូរទៅ “username • ចេញ” និងចេញបានត្រឹមត្រូវ)
   const btnLogin = document.getElementById('btnLogin');
   if (btnLogin) applyLoginButton(btnLogin);
 
-  // 4) លាក់ម៉ឺនុយសម្រាប់ super-user បើអ្នកប្រើមិនមែនជាស៊ុបឺរ
-  if (!isSuper(auth)) {
+  // ⚠️ បម្លែងវិធីលាក់ menu-super-only ដើម្បីជៀស FOUC (មើលផ្នែក C)
+  if (isSuper(auth)) {
+    document.querySelectorAll('.menu-super-only').forEach(el => el.style.display = '');
+  } else {
     document.querySelectorAll('.menu-super-only').forEach(el => el.style.display = 'none');
   }
 
-  // 5) បង្កើតម៉ឺនុយ ការិយាល័យ/ផ្នែក ពី GAS (មាន token)
+  // Build menus
   buildDeptMenu('deptMenu');
+  buildSettingsMenu('settingsMenu'); // ⬅️ add this
 
-  // 6) Quick filter ស្វែងរកនៅ sidebar
+  // Quick filter
   const qEl = document.getElementById('q');
   if (qEl) {
     qEl.addEventListener('input', e => {
@@ -285,8 +284,10 @@
 
 
 
+
 </body>
 </html>
+
 
 
 
