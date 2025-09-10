@@ -92,49 +92,31 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
 }
 
 /* ------------------ Settings menu by role ------------------ */
-export async function buildSettingsMenu(targetUlId = 'settingsMenu', basePath = 'pages/settings') {
+export async function buildSettingsMenu(targetUlId='settingsMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
 
-  box.innerHTML = `
-    <li class="nav-item">
-      <a href="#"><i class="nav-icon i-Gear"></i>
-      <span class="item-name text-muted">កំពុងត្រៀម...</span></a>
-    </li>`;
+  box.innerHTML = `<li class="nav-item">
+    <a href="#"><i class="nav-icon i-Gear"></i>
+    <span class="item-name text-muted">កំពុងត្រៀម...</span></a>
+  </li>`;
 
   const auth = getAuth();
-
-  // ensure top-level Settings visible for super & dataentry
-  const showSettingsTop = isSuper(auth) || isDataEntry(auth);
-  const topSettingsItem = document.querySelector('li.nav-item[data-item="settings"]');
-  if (topSettingsItem) {
-    topSettingsItem.style.display = showSettingsTop ? '' : 'none';
-    topSettingsItem.classList.remove('menu-super-only');
-  }
-
   try {
-       const itemsAll = [
-        { key: 'indicators',  label: 'សូចនាករ',      icon: 'i-Bar-Chart', href: '#/settings/indicators' },
-        { key: 'departments', label: 'នាយកដ្ឋាន',   icon: 'i-Building',  href: '#/settings/departments' },
-        { key: 'units',       label: 'ផ្នែក',        icon: 'i-Right',     href: '#/settings/units' },
-        { key: 'periods',     label: 'រយៈពេល',      icon: 'i-Calendar',  href: '#/settings/periods' },
-      ];
-
+    const itemsAll = [
+      { key: 'indicators',  label: 'សូចនាករ',  icon: 'i-Bar-Chart', href: '#/settings/indicators' },
+      { key: 'departments', label: 'នាយកដ្ឋាន', icon: 'i-Building',  href: '#/settings/departments' },
+      { key: 'units',       label: 'ផ្នែក',     icon: 'i-Right',     href: '#/settings/units' },
+      { key: 'periods',     label: 'រយៈពេល',   icon: 'i-Calendar',  href: '#/settings/periods' },
+    ];
 
     let visible;
     if (isSuper(auth)) visible = itemsAll;
     else if (isDataEntry(auth)) visible = itemsAll.filter(x => x.key === 'indicators');
     else visible = itemsAll.filter(x => x.key === 'indicators');
 
-    if (!visible.length) {
-      box.innerHTML = `<li class="nav-item"><a href="#"><span class="item-name text-muted">គ្មានសិទ្ធិគ្រប់គ្រង</span></a></li>`;
-      return;
-    }
-
-    const html = [
-      `<li class="nav-item mt-2 mb-1"><span class="text-uppercase text-muted small ps-3">ការកំណត់ (Settings)</span></li>`
-    ];
-    for (const it of visible) {
+    const html = [`<li class="nav-item mt-2 mb-1"><span class="text-uppercase text-muted small ps-3">ការកំណត់ (Settings)</span></li>`];
+    visible.forEach(it => {
       html.push(`
         <li class="nav-item">
           <a href="${it.href}">
@@ -143,7 +125,7 @@ export async function buildSettingsMenu(targetUlId = 'settingsMenu', basePath = 
           </a>
         </li>
       `);
-    }
+    });
     box.innerHTML = html.join('');
   } catch (err) {
     console.error('buildSettingsMenu failed:', err);
@@ -158,4 +140,5 @@ export async function initMenus() {
     buildSettingsMenu('settingsMenu')
   ]);
 }
+
 
