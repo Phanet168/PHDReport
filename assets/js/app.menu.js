@@ -113,12 +113,13 @@ export async function buildSettingsMenu(targetUlId = 'settingsMenu', basePath = 
   }
 
   try {
-    const itemsAll = [
-      { key: 'indicators',  label: 'សូចនាករ (Indicators)',  icon: 'i-Bar-Chart', href: `${basePath}/indicators/index.html` },
-      { key: 'departments', label: 'នាយកដ្ឋាន (Departments)', icon: 'i-Building',  href: `${basePath}/departments/index.html` },
-      { key: 'units',       label: 'ផ្នែក (Units)',           icon: 'i-Right',     href: `${basePath}/units/index.html` },
-      { key: 'periods',     label: 'រយៈពេល (Periods)',       icon: 'i-Calendar',  href: `${basePath}/periods/index.html` },
-    ];
+       const itemsAll = [
+        { key: 'indicators',  label: 'សូចនាករ',      icon: 'i-Bar-Chart', href: '#/settings/indicators' },
+        { key: 'departments', label: 'នាយកដ្ឋាន',   icon: 'i-Building',  href: '#/settings/departments' },
+        { key: 'units',       label: 'ផ្នែក',        icon: 'i-Right',     href: '#/settings/units' },
+        { key: 'periods',     label: 'រយៈពេល',      icon: 'i-Calendar',  href: '#/settings/periods' },
+      ];
+
 
     let visible;
     if (isSuper(auth)) visible = itemsAll;
@@ -157,3 +158,4 @@ export async function initMenus() {
     buildSettingsMenu('settingsMenu')
   ]);
 }
+
