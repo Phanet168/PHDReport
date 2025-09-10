@@ -9,14 +9,16 @@
   <!-- Google Khmer Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
-  <!-- Gull CSS (⬅️ from ../../ because we’re two levels deep) -->
-<link href="../../../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
-<link href="../../../dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet" />
-<link href="../../../dist-assets/css/plugins/datatables.min.css" rel="stylesheet" />
-
+  <!-- Gull CSS (use ../../../ because we’re in pages/settings/indicators/) -->
+  <link href="../../../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
+  <link href="../../../dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet" />
+  <link href="../../../dist-assets/css/plugins/datatables.min.css" rel="stylesheet" />
 
   <style>
-    :root { --kh-font: "Noto Sans Khmer", Nunito, Arial, Helvetica, sans-serif; --kh-head: "Khmer Moul","Noto Sans Khmer", sans-serif; }
+    :root {
+      --kh-font: "Noto Sans Khmer", Nunito, Arial, Helvetica, sans-serif;
+      --kh-head: "Khmer Moul","Noto Sans Khmer", sans-serif;
+    }
     body { font-family: var(--kh-font) !important; }
     .kh-head { font-family: var(--kh-head) !important; }
   </style>
@@ -25,12 +27,12 @@
 <body class="text-start">
 <div class="app-admin-wrap layout-sidebar-compact sidebar-dark-purple sidenav-open clearfix">
 
-  <!-- Sidebar (primary) -->
+  <!-- Sidebar -->
   <div class="side-content-wrap">
     <div class="sidebar-left open rtl-ps-none" data-perfect-scrollbar data-suppress-scroll-x="true">
       <ul class="navigation-left">
         <li class="nav-item" data-item="dashboard">
-          <a class="nav-item-hold" href="../../index.html">
+          <a class="nav-item-hold" href="../../../index.html">
             <i class="nav-icon i-Bar-Chart"></i><span class="nav-text">ផ្ទាំងគ្រប់គ្រង</span>
           </a>
           <div class="triangle"></div>
@@ -48,11 +50,11 @@
 
     <!-- Header -->
     <div class="main-header">
-      <div class="logo"><img src="../../dist-assets/images/logo.png" alt="" /></div>
+      <div class="logo"><img src="../../../dist-assets/images/logo.png" alt="" /></div>
       <div class="menu-toggle"><div></div><div></div><div></div></div>
       <div style="margin:auto"></div>
       <div class="header-part-right">
-        <a id="btnLogin" class="btn btn-outline-primary btn-sm" href="../../login.html">ចូលប្រើប្រាស់</a>
+        <a id="btnLogin" class="btn btn-outline-primary btn-sm" href="../../../login.html">ចូលប្រើប្រាស់</a>
       </div>
     </div>
 
@@ -61,7 +63,7 @@
       <div class="breadcrumb">
         <h1 class="me-2 kh-head">ការកំណត់</h1>
         <ul>
-          <li><a href="../../index.html">Dashboard</a></li>
+          <li><a href="../../../index.html">Dashboard</a></li>
           <li>Settings</li>
           <li>Indicators</li>
         </ul>
@@ -99,7 +101,7 @@
       <div class="footer-bottom border-top pt-3 d-flex flex-column flex-sm-row align-items-center">
         <span class="flex-grow-1"></span>
         <div class="d-flex align-items-center">
-          <img class="logo" src="../../dist-assets/images/logo.png" alt="" />
+          <img class="logo" src="../../../dist-assets/images/logo.png" alt="" />
           <div>
             <p class="m-0">&copy; PHD Report</p>
             <p class="m-0">All rights reserved</p>
@@ -139,7 +141,7 @@
   </div>
 </div>
 
-<!-- Gull Scripts (⬅️ all from ../../) -->
+<!-- Gull Scripts -->
 <script src="../../../dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
 <script src="../../../dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
 <script src="../../../dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
@@ -148,13 +150,12 @@
 <script src="../../../dist-assets/js/scripts/sidebar.compact.script.min.js"></script>
 <script src="../../../dist-assets/js/scripts/customizer.script.min.js"></script>
 
-
-<!-- App script -->
+<!-- Custom -->
 <script type="module">
-  import { ensureLoggedIn, applyLoginButton } from '../../assets/js/app.auth.js';
-  import { gasList } from '../../assets/js/app.menu.js';
+  import { ensureLoggedIn, applyLoginButton } from '../../../assets/js/app.auth.js';
+  import { gasList } from '../../../assets/js/app.menu.js';
 
-  ensureLoggedIn('../../login.html');
+  ensureLoggedIn('../../../login.html');
   applyLoginButton(document.getElementById('btnLogin'));
 
   let tbl;
