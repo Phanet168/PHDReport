@@ -26,9 +26,9 @@
 <body class="text-start">
 <div class="app-admin-wrap layout-sidebar-compact sidebar-dark-purple sidenav-open clearfix">
 
-  <!-- ========== Sidebar & Header giống index.html ========== -->
+  <!-- ========== Sidebar giống index.html ========== -->
   <div class="side-content-wrap">
-    <div class="sidebar-left open rtl-ps-none" data-perfect-scrollbar>
+    <div class="sidebar-left open rtl-ps-none" data-perfect-scrollbar data-suppress-scroll-x="true">
       <ul class="navigation-left">
         <li class="nav-item" data-item="dashboard">
           <a class="nav-item-hold" href="../../index.html">
@@ -36,7 +36,7 @@
           </a>
           <div class="triangle"></div>
         </li>
-        <li class="nav-item" data-item="settings" class="active">
+        <li class="nav-item active" data-item="settings">
           <a class="nav-item-hold" href="#"><i class="nav-icon i-Gear-2"></i><span class="nav-text">កំណត់</span></a>
           <div class="triangle"></div>
         </li>
@@ -47,7 +47,7 @@
   <!-- ========== Main content ========== -->
   <div class="main-content-wrap d-flex flex-column">
 
-    <!-- Header -->
+    <!-- Header giống index -->
     <div class="main-header">
       <div class="logo"><img src="../../dist-assets/images/logo.png" alt="" /></div>
       <div class="menu-toggle"><div></div><div></div><div></div></div>
@@ -61,11 +61,15 @@
     <div class="main-content">
       <div class="breadcrumb">
         <h1 class="me-2 kh-head">ការកំណត់</h1>
-        <ul><li><a href="../../index.html">Dashboard</a></li><li>Settings</li><li>Indicators</li></ul>
+        <ul>
+          <li><a href="../../index.html">Dashboard</a></li>
+          <li>Settings</li>
+          <li>Indicators</li>
+        </ul>
       </div>
       <div class="separator-breadcrumb border-top"></div>
 
-      <!-- Card -->
+      <!-- Card table -->
       <div class="card">
         <div class="card-body">
           <div class="d-flex justify-content-between mb-3">
@@ -90,17 +94,21 @@
       </div>
     </div>
 
-    <!-- Footer -->
+    <!-- Footer giống index -->
     <div class="flex-grow-1"></div>
     <div class="app-footer">
       <div class="footer-bottom border-top pt-3 d-flex flex-column flex-sm-row align-items-center">
         <span class="flex-grow-1"></span>
         <div class="d-flex align-items-center">
           <img class="logo" src="../../dist-assets/images/logo.png" alt="" />
-          <div><p class="m-0">&copy; PHD Report</p><p class="m-0">All rights reserved</p></div>
+          <div>
+            <p class="m-0">&copy; PHD Report</p>
+            <p class="m-0">All rights reserved</p>
+          </div>
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
@@ -132,14 +140,19 @@
   </div>
 </div>
 
-<!-- Scripts -->
+<!-- Scripts Gull -->
 <script src="../../dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
 <script src="../../dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
 <script src="../../dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
 <script src="../../dist-assets/js/plugins/datatables.min.js"></script>
+<script src="../../dist-assets/js/scripts/script.min.js"></script>
+<script src="../../dist-assets/js/scripts/sidebar.compact.script.min.js"></script>
+<script src="../../dist-assets/js/scripts/customizer.script.min.js"></script>
+
+<!-- Custom -->
 <script type="module">
 import { getAuth, ensureLoggedIn, applyLoginButton } from '../../assets/js/app.auth.js';
-import { gasList } from '../../assets/js/app.menu.js'; // អាច refactor function ទៅ utils
+import { gasList } from '../../assets/js/app.menu.js';
 
 ensureLoggedIn('../../login.html');
 applyLoginButton(document.getElementById('btnLogin'));
@@ -165,42 +178,36 @@ async function loadIndicators(){
   tbl.draw();
 }
 
-// Init DataTable
 $(document).ready(function(){
   tbl = $('#tblIndicators').DataTable();
   loadIndicators();
 
-  // Add
   $('#btnAdd').on('click',()=>{
     $('#frmIndicator')[0].reset();
     $('#indicator_id').val('');
     $('#mdlIndicator').modal('show');
   });
 
-  // Submit form
   $('#frmIndicator').on('submit',async e=>{
     e.preventDefault();
     const data = Object.fromEntries(new FormData(e.target).entries());
-    // TODO: call GAS API to save
-    console.log('save',data);
+    console.log('save',data); // TODO connect to GAS save
     $('#mdlIndicator').modal('hide');
     await loadIndicators();
   });
 
-  // Edit/Delete
   $('#tblIndicators').on('click','.btnEdit',function(){
     const row = tbl.row($(this).closest('tr')).data();
     $('#indicator_id').val(row[0]);
     $('#indicator_name').val(row[1]);
     $('#indicator_type').val(row[2]);
-    // TODO: set department
     $('#mdlIndicator').modal('show');
   });
+
   $('#tblIndicators').on('click','.btnDel',async function(){
     if(confirm('Delete this indicator?')){
       const id = tbl.row($(this).closest('tr')).data()[0];
-      // TODO: call GAS API delete
-      console.log('delete',id);
+      console.log('delete',id); // TODO connect to GAS delete
       await loadIndicators();
     }
   });
