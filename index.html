@@ -251,89 +251,86 @@
 <!-- App: login state + build Dept/Unit menu (token-aware) -->
 <script type="module">
   import { ensureLoggedIn, getAuth, isSuper, applyLoginButton } from './assets/js/app.auth.js';
-  import { buildDeptMenu, buildSettingsMenu } from './assets/js/app.menu.js';
+  import { buildDeptMenu, buildSettingsMenu, gasList } from './assets/js/app.menu.js';
 
   ensureLoggedIn('login.html');
   if (document.getElementById('btnLogin')) applyLoginButton(document.getElementById('btnLogin'));
 
-  // menus (ទុក index ជា shell)
+  // build left menus (sidebar)
   buildDeptMenu('deptMenu');
+  // build settings submenu with hash routes
+  // 👉 សូមធ្វើការកែ buildSettingsMenu ក្នុង app.menu.js ដូចខាងក្រោមនៅចំណុច #5
   buildSettingsMenu('settingsMenu');
 
-  // ---- Simple hash router ----
+  // ---------- Simple hash router ----------
   const outlet = document.getElementById('route-outlet');
 
-  // base path of repo (GitHub Pages)
-  const REPO = location.pathname.split('/')[1];           // e.g. "PHDRReport"
-  const ROOT = `/${REPO}/`;                                // "/PHDRReport/"
-  const viewUrl = (path) => `${ROOT}${path}`;              // helper
+  // Helper: base path for GitHub Pages (support both root & subpath)
+  const parts = location.pathname.split('/').filter(Boolean);
+  const ROOT = parts.length ? `/${parts[0]}/` : '/';   // "/<repo>/" or "/"
+  const viewUrl = (path) => ROOT + path;
 
-  // Map route -> HTML partial (view) + optional init()
   const routes = {
-    '':            { view: 'pages/home.html' }, // dashboard body (optional)
-    'settings/indicators': { view: 'pages/settings/indicators/view.html', init: initIndicators },
+    '':                     { view: 'pages/home.html' },
+    'settings/indicators':  { view: 'pages/settings/indicators/view.html', init: initIndicators },
     'settings/departments': { view: 'pages/settings/departments/view.html' },
     'settings/units':       { view: 'pages/settings/units/view.html' },
     'settings/periods':     { view: 'pages/settings/periods/view.html' },
   };
 
-  async function render(path){
+  async function render(path) {
     const conf = routes[path] || routes[''];
-    const url  = viewUrl(conf.view);
-    try{
-      const html = await (await fetch(url, {cache:'no-store'})).text();
+    try {
+      const html = await (await fetch(viewUrl(conf.view), { cache: 'no-store' })).text();
       outlet.innerHTML = html;
-      // ផ្ញើព្រឹត្តិការណ៍ឲ្យ view ទទួល (បើចាំបាច់)
-      outlet.dispatchEvent(new CustomEvent('view:mounted', {detail:{path}}));
-      if (typeof conf.init === 'function') conf.init(); // run view init
-    }catch(e){
+      if (typeof conf.init === 'function') conf.init();
+    } catch (e) {
       outlet.innerHTML = `<div class="alert alert-danger m-3">មិនអាចផ្ទុកទំព័រ៖ ${e.message}</div>`;
     }
   }
 
-  function parseHash(){
-    const h = (location.hash || '#/').replace(/^#\//,'');
-    return h; // e.g. "settings/indicators"
+  function parseHash() {
+    return (location.hash || '#/').replace(/^#\//, '');
   }
 
-  window.addEventListener('hashchange', ()=>render(parseHash()));
+  window.addEventListener('hashchange', () => render(parseHash()));
   render(parseHash());
 
-  // ====== View inits ======
-  async function initIndicators(){
-    // Scripts Gull/DataTables មានរួចក្នុង index → ស្រាប់
-    const { gasList } = await import(`${ROOT}assets/js/app.menu.js`);
+  // ---------- View init: Indicators ----------
+  async function initIndicators() {
     const tableEl = document.querySelector('#tblIndicators');
     if (!tableEl) return;
 
-    // fill departments in modal when opened
+    // Fill departments
     const depSel = document.getElementById('department_id');
     if (depSel) {
       const depts = await gasList('departments');
-      depSel.innerHTML = `<option value="">-- ជ្រើស --</option>` + 
-        depts.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+      depSel.innerHTML = `<option value="">-- ជ្រើស --</option>` +
+        depts.map(d => `<option value="${d.department_id}">${d.department_name}</option>`).join('');
     }
 
-    // build table
-    const indicators = await gasList('indicators');
-    const depts = await gasList('departments');
-    const deptMap = Object.fromEntries(depts.map(d=>[d.department_id,d.department_name]));
-    const rows = indicators.map(ind=>[
+    // Load table rows
+    const [indicators, depts] = await Promise.all([
+      gasList('indicators'),
+      gasList('departments')
+    ]);
+    const deptMap = Object.fromEntries(depts.map(d => [d.department_id, d.department_name]));
+    const rows = indicators.map(ind => [
       ind.indicator_id,
       ind.indicator_name,
-      ind.indicator_type||'',
-      deptMap[ind.department_id]||'',
+      ind.indicator_type || '',
+      deptMap[ind.department_id] || '',
       `<button class="btn btn-sm btn-warning btnEdit">កែ</button>
        <button class="btn btn-sm btn-danger btnDel">លុប</button>`
     ]);
 
-    // init DataTable
+    // Init DataTable
     const tbl = $(tableEl).DataTable();
     tbl.clear(); tbl.rows.add(rows).draw();
 
-    // wire buttons (demo)
-    $('#btnAdd').on('click',()=> $('#mdlIndicator').modal('show'));
-    $('#tblIndicators').on('click','.btnEdit',function(){
+    // Wire actions (demo)
+    $('#btnAdd').on('click', () => $('#mdlIndicator').modal('show'));
+    $('#tblIndicators').on('click', '.btnEdit', function () {
       const data = tbl.row($(this).closest('tr')).data();
       $('#indicator_id').val(data[0]);
       $('#indicator_name').val(data[1]);
@@ -346,8 +343,10 @@
 
 
 
+
 </body>
 </html>
+
 
 
 
