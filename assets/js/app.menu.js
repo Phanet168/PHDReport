@@ -3,15 +3,16 @@ import { GAS_BASE } from './config.js';
 import { getAuth, isSuper } from './app.auth.js';
 
 /* ------------------ Shared fetch helper (list) ------------------ */
-async function gasList(route, params = {}) {
+/** Fetch rows from GAS route with optional params (returns []) */
+export async function gasList(route, params = {}) {
   const u = new URL(GAS_BASE);
-  u.searchParams.set('api','1');
+  u.searchParams.set('api', '1');
   u.searchParams.set('route', route);
-  u.searchParams.set('op','list');
-  Object.entries(params).forEach(([k,v])=>{
-    if(v!==undefined && v!==null && v!=='') u.searchParams.set(k, v);
+  u.searchParams.set('op', 'list');
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, v);
   });
-  const r = await fetch(u, { cache:'no-store' });
+  const r = await fetch(u, { cache: 'no-store' });
   const txt = await r.text();
   try {
     const j = JSON.parse(txt);
@@ -24,7 +25,7 @@ async function gasList(route, params = {}) {
 }
 
 /* ------------------ Role helpers ------------------ */
-function isDataEntry(auth) {
+export function isDataEntry(auth) {
   const role = String(auth?.role || '').toLowerCase();
   if (role === 'dataentry' || role === 'data_entry') return true;
   if (Array.isArray(auth?.roles)) {
@@ -34,7 +35,7 @@ function isDataEntry(auth) {
 }
 
 /* ------------------ Departments/Units menu ------------------ */
-export async function buildDeptMenu(targetUlId='deptMenu') {
+export async function buildDeptMenu(targetUlId = 'deptMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
 
@@ -51,20 +52,19 @@ export async function buildDeptMenu(targetUlId='deptMenu') {
       return;
     }
 
-    // ⚡ ទាញ units ជាមួយ Promise.all ជៀស N+1 await
-    const unitJobs = depts.map(d =>
+    // Fetch units in parallel
+    const jobs = depts.map(d =>
       gasList('units', { department_id: d.department_id })
         .then(rows => ({ dept: d, units: rows || [] }))
         .catch(() => ({ dept: d, units: [] }))
     );
-    const results = await Promise.all(unitJobs);
+    const results = await Promise.all(jobs);
 
     const parts = [];
     for (const { dept: d, units } of results) {
       parts.push(`
         <li class="nav-item">
-          <a href="#">
-            <i class="nav-icon i-Building"></i>
+          <a href="#"><i class="nav-icon i-Building"></i>
             <span class="item-name">${d.department_name}</span>
           </a>
         </li>
@@ -92,7 +92,7 @@ export async function buildDeptMenu(targetUlId='deptMenu') {
 }
 
 /* ------------------ Settings menu by role ------------------ */
-export async function buildSettingsMenu(targetUlId='settingsMenu', basePath='pages/settings') {
+export async function buildSettingsMenu(targetUlId = 'settingsMenu', basePath = 'pages/settings') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
 
@@ -103,15 +103,14 @@ export async function buildSettingsMenu(targetUlId='settingsMenu', basePath='pag
     </li>`;
 
   const auth = getAuth();
-  // ⬇️ បន្ថែមផ្នែកនេះខាងក្រោម const auth = getAuth();
-const showSettingsTop = isSuper(auth) || isDataEntry(auth);
-const topSettingsItem = document.querySelector('li.nav-item[data-item="settings"]');
-if (topSettingsItem) {
-  // បើកឬបិទ menu ខ្ពស់
-  topSettingsItem.style.display = showSettingsTop ? '' : 'none';
-  // បំបាត់ class ដែលអាចលាក់ដោយ CSS
-  topSettingsItem.classList.remove('menu-super-only');
-}
+
+  // ensure top-level Settings visible for super & dataentry
+  const showSettingsTop = isSuper(auth) || isDataEntry(auth);
+  const topSettingsItem = document.querySelector('li.nav-item[data-item="settings"]');
+  if (topSettingsItem) {
+    topSettingsItem.style.display = showSettingsTop ? '' : 'none';
+    topSettingsItem.classList.remove('menu-super-only');
+  }
 
   try {
     const itemsAll = [
@@ -122,14 +121,9 @@ if (topSettingsItem) {
     ];
 
     let visible;
-    if (isSuper(auth)) {
-      visible = itemsAll;
-    } else if (isDataEntry(auth)) {
-      visible = itemsAll.filter(x => x.key === 'indicators');
-    } else {
-      // default: អនុញ្ញាតតែ Indicators (អាចប្ដូរ later)
-      visible = itemsAll.filter(x => x.key === 'indicators');
-    }
+    if (isSuper(auth)) visible = itemsAll;
+    else if (isDataEntry(auth)) visible = itemsAll.filter(x => x.key === 'indicators');
+    else visible = itemsAll.filter(x => x.key === 'indicators');
 
     if (!visible.length) {
       box.innerHTML = `<li class="nav-item"><a href="#"><span class="item-name text-muted">គ្មានសិទ្ធិគ្រប់គ្រង</span></a></li>`;
@@ -137,9 +131,7 @@ if (topSettingsItem) {
     }
 
     const html = [
-      `<li class="nav-item mt-2 mb-1">
-         <span class="text-uppercase text-muted small ps-3">ការកំណត់ (Settings)</span>
-       </li>`
+      `<li class="nav-item mt-2 mb-1"><span class="text-uppercase text-muted small ps-3">ការកំណត់ (Settings)</span></li>`
     ];
     for (const it of visible) {
       html.push(`
@@ -157,14 +149,6 @@ if (topSettingsItem) {
     box.innerHTML = `<li class="nav-item"><a href="#"><span class="item-name text-danger">បរាជ័យ៖ ${err.message}</span></a></li>`;
   }
 }
-export async function gasList(route, params = {}) {
-  const u = new URL(GAS_BASE);
-  u.searchParams.set('api','1');
-  u.searchParams.set('route', route);
-  u.searchParams.set('op','list');
-  ...
-}
-
 
 /* ------------------ One-call init (optional) ------------------ */
 export async function initMenus() {
@@ -173,5 +157,3 @@ export async function initMenus() {
     buildSettingsMenu('settingsMenu')
   ]);
 }
-
-
