@@ -230,7 +230,20 @@
   .g-stat .card .content p{margin-bottom:0}
   /* footer subtle */
   .app-footer .footer-bottom{background:#f2f4f8;border-radius:.75rem;padding:.75rem 1rem}
+  function setActiveByHash(h){
+  const top = h.startsWith('settings/') ? 'settings'
+           : h.startsWith('reports')    ? 'reports'
+           : h.startsWith('depts')      ? 'depts'
+           : 'dashboard';
+  document.querySelectorAll('.navigation-left .nav-item').forEach(li=>{
+    li.classList.toggle('active', li.getAttribute('data-item')===top);
+  });
+}
+window.addEventListener('hashchange', ()=>setActiveByHash(parseHash()));
+setActiveByHash(parseHash());
+
   </script>
 </body>
 </html>
+
 
