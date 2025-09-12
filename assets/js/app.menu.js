@@ -3,25 +3,50 @@ import { GAS_BASE } from './config.js';
 import { getAuth, isSuper } from './app.auth.js';
 
 /* ------------------ Shared fetch helper ------------------ */
-export async function gasList(route, params = {}) {
+import { GAS_BASE } from './config.js';
+import { getAuth } from './app.auth.js';
+
+/* Save (Add/Update) via op=upsert */
+export async function gasSave(route, data) {
   const u = new URL(GAS_BASE);
   u.searchParams.set('api', '1');
   u.searchParams.set('route', route);
-  u.searchParams.set('op', 'list');
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, v);
-  });
+  u.searchParams.set('op', 'upsert');
 
-  const r = await fetch(u, { cache: 'no-store' });
+  // ផ្ញើ token ទៅ server ដើម្បី backend អាចកំណត់សិទ្ធិ
+  const auth = getAuth();
+  const payload = { ...data, token: auth?.token || '' };
+
+  const r = await fetch(u, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }, // ងាយស្រួល debug
+    body: JSON.stringify(payload)
+  });
   const txt = await r.text();
-  try {
-    const j = JSON.parse(txt);
-    if (j.error) throw new Error(j.error);
-    return Array.isArray(j.rows) ? j.rows : (Array.isArray(j) ? j : []);
-  } catch (e) {
-    console.error('gasList parse error:', e, 'raw:', txt);
-    return [];
-  }
+  const j = JSON.parse(txt || '{}');
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+
+/* Delete via op=delete — ត្រូវបញ្ជាក់ idField ត្រឹមត្រូវ */
+export async function gasDelete(route, idField, id) {
+  const u = new URL(GAS_BASE);
+  u.searchParams.set('api', '1');
+  u.searchParams.set('route', route);
+  u.searchParams.set('op', 'delete');
+
+  // id field តាមតារាង (ឧ. indicator_id)
+  u.searchParams.set(idField, id);
+
+  // ផ្ញើ token
+  const auth = getAuth();
+  if (auth?.token) u.searchParams.set('token', auth.token);
+
+  const r = await fetch(u);
+  const txt = await r.text();
+  const j = JSON.parse(txt || '{}');
+  if (j.error) throw new Error(j.error);
+  return j;
 }
 
 /* ------------------ Save (Add/Update) ------------------ */
@@ -195,3 +220,4 @@ export async function buildSettingsMenu(targetUlId = 'settingsMenu') {
     </li>
   `).join('');
 }
+
