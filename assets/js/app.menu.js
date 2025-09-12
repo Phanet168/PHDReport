@@ -1,7 +1,7 @@
 // assets/js/app.menu.js
 import { GAS_BASE } from './config.js';
 import { getAuth, isSuper } from './app.auth.js';
-import { getAuth } from './app.auth.js';
+//import { getAuth } from './app.auth.js';
 
 /* Save (Add/Update) via op=upsert */
 export async function gasSave(route, data) {
@@ -217,6 +217,7 @@ export async function buildSettingsMenu(targetUlId = 'settingsMenu') {
     </li>
   `).join('');
 }
+
 
 
 
