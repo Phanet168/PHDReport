@@ -2,17 +2,16 @@
 import { GAS_BASE } from './config.js';
 import { getAuth, isSuper } from './app.auth.js';
 
-/* ------------------ Shared fetch helper (list) ------------------ */
-/** Fetch rows from GAS route with optional params (returns []) */
+/* ---------- Fetch list helper (EXPORT) ---------- */
 export async function gasList(route, params = {}) {
   const u = new URL(GAS_BASE);
-  u.searchParams.set('api', '1');
+  u.searchParams.set('api','1');
   u.searchParams.set('route', route);
-  u.searchParams.set('op', 'list');
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, v);
+  u.searchParams.set('op','list');
+  Object.entries(params).forEach(([k,v])=>{
+    if (v!==undefined && v!==null && v!=='') u.searchParams.set(k, v);
   });
-  const r = await fetch(u, { cache: 'no-store' });
+  const r = await fetch(u, { cache:'no-store' });
   const txt = await r.text();
   try {
     const j = JSON.parse(txt);
@@ -24,21 +23,20 @@ export async function gasList(route, params = {}) {
   }
 }
 
-/* ------------------ Role helpers ------------------ */
-export function isDataEntry(auth) {
+/* ---------- Role helper ---------- */
+function isDataEntry(auth) {
   const role = String(auth?.role || '').toLowerCase();
-  if (role === 'dataentry' || role === 'data_entry') return true;
+  if (role==='dataentry' || role==='data_entry') return true;
   if (Array.isArray(auth?.roles)) {
-    return auth.roles.map(r => String(r).toLowerCase()).includes('dataentry');
+    return auth.roles.map(r=>String(r).toLowerCase()).includes('dataentry');
   }
   return false;
 }
 
-/* ------------------ Departments/Units menu ------------------ */
-export async function buildDeptMenu(targetUlId = 'deptMenu') {
+/* ---------- Departments/Units submenu ---------- */
+export async function buildDeptMenu(targetUlId='deptMenu'){
   const box = document.getElementById(targetUlId);
   if (!box) return;
-
   box.innerHTML = `<li class="nav-item"><a href="#"><span class="item-name text-muted">កំពុងទាញទិន្នន័យ...</span></a></li>`;
 
   const auth = getAuth();
@@ -48,36 +46,33 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
       depts = depts.filter(d => String(d.department_id) === String(auth.department_id));
     }
     if (!depts.length) {
-      box.innerHTML = `<li class="nav-item"><a href="#"><span class="item-name text-muted">គ្មានទិន្នន័យ</span></a></li>`;
+      box.innerHTML = `<li class="nav-item"><span class="item-name text-muted">គ្មានទិន្នន័យ</span></li>`;
       return;
     }
 
-    // Fetch units in parallel
-    const jobs = depts.map(d =>
+    // load units in parallel
+    const unitJobs = depts.map(d =>
       gasList('units', { department_id: d.department_id })
-        .then(rows => ({ dept: d, units: rows || [] }))
-        .catch(() => ({ dept: d, units: [] }))
+        .then(rows => ({ dept: d, units: rows||[] }))
+        .catch(()=>({ dept: d, units: [] }))
     );
-    const results = await Promise.all(jobs);
+    const results = await Promise.all(unitJobs);
 
     const parts = [];
-    for (const { dept: d, units } of results) {
+    for (const {dept:d, units} of results) {
       parts.push(`
         <li class="nav-item">
-          <a href="#"><i class="nav-icon i-Building"></i>
-            <span class="item-name">${d.department_name}</span>
-          </a>
+          <a href="#"><i class="nav-icon i-Building"></i><span class="item-name">${d.department_name}</span></a>
         </li>
       `);
       if (!units.length) {
-        parts.push(`<li class="nav-item"><a href="#"><span class="item-name text-muted ps-4">— គ្មានផ្នែក</span></a></li>`);
+        parts.push(`<li class="nav-item"><span class="item-name text-muted ps-4">— គ្មានផ្នែក</span></li>`);
       } else {
         for (const u of units) {
           parts.push(`
             <li class="nav-item">
               <a href="pages/departments/${d.department_id}/units/${u.unit_id}/index.html">
-                <i class="nav-icon i-Right"></i>
-                <span class="item-name ps-3">${u.unit_name}</span>
+                <i class="nav-icon i-Right"></i><span class="item-name ps-3">${u.unit_name}</span>
               </a>
             </li>
           `);
@@ -87,58 +82,36 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
     box.innerHTML = parts.join('');
   } catch (err) {
     console.error('buildDeptMenu failed:', err);
-    box.innerHTML = `<li class="nav-item"><a href="#"><span class="item-name text-danger">បរាជ័យ៖ ${err.message}</span></a></li>`;
+    box.innerHTML = `<li class="nav-item"><span class="item-name text-danger">បរាជ័យ៖ ${err.message}</span></li>`;
   }
 }
 
-/* ------------------ Settings menu by role ------------------ */
-export async function buildSettingsMenu(targetUlId='settingsMenu') {
+/* ---------- Settings submenu (role-aware, HASH routes) ---------- */
+export async function buildSettingsMenu(targetUlId='settingsMenu'){
   const box = document.getElementById(targetUlId);
   if (!box) return;
 
-  box.innerHTML = `<li class="nav-item">
-    <a href="#"><i class="nav-icon i-Gear"></i>
-    <span class="item-name text-muted">កំពុងត្រៀម...</span></a>
-  </li>`;
-
   const auth = getAuth();
-  try {
-    const itemsAll = [
-      { key: 'indicators',  label: 'សូចនាករ',  icon: 'i-Bar-Chart', href: '#/settings/indicators' },
-      { key: 'departments', label: 'នាយកដ្ឋាន', icon: 'i-Building',  href: '#/settings/departments' },
-      { key: 'units',       label: 'ផ្នែក',     icon: 'i-Right',     href: '#/settings/units' },
-      { key: 'periods',     label: 'រយៈពេល',   icon: 'i-Calendar',  href: '#/settings/periods' },
-    ];
+  const itemsAll = [
+    { key:'indicators',  label:'សូចនាករ',  icon:'i-Bar-Chart', href:'#/settings/indicators' },
+    { key:'departments', label:'នាយកដ្ឋាន', icon:'i-Building',  href:'#/settings/departments' },
+    { key:'units',       label:'ផ្នែក',     icon:'i-Right',     href:'#/settings/units' },
+    { key:'periods',     label:'រយៈពេល',   icon:'i-Calendar',  href:'#/settings/periods' },
+  ];
 
-    let visible;
-    if (isSuper(auth)) visible = itemsAll;
-    else if (isDataEntry(auth)) visible = itemsAll.filter(x => x.key === 'indicators');
-    else visible = itemsAll.filter(x => x.key === 'indicators');
+  let visible;
+  if (isSuper(auth))       visible = itemsAll;
+  else if (isDataEntry(auth)) visible = itemsAll.filter(x=>x.key==='indicators');
+  else                     visible = itemsAll.filter(x=>x.key==='indicators');
 
-    const html = [`<li class="nav-item mt-2 mb-1"><span class="text-uppercase text-muted small ps-3">ការកំណត់ (Settings)</span></li>`];
-    visible.forEach(it => {
-      html.push(`
-        <li class="nav-item">
-          <a href="${it.href}">
-            <i class="nav-icon ${it.icon}"></i>
-            <span class="item-name">${it.label}</span>
-          </a>
-        </li>
-      `);
-    });
-    box.innerHTML = html.join('');
-  } catch (err) {
-    console.error('buildSettingsMenu failed:', err);
-    box.innerHTML = `<li class="nav-item"><a href="#"><span class="item-name text-danger">បរាជ័យ៖ ${err.message}</span></a></li>`;
+  if (!visible.length) {
+    box.innerHTML = `<li class="nav-item"><span class="item-name text-muted">គ្មានសិទ្ធិគ្រប់គ្រង</span></li>`;
+    return;
   }
+
+  box.innerHTML = visible.map(it => `
+    <li class="nav-item">
+      <a href="${it.href}"><i class="nav-icon ${it.icon}"></i><span class="item-name">${it.label}</span></a>
+    </li>
+  `).join('');
 }
-
-/* ------------------ One-call init (optional) ------------------ */
-export async function initMenus() {
-  await Promise.allSettled([
-    buildDeptMenu('deptMenu'),
-    buildSettingsMenu('settingsMenu')
-  ]);
-}
-
-
