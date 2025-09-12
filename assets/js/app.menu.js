@@ -2,15 +2,16 @@
 import { GAS_BASE } from './config.js';
 import { getAuth, isSuper } from './app.auth.js';
 
-/* ---------- Fetch list helper (EXPORT) ---------- */
+/* ------------------ Shared fetch helper ------------------ */
 export async function gasList(route, params = {}) {
   const u = new URL(GAS_BASE);
   u.searchParams.set('api','1');
   u.searchParams.set('route', route);
   u.searchParams.set('op','list');
   Object.entries(params).forEach(([k,v])=>{
-    if (v!==undefined && v!==null && v!=='') u.searchParams.set(k, v);
+    if(v!==undefined && v!==null && v!=='') u.searchParams.set(k, v);
   });
+
   const r = await fetch(u, { cache:'no-store' });
   const txt = await r.text();
   try {
@@ -19,11 +20,11 @@ export async function gasList(route, params = {}) {
     return Array.isArray(j.rows) ? j.rows : (Array.isArray(j) ? j : []);
   } catch (e) {
     console.error('gasList parse error:', e, 'raw:', txt);
-    throw e;
+    return [];
   }
 }
 
-/* ---------- Role helper ---------- */
+/* ------------------ Role helpers ------------------ */
 function isDataEntry(auth) {
   const role = String(auth?.role || '').toLowerCase();
   if (role==='dataentry' || role==='data_entry') return true;
@@ -33,65 +34,60 @@ function isDataEntry(auth) {
   return false;
 }
 
-/* ---------- Departments/Units submenu ---------- */
-export async function buildDeptMenu(targetUlId='deptMenu'){
+/* ------------------ Departments/Units submenu ------------------ */
+export async function buildDeptMenu(targetUlId='deptMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
-  box.innerHTML = `<li class="nav-item"><a href="#"><span class="item-name text-muted">កំពុងទាញទិន្នន័យ...</span></a></li>`;
 
+  box.innerHTML = `<li><span class="item-name text-muted">កំពុងទាញទិន្នន័យ...</span></li>`;
   const auth = getAuth();
+
   try {
     let depts = await gasList('departments');
+    // Super អាចឃើញទាំងអស់
     if (!isSuper(auth) && auth?.department_id) {
-      depts = depts.filter(d => String(d.department_id) === String(auth.department_id));
+      depts = depts.filter(d => String(d.department_id)===String(auth.department_id));
     }
+
     if (!depts.length) {
-      box.innerHTML = `<li class="nav-item"><span class="item-name text-muted">គ្មានទិន្នន័យ</span></li>`;
+      box.innerHTML = `<li><span class="item-name text-muted">គ្មានទិន្នន័យ</span></li>`;
       return;
     }
 
-    // load units in parallel
-    const unitJobs = depts.map(d =>
-      gasList('units', { department_id: d.department_id })
-        .then(rows => ({ dept: d, units: rows||[] }))
-        .catch(()=>({ dept: d, units: [] }))
+    const jobs = depts.map(d =>
+      gasList('units',{department_id:d.department_id})
+        .then(rows=>({dept:d,units:rows||[]}))
+        .catch(()=>({dept:d,units:[]}))
     );
-    const results = await Promise.all(unitJobs);
+    const results = await Promise.all(jobs);
 
-    const parts = [];
-    for (const {dept:d, units} of results) {
-      parts.push(`
+    box.innerHTML = results.map(({dept,units})=>{
+      let html = `
         <li class="nav-item">
-          <a href="#"><i class="nav-icon i-Building"></i><span class="item-name">${d.department_name}</span></a>
-        </li>
-      `);
-      if (!units.length) {
-        parts.push(`<li class="nav-item"><span class="item-name text-muted ps-4">— គ្មានផ្នែក</span></li>`);
-      } else {
-        for (const u of units) {
-          parts.push(`
-            <li class="nav-item">
-              <a href="pages/departments/${d.department_id}/units/${u.unit_id}/index.html">
-                <i class="nav-icon i-Right"></i><span class="item-name ps-3">${u.unit_name}</span>
-              </a>
-            </li>
-          `);
-        }
+          <a href="#"><i class="nav-icon i-Building"></i><span class="item-name">${dept.department_name}</span></a>
+        </li>`;
+      if (units.length) {
+        html += units.map(u=>`
+          <li class="nav-item ps-3">
+            <a href="pages/departments/${dept.department_id}/units/${u.unit_id}/index.html">
+              <i class="nav-icon i-Right"></i><span class="item-name">${u.unit_name}</span>
+            </a>
+          </li>`).join('');
       }
-    }
-    box.innerHTML = parts.join('');
+      return html;
+    }).join('');
   } catch (err) {
-    console.error('buildDeptMenu failed:', err);
-    box.innerHTML = `<li class="nav-item"><span class="item-name text-danger">បរាជ័យ៖ ${err.message}</span></li>`;
+    box.innerHTML = `<li><span class="item-name text-danger">បរាជ័យ: ${err.message}</span></li>`;
   }
 }
 
-/* ---------- Settings submenu (role-aware, HASH routes) ---------- */
-export async function buildSettingsMenu(targetUlId='settingsMenu'){
+/* ------------------ Settings submenu (role-aware) ------------------ */
+export async function buildSettingsMenu(targetUlId='settingsMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
 
   const auth = getAuth();
+
   const itemsAll = [
     { key:'indicators',  label:'សូចនាករ',  icon:'i-Bar-Chart', href:'#/settings/indicators' },
     { key:'departments', label:'នាយកដ្ឋាន', icon:'i-Building',  href:'#/settings/departments' },
@@ -99,17 +95,17 @@ export async function buildSettingsMenu(targetUlId='settingsMenu'){
     { key:'periods',     label:'រយៈពេល',   icon:'i-Calendar',  href:'#/settings/periods' },
   ];
 
-  let visible;
-  if (isSuper(auth))       visible = itemsAll;
+  let visible = [];
+  if (isSuper(auth)) visible = itemsAll;
   else if (isDataEntry(auth)) visible = itemsAll.filter(x=>x.key==='indicators');
-  else                     visible = itemsAll.filter(x=>x.key==='indicators');
+  else visible = itemsAll.filter(x=>x.key==='indicators');
 
   if (!visible.length) {
-    box.innerHTML = `<li class="nav-item"><span class="item-name text-muted">គ្មានសិទ្ធិគ្រប់គ្រង</span></li>`;
+    box.innerHTML = `<li><span class="item-name text-muted">គ្មានសិទ្ធិ</span></li>`;
     return;
   }
 
-  box.innerHTML = visible.map(it => `
+  box.innerHTML = visible.map(it=>`
     <li class="nav-item">
       <a href="${it.href}"><i class="nav-icon ${it.icon}"></i><span class="item-name">${it.label}</span></a>
     </li>
