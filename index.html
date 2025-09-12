@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-  <title>ផ្ទាំងគ្រប់គ្រង | PHD Report</title>
+  <title>PHD Report | Dashboard</title>
 
   <!-- Google Khmer Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet" />
@@ -12,135 +12,94 @@
   <!-- Gull CSS -->
   <link href="dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
   <link href="dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet" />
-  <!-- DataTables CSS -->
   <link href="dist-assets/css/plugins/datatables.min.css" rel="stylesheet" />
+
   <style>
-    /* ===== Khmer Font Defaults ===== */
     :root{
       --kh-font: "Noto Sans Khmer", Nunito, Arial, Helvetica, sans-serif;
       --kh-head: "Khmer Moul","Noto Sans Khmer", sans-serif;
     }
-    html, body{
-      font-family: var(--kh-font) !important;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      text-rendering: optimizeLegibility;
-    }
-    .brand-kh, .h-kh, .kh-head{
-      font-family: var(--kh-head) !important;
-      letter-spacing: .2px;
-    }
-    /* Sidebar + submenu */
-    .navigation-left .nav-text,
-    .navigation-left .nav-item-hold,
-    .navigation-left a,
-    .sidebar-left-secondary,
-    .sidebar-left-secondary .childNav .item-name,
-    .sidebar-left-secondary .childNav a,
-    .submenu-area header h6,
-    .submenu-area header p{
-      font-family: var(--kh-font) !important;
-      letter-spacing: 0;
-    }
-    .btn, .btn *, .badge, .dropdown-menu, .dropdown-item,
-    .form-control, .form-select, .custom-select, .search-input,
-    input, textarea, select, label, small, code, kbd, table, th, td{
-      font-family: var(--kh-font) !important;
-    }
-    .breadcrumb h1, .breadcrumb ul, .card-title, .app-footer, .customizer{
-      font-family: var(--kh-font) !important;
-    }
-    .submenu-area header .logo .brand-kh{ font-family: var(--kh-head) !important; }
-    i.nav-icon, i[class^="i-"], i[class*=" i-"]{ font-family: inherit; }
-    .search-bar input::placeholder{ opacity:.8; }
-    /* utility classes for role visibility */
+    body, html { font-family: var(--kh-font) !important; }
+    .kh-head { font-family: var(--kh-head) !important; }
     .menu-super-only { display: inherit; }
-    .menu-input { display: inherit; }
   </style>
 </head>
 
 <body class="text-start">
-  <div class="app-admin-wrap layout-sidebar-compact sidebar-dark-purple sidenav-open clearfix">
+  <div class="app-admin-wrap layout-sidebar-large sidebar-dark-purple sidenav-open clearfix">
     <div class="side-content-wrap">
-      <!-- Primary left -->
-      <div class="sidebar-left open rtl-ps-none" data-perfect-scrollbar data-suppress-scroll-x="true">
+      <!-- Primary sidebar -->
+      <div class="sidebar-left open rtl-ps-none" data-perfect-scrollbar>
         <ul class="navigation-left">
           <li class="nav-item" data-item="dashboard">
-            <a class="nav-item-hold" href="#"><i class="nav-icon i-Bar-Chart"></i><span class="nav-text">ផ្ទាំងគ្រប់គ្រង</span></a><div class="triangle"></div>
+            <a class="nav-item-hold" href="#/">
+              <i class="nav-icon i-Bar-Chart"></i><span class="nav-text">ផ្ទាំងគ្រប់គ្រង</span>
+            </a>
+            <div class="triangle"></div>
           </li>
 
-          <!-- Dynamic Departments -->
-          <li class="nav-item active" data-item="depts">
+          <li class="nav-item" data-item="depts">
             <a class="nav-item-hold" href="#"><i class="nav-icon i-Library"></i><span class="nav-text">ការិយាល័យ</span></a>
             <div class="triangle"></div>
           </li>
 
           <li class="nav-item" data-item="reports">
-            <a class="nav-item-hold" href="#"><i class="nav-icon i-File-Clipboard-File--Text"></i><span class="nav-text">របាយការណ៍</span></a><div class="triangle"></div>
+            <a class="nav-item-hold" href="#"><i class="nav-icon i-File-Clipboard-File--Text"></i><span class="nav-text">របាយការណ៍</span></a>
+            <div class="triangle"></div>
           </li>
 
-          <!-- Users (example super-only section) -->
           <li class="nav-item menu-super-only" data-item="users">
-            <a class="nav-item-hold" href="#"><i class="nav-icon i-Administrator"></i><span class="nav-text">អ្នកប្រើប្រាស់</span></a><div class="triangle"></div>
+            <a class="nav-item-hold" href="#"><i class="nav-icon i-Administrator"></i><span class="nav-text">អ្នកប្រើប្រាស់</span></a>
+            <div class="triangle"></div>
           </li>
 
-          <!-- Settings (often super-only) -->
           <li class="nav-item menu-super-only" data-item="settings">
-            <a class="nav-item-hold" href="#"><i class="nav-icon i-Gear-2"></i><span class="nav-text">កំណត់ផ្សេងៗ</span></a><div class="triangle"></div>
+            <a class="nav-item-hold" href="#"><i class="nav-icon i-Gear-2"></i><span class="nav-text">កំណត់</span></a>
+            <div class="triangle"></div>
           </li>
         </ul>
       </div>
 
-      <!-- Secondary left (submenus) -->
-      <div class="sidebar-left-secondary rtl-ps-none" data-perfect-scrollbar data-suppress-scroll-x="true">
+      <!-- Secondary sidebar -->
+      <div class="sidebar-left-secondary rtl-ps-none" data-perfect-scrollbar>
         <i class="sidebar-close i-Close"></i>
         <header class="px-3 pt-3">
           <div class="logo d-flex align-items-center gap-2">
             <img src="dist-assets/images/logo-text.png" alt="" />
-            <span class="brand-kh">PHD Report</span>
+            <span class="kh-head">PHD Report</span>
           </div>
         </header>
 
-        <!-- Dashboards submenu -->
+        <!-- Dashboard submenu -->
         <div class="submenu-area" data-parent="dashboard">
-          <header><h6>Dashboards</h6><p>មើលស្ថានភាពសរុប</p></header>
+          <header><h6>Dashboard</h6></header>
           <ul class="childNav">
-            <li class="nav-item"><a href="#"><i class="nav-icon i-Clock-3"></i><span class="item-name">Version 1</span></a></li>
+            <li class="nav-item"><a href="#/"><i class="nav-icon i-Clock-3"></i><span class="item-name">ទិដ្ឋភាព</span></a></li>
           </ul>
         </div>
 
-        <!-- Departments submenu (built by JS) -->
+        <!-- Departments submenu -->
         <div class="submenu-area" data-parent="depts">
-          <header><h6>ការិយាល័យ</h6><p>ជ្រើសការិយាល័យ និងផ្នែក</p></header>
-          <ul id="deptMenu" class="childNav">
-            <li class="nav-item"><a href="#"><span class="item-name text-muted">កំពុងទាញទិន្នន័យ...</span></a></li>
-          </ul>
+          <header><h6>ការិយាល័យ</h6></header>
+          <ul id="deptMenu" class="childNav"><li><span class="text-muted">កំពុងទាញ...</span></li></ul>
         </div>
 
-        <!-- Reports -->
+        <!-- Reports submenu -->
         <div class="submenu-area" data-parent="reports">
-          <header><h6>របាយការណ៍</h6><p>សង្ខេប និងនាំចេញ</p></header>
-          <ul class="childNav">
-            <li class="nav-item"><a href="#"><i class="nav-icon i-Bar-Chart"></i><span class="item-name">សង្ខេបឆ្នាំ</span></a></li>
-          </ul>
+          <header><h6>របាយការណ៍</h6></header>
+          <ul class="childNav"><li><a href="#"><i class="nav-icon i-Bar-Chart"></i><span class="item-name">សង្ខេបឆ្នាំ</span></a></li></ul>
         </div>
 
-        <!-- Users -->
+        <!-- Users submenu -->
         <div class="submenu-area menu-super-only" data-parent="users">
-          <header><h6>អ្នកប្រើប្រាស់</h6><p>គ្រប់គ្រងសិទ្ធិ</p></header>
-          <ul class="childNav">
-            <li class="nav-item"><a href="#"><i class="nav-icon i-Male"></i><span class="item-name">បញ្ជីអ្នកប្រើ</span></a></li>
-          </ul>
+          <header><h6>អ្នកប្រើប្រាស់</h6></header>
+          <ul class="childNav"><li><a href="#"><i class="nav-icon i-Male"></i><span class="item-name">បញ្ជី</span></a></li></ul>
         </div>
 
-        <!-- Settings -->
+        <!-- Settings submenu -->
         <div class="submenu-area" data-parent="settings">
-          <header><h6>កំណត់</h6><p>ទិន្នន័យមេ</p></header>
-          <ul id="settingsMenu" class="childNav">
-            <li class="nav-item"><a href="#/mgmt/departments"><i class="nav-icon i-Building"></i><span class="item-name">គ្រប់គ្រងការិយាល័យ</span></a></li>
-            <li class="nav-item"><a href="#/mgmt/units"><i class="nav-icon i-Library"></i><span class="item-name">គ្រប់គ្រងផ្នែក</span></a></li>
-            <li class="nav-item"><a href="#/mgmt/periods"><i class="nav-icon i-Calendar-4"></i><span class="item-name">រយៈពេល</span></a></li>
-          </ul>
+          <header><h6>កំណត់</h6></header>
+          <ul id="settingsMenu" class="childNav"></ul>
         </div>
       </div>
     </div>
@@ -150,219 +109,117 @@
       <div class="main-header">
         <div class="logo"><img src="dist-assets/images/logo.png" alt="" /></div>
         <div class="menu-toggle"><div></div><div></div><div></div></div>
-        <div class="d-flex align-items-center">
-          <div class="search-bar"><input id="q" type="text" placeholder="ស្វែងរក..." /><i class="search-icon text-muted i-Magnifi-Glass1"></i></div>
-        </div>
         <div style="margin:auto"></div>
         <div class="header-part-right">
           <a id="btnLogin" class="btn btn-outline-primary btn-sm" href="login.html">ចូលប្រើប្រាស់</a>
         </div>
       </div>
 
-      <!-- ===== Body ===== -->
-      
+      <!-- Router outlet -->
       <div class="main-content">
-        <div class="breadcrumb">
-          <h1 class="me-2">Version 1</h1>
-          <ul><li><a href="#">Dashboard</a></li><li>Version 1</li></ul>
-        </div>
-        <div class="separator-breadcrumb border-top"></div>
+        <div id="route-outlet"></div>
+      </div>
 
-        <!-- sample Gull cards/charts (unchanged) -->
-        <div class="row">
-          <div class="col-lg-3 col-md-6 col-sm-6">
-            <div class="card card-icon-bg card-icon-bg-primary o-hidden mb-4">
-              <div class="card-body text-center">
-                <i class="i-Add-User"></i>
-                <div class="content"><p class="text-muted mt-2 mb-0">New Leads</p><p class="text-primary text-24 line-height-1 mb-2">205</p></div>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-3 col-md-6 col-sm-6">
-            <div class="card card-icon-bg card-icon-bg-primary o-hidden mb-4">
-              <div class="card-body text-center">
-                <i class="i-Financial"></i>
-                <div class="content"><p class="text-muted mt-2 mb-0">Sales</p><p class="text-primary text-24 line-height-1 mb-2">$4021</p></div>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-3 col-md-6 col-sm-6">
-            <div class="card card-icon-bg card-icon-bg-primary o-hidden mb-4">
-              <div class="card-body text-center">
-                <i class="i-Checkout-Basket"></i>
-                <div class="content"><p class="text-muted mt-2 mb-0">Orders</p><p class="text-primary text-24 line-height-1 mb-2">80</p></div>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-3 col-md-6 col-sm-6">
-            <div class="card card-icon-bg card-icon-bg-primary o-hidden mb-4">
-              <div class="card-body text-center">
-                <i class="i-Money-2"></i>
-                <div class="content"><p class="text-muted mt-2 mb-0">Expense</p><p class="text-primary text-24 line-height-1 mb-2">$1200</p></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-lg-8 col-md-12">
-            <div class="card mb-4"><div class="card-body"><div class="card-title">This Year Sales</div><div id="echartBar" style="height:300px"></div></div></div>
-          </div>
-          <div class="col-lg-4 col-sm-12">
-            <div class="card mb-4"><div class="card-body"><div class="card-title">Sales by Countries</div><div id="echartPie" style="height:300px"></div></div></div>
-          </div>
-        </div>
-
-        <!-- footer -->
-        <div class="flex-grow-1"></div>
-        <div class="app-footer">
-          <div class="footer-bottom border-top pt-3 d-flex flex-column flex-sm-row align-items-center">
-            <span class="flex-grow-1"></span>
-            <div class="d-flex align-items-center">
-              <img class="logo" src="dist-assets/images/logo.png" alt="" />
-              <div><p class="m-0">&copy; PHD Report</p><p class="m-0">All rights reserved</p></div>
-            </div>
+      <!-- Footer -->
+      <div class="app-footer">
+        <div class="footer-bottom border-top pt-3 d-flex flex-column flex-sm-row align-items-center">
+          <span class="flex-grow-1"></span>
+          <div class="d-flex align-items-center">
+            <img class="logo" src="dist-assets/images/logo.png" alt="" />
+            <div><p class="m-0">&copy; PHD Report</p><p class="m-0">All rights reserved</p></div>
           </div>
         </div>
       </div>
-      <div id="route-outlet"></div>
-      <!-- /main-content -->
     </div>
   </div>
 
-  <!-- Search UI of Gull (optional) -->
-  <div class="search-ui">
-    <div class="search-header">
-      <img src="dist-assets/images/logo.png" alt="" class="logo" />
-      <button class="search-close btn btn-icon bg-transparent float-end mt-2"><i class="i-Close-Window text-22 text-muted"></i></button>
-    </div>
-    <input type="text" placeholder="Type here" class="search-input" autofocus />
-  </div>
-
-  <!-- Gull JS -->
+  <!-- Scripts -->
   <script src="dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
   <script src="dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
   <script src="dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
+  <script src="dist-assets/js/plugins/datatables.min.js"></script>
   <script src="dist-assets/js/scripts/script.min.js"></script>
   <script src="dist-assets/js/scripts/sidebar.compact.script.min.js"></script>
   <script src="dist-assets/js/scripts/customizer.script.min.js"></script>
   <script src="dist-assets/js/plugins/echarts.min.js"></script>
   <script src="dist-assets/js/scripts/echart.options.min.js"></script>
-  <script src="dist-assets/js/scripts/dashboard.v1.script.min.js"></script>
-  <script src="dist-assets/js/plugins/datatables.min.js"></script>
 
-  <!-- App: build dynamic Dept/Unit menu + login state (token-aware) -->
-<!-- App: login state + build Dept/Unit menu (token-aware) -->
-<script type="module">
-  import { ensureLoggedIn, getAuth, isSuper, applyLoginButton } from './assets/js/app.auth.js';
-  import { buildDeptMenu, buildSettingsMenu, gasList } from './assets/js/app.menu.js';
+  <!-- App Scripts -->
+  <script type="module">
+    import { ensureLoggedIn, applyLoginButton } from './assets/js/app.auth.js';
+    import { buildDeptMenu, buildSettingsMenu, gasList } from './assets/js/app.menu.js';
 
-  ensureLoggedIn('login.html');
-  if (document.getElementById('btnLogin')) applyLoginButton(document.getElementById('btnLogin'));
+    ensureLoggedIn('login.html');
+    if (document.getElementById('btnLogin')) applyLoginButton(document.getElementById('btnLogin'));
+    buildDeptMenu('deptMenu');
+    buildSettingsMenu('settingsMenu');
 
-  // build left menus (sidebar)
-  buildDeptMenu('deptMenu');
-  // build settings submenu with hash routes
-  // 👉 សូមធ្វើការកែ buildSettingsMenu ក្នុង app.menu.js ដូចខាងក្រោមនៅចំណុច #5
-  buildSettingsMenu('settingsMenu');
+    const outlet = document.getElementById('route-outlet');
+    const parts = location.pathname.split('/').filter(Boolean);
+    const ROOT = parts.length ? `/${parts[0]}/` : '/';
+    const viewUrl = p => ROOT + p;
 
-  // ---------- Simple hash router ----------
-  const outlet = document.getElementById('route-outlet');
+    const routes = {
+      '': { view: 'pages/home.html' },
+      'settings/indicators':  { view: 'pages/settings/indicators/index.html', init: initIndicators },
+      'settings/departments': { view: 'pages/settings/departments/index.html' },
+      'settings/units':       { view: 'pages/settings/units/index.html' },
+      'settings/periods':     { view: 'pages/settings/periods/index.html' },
+    };
 
-  // Helper: base path for GitHub Pages (support both root & subpath)
-  const parts = location.pathname.split('/').filter(Boolean);
-  const ROOT = parts.length ? `/${parts[0]}/` : '/';   // "/<repo>/" or "/"
-  const viewUrl = (path) => ROOT + path;
-
-const routes = {
-  '':                     { view: 'pages/home.html' },
-  'settings/indicators':  { view: 'pages/settings/indicators/index.html', init: initIndicators },
-  'settings/departments': { view: 'pages/settings/departments/index.html' },
-  'settings/units':       { view: 'pages/settings/units/index.html' },
-  'settings/periods':     { view: 'pages/settings/periods/index.html' },
-};
-
-
-  async function render(path) {
-    const conf = routes[path] || routes[''];
-    try {
-      const html = await (await fetch(viewUrl(conf.view), { cache: 'no-store' })).text();
-      outlet.innerHTML = html;
-      if (typeof conf.init === 'function') conf.init();
-    } catch (e) {
-      outlet.innerHTML = `<div class="alert alert-danger m-3">មិនអាចផ្ទុកទំព័រ៖ ${e.message}</div>`;
-    }
-  }
-
-  function parseHash() {
-    return (location.hash || '#/').replace(/^#\//, '');
-  }
-
-  window.addEventListener('hashchange', () => render(parseHash()));
-  render(parseHash());
-
-  // ---------- View init: Indicators ----------
-  async function initIndicators() {
-    const tableEl = document.querySelector('#tblIndicators');
-    if (!tableEl) return;
-
-    // Fill departments
-    const depSel = document.getElementById('department_id');
-    if (depSel) {
-      const depts = await gasList('departments');
-      depSel.innerHTML = `<option value="">-- ជ្រើស --</option>` +
-        depts.map(d => `<option value="${d.department_id}">${d.department_name}</option>`).join('');
+    async function render(path){
+      const conf = routes[path] || routes[''];
+      try{
+        const html = await (await fetch(viewUrl(conf.view), {cache:'no-store'})).text();
+        outlet.innerHTML = html;
+        if (typeof conf.init === 'function') conf.init();
+      }catch(e){
+        outlet.innerHTML = `<div class="alert alert-danger m-3">មិនអាចផ្ទុកទំព័រ៖ ${e.message}</div>`;
+      }
     }
 
-    // Load table rows
-    const [indicators, depts] = await Promise.all([
-      gasList('indicators'),
-      gasList('departments')
-    ]);
-    const deptMap = Object.fromEntries(depts.map(d => [d.department_id, d.department_name]));
-    const rows = indicators.map(ind => [
-      ind.indicator_id,
-      ind.indicator_name,
-      ind.indicator_type || '',
-      deptMap[ind.department_id] || '',
-      `<button class="btn btn-sm btn-warning btnEdit">កែ</button>
-       <button class="btn btn-sm btn-danger btnDel">លុប</button>`
-    ]);
+    const parseHash = () => (location.hash || '#/').replace(/^#\//,'');
+    window.addEventListener('hashchange', ()=>render(parseHash()));
+    render(parseHash());
 
-    // Init DataTable
-    const tbl = $(tableEl).DataTable();
-    tbl.clear(); tbl.rows.add(rows).draw();
+    // init for indicators view
+    async function initIndicators(){
+      const tableEl = document.querySelector('#tblIndicators');
+      if (!tableEl) return;
 
-    // Wire actions (demo)
-    $('#btnAdd').on('click', () => $('#mdlIndicator').modal('show'));
-    $('#tblIndicators').on('click', '.btnEdit', function () {
-      const data = tbl.row($(this).closest('tr')).data();
-      $('#indicator_id').val(data[0]);
-      $('#indicator_name').val(data[1]);
-      $('#indicator_type').val(data[2]);
-      $('#mdlIndicator').modal('show');
-    });
-  }
-</script>
+      const depSel = document.getElementById('department_id');
+      if (depSel) {
+        const depts = await gasList('departments');
+        depSel.innerHTML = `<option value="">-- ជ្រើស --</option>` + 
+          depts.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+      }
 
+      const [indicators, depts] = await Promise.all([gasList('indicators'), gasList('departments')]);
+      const deptMap = Object.fromEntries(depts.map(d=>[d.department_id,d.department_name]));
 
+      const tbl = $(tableEl).DataTable();
+      tbl.clear();
+      indicators.forEach(ind=>{
+        tbl.row.add([
+          ind.indicator_id,
+          ind.indicator_name,
+          ind.indicator_type||'',
+          deptMap[ind.department_id]||'',
+          `<button class="btn btn-sm btn-warning btnEdit">កែ</button>
+           <button class="btn btn-sm btn-danger btnDel">លុប</button>`
+        ]);
+      });
+      tbl.draw();
 
-
-
+      $('#btnAdd').on('click',()=> $('#mdlIndicator').modal('show'));
+      $('#tblIndicators').on('click','.btnEdit', function(){
+        const data = tbl.row($(this).closest('tr')).data();
+        $('#indicator_id').val(data[0]);
+        $('#indicator_name').val(data[1]);
+        $('#indicator_type').val(data[2]);
+        $('#mdlIndicator').modal('show');
+      });
+    }
+  </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
