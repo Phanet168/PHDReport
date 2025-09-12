@@ -6,166 +6,167 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
   <title>PHD Report | Dashboard</title>
 
-  <!-- Khmer Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet" />
-
+  <!-- Fonts Khmer -->
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet"/>
   <!-- Gull CSS -->
-  <link href="dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
-  <link href="dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet" />
-  <link href="dist-assets/css/plugins/datatables.min.css" rel="stylesheet" />
+  <link href="dist-assets/css/themes/lite-purple.min.css" rel="stylesheet"/>
+  <link href="dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet"/>
+  <link href="dist-assets/css/plugins/datatables.min.css" rel="stylesheet"/>
 
   <style>
     :root{ --kh-font:"Noto Sans Khmer",Nunito,Arial,Helvetica,sans-serif; --kh-head:"Khmer Moul","Noto Sans Khmer",sans-serif; }
-    html,body{ font-family:var(--kh-font)!important; }
-  .kh-head{ font-family:var(--kh-head)!important; }
-  .main-header{position:sticky;top:0;z-index:100}
-  .main-content{padding:16px}
-  .container-page{max-width:1200px;margin:0 auto;padding:8px}
-  .g-kpi .card{border:0;box-shadow:0 8px 20px rgba(0,0,0,.06)}
-  .g-kpi .card .content p{margin-bottom:0}
-  .card-title{font-weight:600}
-    /* layout polish */
-    .main-content .container-page{ max-width:1200px; margin:0 auto; padding:1rem; }
-    .breadcrumb{ padding-left:0; padding-right:0; margin-bottom:.75rem }
-    .separator-breadcrumb{ margin:.5rem 0 1rem }
-    .g-stat .card{ border:0; box-shadow:0 6px 18px rgba(0,0,0,.06) }
-    .g-stat .card .content p{ margin-bottom:0 }
-    .app-footer .footer-bottom{ background:#f2f4f8; border-radius:.75rem; padding:.75rem 1rem }
+    html,body{ font-family:var(--kh-font)!important }
+    .kh-head{ font-family:var(--kh-head)!important }
+    /* make header not overlap */
+    .main-header{ position:sticky; top:0; z-index:100 }
+    .main-content{ padding:16px }
+    .container-page{ max-width:1200px; margin:0 auto; padding:8px }
+    .g-kpi .card{ border:0; box-shadow:0 8px 20px rgba(0,0,0,.06) }
   </style>
 </head>
 
 <body class="text-start">
-  <div class="app-admin-wrap layout-sidebar-large sidebar-dark-purple sidenav-open clearfix">
-    <div class="side-content-wrap">
-      <!-- Primary sidebar -->
-      <div class="sidebar-left open rtl-ps-none" data-perfect-scrollbar>
-        <ul class="navigation-left">
-          <li class="nav-item" data-item="dashboard">
-            <a class="nav-item-hold" href="#/"><i class="nav-icon i-Bar-Chart"></i><span class="nav-text">ផ្ទាំងគ្រប់គ្រង</span></a><div class="triangle"></div>
-          </li>
-          <li class="nav-item" data-item="depts">
-            <a class="nav-item-hold" href="#"><i class="nav-icon i-Library"></i><span class="nav-text">ការិយាល័យ</span></a><div class="triangle"></div>
-          </li>
-          <li class="nav-item" data-item="reports">
-            <a class="nav-item-hold" href="#"><i class="nav-icon i-File-Clipboard-File--Text"></i><span class="nav-text">របាយការណ៍</span></a><div class="triangle"></div>
-          </li>
-          <li class="nav-item menu-super-only" data-item="users">
-            <a class="nav-item-hold" href="#"><i class="nav-icon i-Administrator"></i><span class="nav-text">អ្នកប្រើប្រាស់</span></a><div class="triangle"></div>
-          </li>
-          <li class="nav-item menu-super-only" data-item="settings">
-            <a class="nav-item-hold" href="#"><i class="nav-icon i-Gear-2"></i><span class="nav-text">កំណត់</span></a><div class="triangle"></div>
-          </li>
+<div class="app-admin-wrap layout-sidebar-compact sidebar-dark-purple sidenav-open clearfix">
+
+  <!-- ======= LEFT: primary ======= -->
+  <div class="side-content-wrap">
+    <div class="sidebar-left open rtl-ps-none" data-perfect-scrollbar data-suppress-scroll-x="true">
+      <ul class="navigation-left">
+        <li class="nav-item active" data-item="dashboard">
+          <a class="nav-item-hold" href="#/"><i class="nav-icon i-Bar-Chart"></i><span class="nav-text">ផ្ទាំងគ្រប់គ្រង</span></a><div class="triangle"></div>
+        </li>
+
+        <li class="nav-item" data-item="depts">
+          <a class="nav-item-hold" href="#"><i class="nav-icon i-Library"></i><span class="nav-text">ការិយាល័យ</span></a><div class="triangle"></div>
+        </li>
+
+        <li class="nav-item" data-item="reports">
+          <a class="nav-item-hold" href="#"><i class="nav-icon i-File-Clipboard-File--Text"></i><span class="nav-text">របាយការណ៍</span></a><div class="triangle"></div>
+        </li>
+
+        <!-- មុខឃើញតែ super (JS នឹងលាក់/បង្ហាញ) -->
+        <li class="nav-item menu-super-only" data-item="users">
+          <a class="nav-item-hold" href="#"><i class="nav-icon i-Administrator"></i><span class="nav-text">អ្នកប្រើប្រាស់</span></a><div class="triangle"></div>
+        </li>
+        <li class="nav-item" data-item="settings">
+          <a class="nav-item-hold" href="#"><i class="nav-icon i-Gear-2"></i><span class="nav-text">កំណត់</span></a><div class="triangle"></div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- ======= LEFT: secondary (submenus) ======= -->
+    <div class="sidebar-left-secondary rtl-ps-none" data-perfect-scrollbar data-suppress-scroll-x="true">
+      <i class="sidebar-close i-Close"></i>
+
+      <header class="px-3 pt-3">
+        <div class="logo d-flex align-items-center gap-2">
+          <img src="dist-assets/images/logo-text.png" alt=""/> <span class="kh-head">PHD Report</span>
+        </div>
+      </header>
+
+      <!-- Dashboard submenu -->
+      <div class="submenu-area" data-parent="dashboard">
+        <header><h6>Dashboard</h6><p>ស្ថានភាពសរុប</p></header>
+        <ul class="childNav">
+          <li class="nav-item"><a href="#/"><i class="nav-icon i-Clock-3"></i><span class="item-name">Overview</span></a></li>
         </ul>
       </div>
 
-      <!-- Secondary (submenus) -->
-      <div class="sidebar-left-secondary rtl-ps-none" data-perfect-scrollbar>
-        <i class="sidebar-close i-Close"></i>
-        <header class="px-3 pt-3">
-          <div class="logo d-flex align-items-center gap-2">
-            <img src="dist-assets/images/logo-text.png" alt="" />
-            <span class="kh-head">PHD Report</span>
-          </div>
-        </header>
-
-        <div class="submenu-area" data-parent="dashboard">
-          <header><h6>Dashboard</h6></header>
-          <ul class="childNav">
-            <li class="nav-item"><a href="#/"><i class="nav-icon i-Clock-3"></i><span class="item-name">ទិដ្ឋភាព</span></a></li>
-          </ul>
-        </div>
-
-        <div class="submenu-area" data-parent="depts">
-          <header><h6>ការិយាល័យ</h6></header>
-          <ul id="deptMenu" class="childNav"><li class="nav-item"><span class="item-name text-muted">កំពុងទាញ...</span></li></ul>
-        </div>
-
-        <div class="submenu-area" data-parent="reports">
-          <header><h6>របាយការណ៍</h6></header>
-          <ul class="childNav"><li class="nav-item"><a href="#"><i class="nav-icon i-Bar-Chart"></i><span class="item-name">សង្ខេបឆ្នាំ</span></a></li></ul>
-        </div>
-
-        <div class="submenu-area menu-super-only" data-parent="users">
-          <header><h6>អ្នកប្រើប្រាស់</h6></header>
-          <ul class="childNav"><li class="nav-item"><a href="#"><i class="nav-icon i-Male"></i><span class="item-name">បញ្ជី</span></a></li></ul>
-        </div>
-
-        <div class="submenu-area" data-parent="settings">
-          <header><h6>កំណត់</h6></header>
-          <ul id="settingsMenu" class="childNav"></ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main content -->
-    <div class="main-content-wrap d-flex flex-column">
-      <div class="main-header">
-        <div class="logo"><img src="dist-assets/images/logo.png" alt="" /></div>
-        <div class="menu-toggle"><div></div><div></div><div></div></div>
-        <div style="margin:auto"></div>
-        <div class="header-part-right"><a id="btnLogin" class="btn btn-outline-primary btn-sm" href="login.html">ចូលប្រើប្រាស់</a></div>
+      <!-- Depts submenu (dynamic) -->
+      <div class="submenu-area" data-parent="depts">
+        <header><h6>ការិយាល័យ</h6><p>ជ្រើសការិយាល័យ/ផ្នែក</p></header>
+        <ul id="deptMenu" class="childNav">
+          <li class="nav-item"><span class="item-name text-muted">កំពុងទាញ...</span></li>
+        </ul>
       </div>
 
-      <!-- Router outlet (body will be injected here) -->
-      <div class="main-content">
-        <div id="route-outlet"></div>
+      <!-- Reports submenu (example static) -->
+      <div class="submenu-area" data-parent="reports">
+        <header><h6>របាយការណ៍</h6><p>សង្ខេប និងនាំចេញ</p></header>
+        <ul class="childNav">
+          <li class="nav-item"><a href="#/"><i class="nav-icon i-Bar-Chart"></i><span class="item-name">សង្ខេបឆ្នាំ</span></a></li>
+        </ul>
       </div>
 
-      <!-- Footer -->
-      <div class="app-footer">
-        <div class="footer-bottom border-top pt-3 d-flex flex-column flex-sm-row align-items-center">
-          <span class="flex-grow-1"></span>
-          <div class="d-flex align-items-center">
-            <img class="logo" src="dist-assets/images/logo.png" alt="" />
-            <div><p class="m-0">&copy; PHD Report</p><p class="m-0">All rights reserved</p></div>
-          </div>
-        </div>
+      <!-- Settings submenu (role-aware; JS build) -->
+      <div class="submenu-area" data-parent="settings">
+        <header><h6>ការកំណត់</h6><p>ទិន្នន័យមេ</p></header>
+        <ul id="settingsMenu" class="childNav">
+          <li class="nav-item"><span class="item-name text-muted">កំពុងត្រៀម...</span></li>
+        </ul>
       </div>
     </div>
   </div>
 
-  <!-- Vendor JS -->
-  <script src="dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
-  <script src="dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
-  <script src="dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
-  <script src="dist-assets/js/plugins/datatables.min.js"></script>
-  <script src="dist-assets/js/plugins/echarts.min.js"></script>
-  <script src="dist-assets/js/scripts/echart.options.min.js"></script>
-  <script src="dist-assets/js/scripts/script.min.js"></script>
-  <script src="dist-assets/js/scripts/sidebar.compact.script.min.js"></script>
-  <script src="dist-assets/js/scripts/customizer.script.min.js"></script>
+  <!-- ======= RIGHT: main ======= -->
+  <div class="main-content-wrap d-flex flex-column">
+    <div class="main-header">
+      <div class="logo"><img src="dist-assets/images/logo.png" alt=""/></div>
+      <div class="menu-toggle"><div></div><div></div><div></div></div>
+      <div style="margin:auto"></div>
+      <div class="header-part-right">
+        <a id="btnLogin" class="btn btn-outline-primary btn-sm" href="login.html">ចូលប្រើប្រាស់</a>
+      </div>
+    </div>
 
- <!-- App JS (Router) -->
+    <!-- outlet ដែល router នឹង render មាតិកា -->
+    <div id="route-outlet"></div>
+
+    <!-- footer -->
+    <div class="flex-grow-1"></div>
+    <div class="app-footer">
+      <div class="footer-bottom border-top pt-3 d-flex flex-column flex-sm-row align-items-center">
+        <span class="flex-grow-1"></span>
+        <div class="d-flex align-items-center">
+          <img class="logo" src="dist-assets/images/logo.png" alt=""/>
+          <div><p class="m-0">&copy; PHD Report</p><p class="m-0">All rights reserved</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======= Vendor JS ======= -->
+<script src="dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
+<script src="dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
+<script src="dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
+<script src="dist-assets/js/plugins/datatables.min.js"></script>
+<script src="dist-assets/js/plugins/echarts.min.js"></script>
+<script src="dist-assets/js/scripts/script.min.js"></script>
+<script src="dist-assets/js/scripts/sidebar.compact.script.min.js"></script>
+<script src="dist-assets/js/scripts/customizer.script.min.js"></script>
+
+<!-- ======= App JS (Router + Menus) ======= -->
 <script type="module">
   import { ensureLoggedIn, applyLoginButton, getAuth, isSuper } from './assets/js/app.auth.js';
   import { buildDeptMenu, buildSettingsMenu, gasList } from './assets/js/app.menu.js';
 
-  // ====== Auth + menus ======
+  /* 1) Auth + Login button */
   ensureLoggedIn('login.html');
   const btn = document.getElementById('btnLogin');
   if (btn) applyLoginButton(btn);
 
-  // Menus
-  buildDeptMenu('deptMenu');
-  buildSettingsMenu('settingsMenu');
+  /* 2) Build submenus */
+  buildDeptMenu('deptMenu');       // Departments/Units (filtered by role)
+  buildSettingsMenu('settingsMenu'); // Settings (role-aware)
 
-  // Super-only menus
+  /* 3) Hide super-only primary items if not super */
   const auth = getAuth();
   document.querySelectorAll('.menu-super-only').forEach(el=>{
     el.style.display = isSuper(auth) ? '' : 'none';
   });
 
-  // ====== Router ======
+  /* 4) Simple hash router (render partials into #route-outlet) */
   const outlet = document.getElementById('route-outlet');
   const ROOT = (location.pathname.split('/').filter(Boolean)[0] || '');
   const viewUrl = p => (ROOT ? `/${ROOT}/` : '/') + p;
 
   const routes = {
-    '':                     { view: 'pages/home.html', init: initDashboard },
-    'settings/indicators':  { view: 'pages/settings/indicators/index.html', init: initIndicators },
-    'settings/departments': { view: 'pages/settings/departments/index.html' },
-    'settings/units':       { view: 'pages/settings/units/index.html' },
-    'settings/periods':     { view: 'pages/settings/periods/index.html' },
+    '':                     { view:'pages/home.html',                         init:initDashboard },
+    'settings/indicators':  { view:'pages/settings/indicators/index.html',   init:initIndicators },
+    'settings/departments': { view:'pages/settings/departments/index.html' },
+    'settings/units':       { view:'pages/settings/units/index.html' },
+    'settings/periods':     { view:'pages/settings/periods/index.html' },
   };
 
   async function render(path){
@@ -176,45 +177,38 @@
       if (typeof conf.init === 'function') conf.init();
       setActiveByHash(path);
     }catch(e){
-      outlet.innerHTML = `<div class="container-page">
-        <div class="alert alert-danger">មិនអាចផ្ទុកទំព័រ៖ ${e.message}</div></div>`;
+      outlet.innerHTML = `<div class="container-page"><div class="alert alert-danger">មិនអាចផ្ទុកទំព័រ៖ ${e.message}</div></div>`;
     }
   }
-
   const parseHash = () => (location.hash || '#/').replace(/^#\//,'');
   window.addEventListener('hashchange', ()=>render(parseHash()));
   render(parseHash());
 
-  // ====== Active state on sidebar ======
   function setActiveByHash(h){
     const top = h.startsWith('settings/') ? 'settings'
-             : h.startsWith('reports')    ? 'reports'
              : h.startsWith('depts')      ? 'depts'
+             : h.startsWith('reports')    ? 'reports'
              : 'dashboard';
     document.querySelectorAll('.navigation-left .nav-item').forEach(li=>{
       li.classList.toggle('active', li.getAttribute('data-item')===top);
     });
   }
 
-  // ====== View init: Indicators ======
+  /* ===== Indicators view (DataEntry allowed) ===== */
   async function initIndicators(){
     const tableEl = document.querySelector('#tblIndicators');
     if (!tableEl) return;
 
-    // fill dept options
+    // fill departments in modal
     const depSel = document.getElementById('department_id');
     if (depSel) {
       const depts = await gasList('departments');
-      depSel.innerHTML = `<option value="">-- ជ្រើស --</option>` +
+      depSel.innerHTML = `<option value="">— ជ្រើស —</option>` +
         depts.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
     }
 
-    const [inds, depts] = await Promise.all([
-      gasList('indicators'),
-      gasList('departments')
-    ]);
+    const [inds, depts] = await Promise.all([gasList('indicators'), gasList('departments')]);
     const dmap = Object.fromEntries(depts.map(d=>[d.department_id,d.department_name]));
-
     const dt = $('#tblIndicators').DataTable();
     dt.clear();
     inds.forEach(ind=>{
@@ -229,7 +223,7 @@
     });
     dt.draw();
 
-    // demo actions
+    // sample edit open
     $('#btnAdd').on('click',()=> $('#mdlIndicator').modal('show'));
     $('#tblIndicators').on('click','.btnEdit', function(){
       const r = dt.row($(this).closest('tr')).data();
@@ -241,8 +235,10 @@
     });
   }
 
-  // ====== View init: Dashboard ======
+  /* ===== Dashboard view ===== */
   async function initDashboard(){
+    const $ = s => document.querySelector(s);
+    // ទាញទិន្នន័យ (fallback ខ្សោយទៅជា array ទទេ)
     let [indicators, departments, units, reports] = await Promise.all([
       gasList('indicators').catch(()=>[]),
       gasList('departments').catch(()=>[]),
@@ -250,67 +246,57 @@
       gasList('reports').catch(()=>[]),
     ]);
 
-    // KPIs
-    const $ = sel => document.querySelector(sel);
     if ($('#kpiIndicators')) $('#kpiIndicators').textContent = indicators.length;
     if ($('#kpiDepts'))      $('#kpiDepts').textContent      = departments.length;
     if ($('#kpiUnits'))      $('#kpiUnits').textContent      = units.length;
     if ($('#kpiReports'))    $('#kpiReports').textContent    = reports.length;
 
-    // Charts (if eCharts available)
+    // Charts
     if (window.echarts){
       const ec = window.echarts;
 
-      // Monthly
-      const byMonth = {};
+      // monthly bar
+      const aggMonth = {};
       for(const r of reports){
         const d = new Date(r.date || r.created_at || Date.now());
         const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-        byMonth[key] = (byMonth[key]||0)+1;
+        aggMonth[key] = (aggMonth[key]||0)+1;
       }
-      const months = Object.keys(byMonth).sort();
-      const monthlySeries = months.map(m=>byMonth[m]);
-      const chartMonthly = ec.init(document.getElementById('chartMonthly'));
-      chartMonthly.setOption({
-        tooltip:{}, xAxis:{ type:'category', data: months }, yAxis:{ type:'value' },
-        series:[{ type:'bar', data: monthlySeries }]
-      });
+      const months = Object.keys(aggMonth).sort();
+      const series = months.map(m=>aggMonth[m]);
+      const c1 = ec.init(document.getElementById('chartMonthly'));
+      c1.setOption({ tooltip:{}, xAxis:{type:'category',data:months}, yAxis:{type:'value'}, series:[{type:'bar',data:series}] });
 
-      // By department
+      // by department pie
       const nameByDept = Object.fromEntries(departments.map(d=>[d.department_id,d.department_name]));
-      const byDept = {};
+      const aggDept = {};
       for(const r of reports){
         const k = r.department_id;
         const name = nameByDept[k] || 'មិនបានកំណត់';
-        byDept[name] = (byDept[name]||0)+1;
+        aggDept[name] = (aggDept[name]||0)+1;
       }
-      const deptData = Object.entries(byDept).map(([name,val])=>({name, value:val}));
-      const chartDept = ec.init(document.getElementById('chartDept'));
-      chartDept.setOption({
-        tooltip:{ trigger:'item' },
-        series:[{ type:'pie', radius:'70%', data: deptData }]
-      });
+      const data = Object.entries(aggDept).map(([name,val])=>({name,value:val}));
+      const c2 = ec.init(document.getElementById('chartDept'));
+      c2.setOption({ tooltip:{trigger:'item'}, series:[{type:'pie',radius:'70%',data}] });
     }
 
-    // Recent table
-    const tbl = document.querySelector('#tblRecent');
-    if (tbl && window.jQuery){
-      const jTbl = $(tbl).DataTable();
-      jTbl.clear();
-      reports.slice(0,10).forEach((r,i)=>{
-        const title = r.title || r.name || r.indicator_name || '—';
-        const dt    = (r.date || r.created_at || '').toString().slice(0,10);
-        const st    = r.status || 'OK';
-        const badge = st.toLowerCase().includes('ok') ? 'success'
-                    : st.toLowerCase().includes('review') ? 'warning' : 'secondary';
-        jTbl.row.add([i+1, title, dt, `<span class="badge bg-${badge}">${st}</span>`]);
-      });
-      jTbl.draw();
+    // Recent table (top 10)
+    const t = document.querySelector('#tblRecent');
+    if (t && window.jQuery){
+      const dt = $(t).DataTable();
+      dt.clear();
+      [...reports].sort((a,b)=>new Date(b.date||b.created_at||0)-new Date(a.date||a.created_at||0))
+        .slice(0,10)
+        .forEach((r,i)=>{
+          const title = r.title || r.name || r.indicator_name || '—';
+          const d = (r.date || r.created_at || '').toString().slice(0,10);
+          const st = r.status || 'OK';
+          const badge = st.toLowerCase().includes('ok')?'success':st.toLowerCase().includes('review')?'warning':'secondary';
+          dt.row.add([i+1,title,d,`<span class="badge bg-${badge}">${st}</span>`]);
+        });
+      dt.draw();
     }
   }
 </script>
-
 </body>
 </html>
-
-
