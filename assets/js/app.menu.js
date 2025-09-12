@@ -34,48 +34,6 @@ function isDataEntry(auth) {
   return false;
 }
 
-/* ------------------ Departments/Units submenu ------------------ */
-// assets/js/app.menu.js
-export async function buildSettingsMenu(targetUlId='settingsMenu') {
-  const box = document.getElementById(targetUlId);
-  if (!box) return;
-
-  const auth = getAuth();
-
-  // Super Admin: គ្រប់គ្រងទាំង 4 មុខ
-  const itemsAll = [
-    { key:'indicators',  label:'សូចនាករ',  icon:'i-Bar-Chart', href:'#/settings/indicators' },
-    { key:'departments', label:'នាយកដ្ឋាន', icon:'i-Building',  href:'#/settings/departments' },
-    { key:'units',       label:'ផ្នែក',     icon:'i-Right',     href:'#/settings/units' },
-    { key:'periods',     label:'រយៈពេល',   icon:'i-Calendar',  href:'#/settings/periods' },
-  ];
-
-  let visible = [];
-  if (isSuper(auth)) {
-    visible = itemsAll;                // ✅ Super only
-  } else {
-    visible = [];                      // ❌ Non-super មិនមាន Settings
-  }
-
-  if (!visible.length) {
-    box.innerHTML = `<li class="nav-item">
-      <span class="item-name text-muted">គ្មានសិទ្ធិគ្រប់គ្រង</span></li>`;
-    return;
-  }
-
-  box.innerHTML = visible.map(it=>`
-    <li class="nav-item">
-      <a href="${it.href}">
-        <i class="nav-icon ${it.icon}"></i>
-        <span class="item-name">${it.label}</span>
-      </a>
-    </li>
-  `).join('');
-}
- catch (err) {
-    box.innerHTML = `<li><span class="item-name text-danger">បរាជ័យ: ${err.message}</span></li>`;
-  }
-}
 /* ------------------ Save (Add/Update) ------------------ */
 export async function gasSave(route, data) {
   const u = new URL(GAS_BASE);
@@ -119,7 +77,6 @@ export async function gasDelete(route, id) {
   }
 }
 
-
 /* ------------------ Settings submenu (role-aware) ------------------ */
 export async function buildSettingsMenu(targetUlId='settingsMenu') {
   const box = document.getElementById(targetUlId);
@@ -135,9 +92,13 @@ export async function buildSettingsMenu(targetUlId='settingsMenu') {
   ];
 
   let visible = [];
-  if (isSuper(auth)) visible = itemsAll;
-  else if (isDataEntry(auth)) visible = itemsAll.filter(x=>x.key==='indicators');
-  else visible = itemsAll.filter(x=>x.key==='indicators');
+  if (isSuper(auth)) {
+    visible = itemsAll; // Super admin: all
+  } else if (isDataEntry(auth)) {
+    visible = itemsAll.filter(x=>x.key==='indicators'); // Data Entry: only indicators
+  } else {
+    visible = itemsAll.filter(x=>x.key==='indicators'); // others: only indicators
+  }
 
   if (!visible.length) {
     box.innerHTML = `<li><span class="item-name text-muted">គ្មានសិទ្ធិ</span></li>`;
@@ -146,9 +107,10 @@ export async function buildSettingsMenu(targetUlId='settingsMenu') {
 
   box.innerHTML = visible.map(it=>`
     <li class="nav-item">
-      <a href="${it.href}"><i class="nav-icon ${it.icon}"></i><span class="item-name">${it.label}</span></a>
+      <a href="${it.href}">
+        <i class="nav-icon ${it.icon}"></i>
+        <span class="item-name">${it.label}</span>
+      </a>
     </li>
   `).join('');
 }
-
-
