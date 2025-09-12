@@ -1,18 +1,8 @@
 // assets/js/app.menu.js
-// ----------------------------------------------
-// GAS + Menus (role-aware)
-// ----------------------------------------------
 import { GAS_BASE } from './config.js';
 import { getAuth, isSuper } from './app.auth.js';
 
-/* =========================================================
- * GAS helpers
- * =======================================================*/
-
-/**
- * List rows from a route.
- * GET: ?api=1&route=<route>&op=list&...params
- */
+/* ------------------ Shared fetch helper ------------------ */
 export async function gasList(route, params = {}) {
   const u = new URL(GAS_BASE);
   u.searchParams.set('api', '1');
@@ -26,19 +16,15 @@ export async function gasList(route, params = {}) {
   const txt = await r.text();
   try {
     const j = JSON.parse(txt);
-    if (j?.error) throw new Error(j.error);
-    return Array.isArray(j?.rows) ? j.rows : (Array.isArray(j) ? j : []);
+    if (j.error) throw new Error(j.error);
+    return Array.isArray(j.rows) ? j.rows : (Array.isArray(j) ? j : []);
   } catch (e) {
     console.error('gasList parse error:', e, 'raw:', txt);
     return [];
   }
 }
 
-/**
- * Save (add/update) a record to a route.
- * POST JSON: { ...data }
- * ?api=1&route=<route>&op=save
- */
+/* ------------------ Save (Add/Update) ------------------ */
 export async function gasSave(route, data) {
   const u = new URL(GAS_BASE);
   u.searchParams.set('api', '1');
@@ -47,14 +33,13 @@ export async function gasSave(route, data) {
 
   const r = await fetch(u, {
     method: 'POST',
-    body: JSON.stringify(data || {}),
+    body: JSON.stringify(data),
     headers: { 'Content-Type': 'application/json' }
   });
-
   const txt = await r.text();
   try {
     const j = JSON.parse(txt);
-    if (j?.error) throw new Error(j.error);
+    if (j.error) throw new Error(j.error);
     return j;
   } catch (e) {
     console.error('gasSave parse error:', e, 'raw:', txt);
@@ -62,10 +47,7 @@ export async function gasSave(route, data) {
   }
 }
 
-/**
- * Delete a record by id.
- * GET: ?api=1&route=<route>&op=delete&id=<id>
- */
+/* ------------------ Delete ------------------ */
 export async function gasDelete(route, id) {
   const u = new URL(GAS_BASE);
   u.searchParams.set('api', '1');
@@ -73,11 +55,11 @@ export async function gasDelete(route, id) {
   u.searchParams.set('op', 'delete');
   u.searchParams.set('id', id);
 
-  const r = await fetch(u, { cache: 'no-store' });
+  const r = await fetch(u);
   const txt = await r.text();
   try {
     const j = JSON.parse(txt);
-    if (j?.error) throw new Error(j.error);
+    if (j.error) throw new Error(j.error);
     return j;
   } catch (e) {
     console.error('gasDelete parse error:', e, 'raw:', txt);
@@ -85,9 +67,7 @@ export async function gasDelete(route, id) {
   }
 }
 
-/* =========================================================
- * Role helpers (internal)
- * =======================================================*/
+/* ------------------ Role helpers ------------------ */
 function isDataEntry(auth) {
   const role = String(auth?.role || '').toLowerCase();
   if (role === 'dataentry' || role === 'data_entry') return true;
@@ -97,18 +77,14 @@ function isDataEntry(auth) {
   return false;
 }
 
-/* =========================================================
- * Departments / Units submenu
- *  - Super: see all departments + units
- *  - Non-super: only own department (auth.department_id)
- * =======================================================*/
+/* ------------------ Departments/Units submenu ------------------ */
 export async function buildDeptMenu(targetUlId = 'deptMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
 
   box.innerHTML = `
     <li class="nav-item">
-      <span class="item-name text-muted">កំពុងទាញទិន្នន័យ...</span>
+      <a href="#"><span class="item-name text-muted">កំពុងទាញទិន្នន័យ...</span></a>
     </li>
   `;
 
@@ -117,7 +93,7 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
   try {
     let depts = await gasList('departments');
 
-    // Non-super: filter to own department if defined
+    // Non-super: មើលតែ department របស់ខ្លួន
     if (!isSuper(auth) && auth?.department_id) {
       depts = depts.filter(d => String(d.department_id) === String(auth.department_id));
     }
@@ -125,64 +101,68 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
     if (!depts.length) {
       box.innerHTML = `
         <li class="nav-item">
-          <span class="item-name text-muted">គ្មានទិន្នន័យ</span>
-        </li>`;
+          <a href="#"><span class="item-name text-muted">គ្មានទិន្នន័យ</span></a>
+        </li>
+      `;
       return;
     }
 
-    // Fetch units in parallel (avoid N+1 awaits)
-    const jobs = depts.map(d =>
-      gasList('units', { department_id: d.department_id })
-        .then(rows => ({ dept: d, units: rows || [] }))
-        .catch(() => ({ dept: d, units: [] }))
+    // ទាញ units រួមៗ
+    const results = await Promise.all(
+      depts.map(async d => {
+        let units = await gasList('units', { department_id: d.department_id });
+
+        // Non-super: បើមាន unit_id ក៏ filter units ផង
+        if (!isSuper(auth) && auth?.unit_id) {
+          units = units.filter(u => String(u.unit_id) === String(auth.unit_id));
+        }
+
+        return { dept: d, units };
+      })
     );
 
-    const results = await Promise.all(jobs);
-
-    box.innerHTML = results.map(({ dept, units }) => {
-      let s = `
+    const parts = [];
+    for (const { dept: d, units } of results) {
+      parts.push(`
         <li class="nav-item">
-          <a href="#">
-            <i class="nav-icon i-Building"></i>
-            <span class="item-name">${dept.department_name}</span>
+          <a href="#"><i class="nav-icon i-Building"></i>
+            <span class="item-name">${d.department_name}</span>
           </a>
         </li>
-      `;
+      `);
 
-      if (units.length) {
-        s += units.map(u => `
-          <li class="nav-item ps-3">
-            <a href="pages/departments/${dept.department_id}/units/${u.unit_id}/index.html">
-              <i class="nav-icon i-Right"></i>
-              <span class="item-name">${u.unit_name}</span>
-            </a>
+      if (!units.length) {
+        parts.push(`
+          <li class="nav-item">
+            <a href="#"><span class="item-name text-muted ps-4">— គ្មានផ្នែក</span></a>
           </li>
-        `).join('');
+        `);
       } else {
-        s += `
-          <li class="nav-item ps-3">
-            <span class="item-name text-muted">— គ្មានផ្នែក</span>
-          </li>
-        `;
+        for (const u of units) {
+          parts.push(`
+            <li class="nav-item">
+              <a href="pages/departments/${d.department_id}/units/${u.unit_id}/index.html">
+                <i class="nav-icon i-Right"></i>
+                <span class="item-name ps-3">${u.unit_name}</span>
+              </a>
+            </li>
+          `);
+        }
       }
-      return s;
-    }).join('');
+    }
 
+    box.innerHTML = parts.join('');
   } catch (err) {
     console.error('buildDeptMenu failed:', err);
     box.innerHTML = `
       <li class="nav-item">
-        <span class="item-name text-danger">បរាជ័យ: ${err.message}</span>
+        <a href="#"><span class="item-name text-danger">បរាជ័យ៖ ${err.message}</span></a>
       </li>
     `;
   }
 }
 
-/* =========================================================
- * Settings submenu (role-aware)
- *  - Super: Indicators, Departments, Units, Periods
- *  - Non-super (incl. DataEntry): Indicators only
- * =======================================================*/
+/* ------------------ Settings submenu (role-aware) ------------------ */
 export async function buildSettingsMenu(targetUlId = 'settingsMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
@@ -190,26 +170,19 @@ export async function buildSettingsMenu(targetUlId = 'settingsMenu') {
   const auth = getAuth();
 
   const itemsAll = [
-    { key: 'indicators',  label: 'សូចនាករ',   icon: 'i-Bar-Chart', href: '#/settings/indicators'  },
-    { key: 'departments', label: 'នាយកដ្ឋាន',  icon: 'i-Building',  href: '#/settings/departments' },
-    { key: 'units',       label: 'ផ្នែក',      icon: 'i-Right',     href: '#/settings/units'       },
-    { key: 'periods',     label: 'រយៈពេល',    icon: 'i-Calendar',  href: '#/settings/periods'     },
+    { key: 'indicators',  label: 'សូចនាករ',  icon: 'i-Bar-Chart', href: '#/settings/indicators' },
+    { key: 'departments', label: 'នាយកដ្ឋាន', icon: 'i-Building',  href: '#/settings/departments' },
+    { key: 'units',       label: 'ផ្នែក',     icon: 'i-Right',     href: '#/settings/units' },
+    { key: 'periods',     label: 'រយៈពេល',   icon: 'i-Calendar',  href: '#/settings/periods' },
   ];
 
   let visible = [];
-  if (isSuper(auth)) {
-    visible = itemsAll;                                  // Super: all
-  } else if (isDataEntry(auth)) {
-    visible = itemsAll.filter(x => x.key === 'indicators'); // DataEntry: indicators only
-  } else {
-    visible = itemsAll.filter(x => x.key === 'indicators'); // others: indicators only
-  }
+  if (isSuper(auth)) visible = itemsAll;                         // Super → ទាំងអស់
+  else if (isDataEntry(auth)) visible = itemsAll.filter(x => x.key === 'indicators'); // DataEntry → តែ Indicators
+  else visible = itemsAll.filter(x => x.key === 'indicators');   // Default → តែ Indicators
 
   if (!visible.length) {
-    box.innerHTML = `
-      <li class="nav-item">
-        <span class="item-name text-muted">គ្មានសិទ្ធិគ្រប់គ្រង</span>
-      </li>`;
+    box.innerHTML = `<li><span class="item-name text-muted">គ្មានសិទ្ធិ</span></li>`;
     return;
   }
 
@@ -221,14 +194,4 @@ export async function buildSettingsMenu(targetUlId = 'settingsMenu') {
       </a>
     </li>
   `).join('');
-}
-
-/* =========================================================
- * One-shot initializer (optional helper)
- * =======================================================*/
-export async function initMenus() {
-  await Promise.allSettled([
-    buildDeptMenu('deptMenu'),
-    buildSettingsMenu('settingsMenu'),
-  ]);
 }
