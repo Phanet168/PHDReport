@@ -90,4 +90,152 @@
   /* សម្រស់តិចតួចសម្រាប់ view នេះប៉ុណ្ណោះ */
   .container-page { max-width: 1100px; margin: 0 auto; }
   #tblIndicators td:last-child { white-space: nowrap; }
+
+  async function initIndicators() {
+  const tableEl = document.querySelector('#tblIndicators');
+  const btnAdd  = document.getElementById('btnAdd');
+  if (!tableEl) return;
+
+  const auth        = getAuth();
+  const isSuperUser = isSuper(auth);
+  const ownDept     = auth?.department_id || null;
+  const ownUnit     = auth?.unit_id || null;
+
+  // 1) Fill departments (Super only). Non-super lock to ownDept
+  const depSel = document.getElementById('department_id');
+  if (depSel) {
+    let depts = await gasList('departments').catch(()=>[]);
+    if (!isSuperUser && ownDept) {
+      depts = depts.filter(d => String(d.department_id) === String(ownDept));
+    }
+    depSel.innerHTML =
+      `<option value="">— ជ្រើស —</option>` +
+      depts.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+    depSel.disabled = !isSuperUser;               // lock for non-super
+    if (!isSuperUser && ownDept) depSel.value = ownDept;
+  }
+
+  // 2) Load indicators + depts
+  let [indicators, depts] = await Promise.all([
+    gasList('indicators').catch(()=>[]),
+    gasList('departments').catch(()=>[]),
+  ]);
+  const deptMap = Object.fromEntries(depts.map(d=>[d.department_id, d.department_name]));
+
+  // Non-super: show only own dept
+  if (!isSuperUser && ownDept) {
+    indicators = indicators.filter(x => String(x.department_id) === String(ownDept));
+  }
+
+  // 3) (Re)build DataTable
+  const dt = $(tableEl).DataTable({ destroy: true }); // destroy allows re-init
+  dt.clear();
+  indicators.forEach(ind => {
+    dt.row.add([
+      ind.indicator_id,
+      ind.indicator_name,
+      ind.indicator_type || '',
+      deptMap[ind.department_id] || '',
+      actionButtons(ind, auth)      // HTML buttons by role
+    ]);
+  });
+  dt.draw();
+
+  // 4) Toggle Add button by role
+  const canCreate = isSuperUser || String(auth?.role||'').toLowerCase()==='dataentry';
+  if (btnAdd) {
+    btnAdd.style.display = canCreate ? '' : 'none';
+    if (canCreate) {
+      btnAdd.onclick = () => {
+        document.getElementById('frmIndicator').reset();
+        document.getElementById('indicator_id').value = '';
+        if (!isSuperUser && ownDept) document.getElementById('department_id').value = ownDept;
+        $('#mdlIndicator').modal('show');
+      };
+    } else {
+      btnAdd.onclick = null;
+    }
+  }
+
+  // 5) Save (Add/Update)
+  $('#frmIndicator').off('submit').on('submit', async (e) => {
+    e.preventDefault();
+    // guard
+    if (!canCreate) return;
+
+    const payload = {
+      indicator_id   : $('#indicator_id').val() || null, // null => create
+      indicator_name : $('#indicator_name').val(),
+      indicator_type : $('#indicator_type').val(),
+      department_id  : isSuperUser ? $('#department_id').val() : ownDept,
+      unit_id        : ownUnit || null
+    };
+    try {
+      await gasSave('indicators', payload);   // <- calls GAS
+      $('#mdlIndicator').modal('hide');
+      await initIndicators();                 // reload table
+    } catch (err) {
+      alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
+    }
+  });
+
+  // 6) Edit/Delete (event delegation, bind once-per-load)
+  $('#tblIndicators')
+    .off('click', '.btnEdit')
+    .on('click', '.btnEdit', function(){
+      const row = dt.row($(this).closest('tr')).data();
+      const [id, name, type, deptName] = row;
+
+      // only super or dataentry of own dept
+      if (!canEditRow(auth, deptName, deptMap)) return;
+
+      $('#indicator_id').val(id);
+      $('#indicator_name').val(name);
+      $('#indicator_type').val(type);
+      const deptId = findDeptIdByName(deptName, deptMap) || ownDept || '';
+      $('#department_id').val(deptId);
+      $('#mdlIndicator').modal('show');
+    });
+
+  $('#tblIndicators')
+    .off('click', '.btnDel')
+    .on('click', '.btnDel', async function(){
+      const row = dt.row($(this).closest('tr')).data();
+      const [id, , , deptName] = row;
+      if (!canCreate || !canEditRow(auth, deptName, deptMap)) return;
+
+      if (confirm('តើចង់លុបទិន្នន័យនេះមែនទេ?')) {
+        try {
+          await gasDelete('indicators', id);  // <- calls GAS
+          await initIndicators();
+        } catch (err) {
+          alert('បរាជ័យលុប: ' + (err?.message || err));
+        }
+      }
+    });
+
+  /* helpers */
+  function actionButtons(ind, auth){
+    const can = isSuper(auth) ||
+      (String((auth?.role||'')).toLowerCase()==='dataentry'
+       && String(ind.department_id)===String(auth?.department_id));
+    return can
+      ? `<button class="btn btn-sm btn-warning btnEdit">កែ</button>
+         <button class="btn btn-sm btn-danger btnDel">លុប</button>`
+      : '';
+  }
+  function canEditRow(auth, deptName, map){
+    if (isSuper(auth)) return true;
+    const isDE = String((auth?.role||'')).toLowerCase()==='dataentry';
+    if (!isDE) return false;
+    const deptId = findDeptIdByName(deptName, map);
+    return String(deptId) === String(auth?.department_id);
+  }
+  function findDeptIdByName(name, map){
+    const pair = Object.entries(map).find(([,v])=>v===name);
+    return pair ? pair[0] : null;
+  }
+}
+
 </style>
+
