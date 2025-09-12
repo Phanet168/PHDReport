@@ -80,6 +80,49 @@ export async function buildDeptMenu(targetUlId='deptMenu') {
     box.innerHTML = `<li><span class="item-name text-danger">បរាជ័យ: ${err.message}</span></li>`;
   }
 }
+/* ------------------ Save (Add/Update) ------------------ */
+export async function gasSave(route, data) {
+  const u = new URL(GAS_BASE);
+  u.searchParams.set('api','1');
+  u.searchParams.set('route', route);
+  u.searchParams.set('op','save');
+
+  const r = await fetch(u, {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: { 'Content-Type':'application/json' }
+  });
+  const txt = await r.text();
+  try {
+    const j = JSON.parse(txt);
+    if (j.error) throw new Error(j.error);
+    return j;
+  } catch (e) {
+    console.error('gasSave parse error:', e, 'raw:', txt);
+    throw e;
+  }
+}
+
+/* ------------------ Delete ------------------ */
+export async function gasDelete(route, id) {
+  const u = new URL(GAS_BASE);
+  u.searchParams.set('api','1');
+  u.searchParams.set('route', route);
+  u.searchParams.set('op','delete');
+  u.searchParams.set('id', id);
+
+  const r = await fetch(u);
+  const txt = await r.text();
+  try {
+    const j = JSON.parse(txt);
+    if (j.error) throw new Error(j.error);
+    return j;
+  } catch (e) {
+    console.error('gasDelete parse error:', e, 'raw:', txt);
+    throw e;
+  }
+}
+
 
 /* ------------------ Settings submenu (role-aware) ------------------ */
 export async function buildSettingsMenu(targetUlId='settingsMenu') {
@@ -111,3 +154,4 @@ export async function buildSettingsMenu(targetUlId='settingsMenu') {
     </li>
   `).join('');
 }
+
