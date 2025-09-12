@@ -135,98 +135,182 @@
   <script src="dist-assets/js/scripts/sidebar.compact.script.min.js"></script>
   <script src="dist-assets/js/scripts/customizer.script.min.js"></script>
 
-  <!-- App JS (Router) -->
-  <script type="module">
-    import { ensureLoggedIn, applyLoginButton } from './assets/js/app.auth.js';
-    import { buildDeptMenu, buildSettingsMenu, gasList } from './assets/js/app.menu.js';
+ <!-- App JS (Router) -->
+<script type="module">
+  import { ensureLoggedIn, applyLoginButton, getAuth, isSuper } from './assets/js/app.auth.js';
+  import { buildDeptMenu, buildSettingsMenu, gasList } from './assets/js/app.menu.js';
 
-    // Auth + menus
-    ensureLoggedIn('login.html');
-    const btn = document.getElementById('btnLogin'); if (btn) applyLoginButton(btn);
-    buildDeptMenu('deptMenu');
-    buildSettingsMenu('settingsMenu');
+  // ====== Auth + menus ======
+  ensureLoggedIn('login.html');
+  const btn = document.getElementById('btnLogin');
+  if (btn) applyLoginButton(btn);
 
-    // Router
-    const outlet = document.getElementById('route-outlet');
-    const ROOT = (location.pathname.split('/').filter(Boolean)[0] || '');
-    const viewUrl = p => (ROOT ? `/${ROOT}/` : '/') + p;
+  // Menus
+  buildDeptMenu('deptMenu');
+  buildSettingsMenu('settingsMenu');
 
-    const routes = {
-      '':                     { view: 'pages/home.html' },
-      'settings/indicators':  { view: 'pages/settings/indicators/index.html', init: initIndicators },
-      'settings/departments': { view: 'pages/settings/departments/index.html' },
-      'settings/units':       { view: 'pages/settings/units/index.html' },
-      'settings/periods':     { view: 'pages/settings/periods/index.html' },
-    };
+  // Super-only menus
+  const auth = getAuth();
+  document.querySelectorAll('.menu-super-only').forEach(el=>{
+    el.style.display = isSuper(auth) ? '' : 'none';
+  });
 
-    async function render(path){
-      const conf = routes[path] || routes[''];
-      try{
-        const html = await (await fetch(viewUrl(conf.view), {cache:'no-store'})).text();
-        outlet.innerHTML = html;
-        if (typeof conf.init === 'function') conf.init();
-        setActiveByHash(path);
-      }catch(e){
-        outlet.innerHTML = `<div class="container-page"><div class="alert alert-danger">មិនអាចផ្ទុកទំព័រ៖ ${e.message}</div></div>`;
+  // ====== Router ======
+  const outlet = document.getElementById('route-outlet');
+  const ROOT = (location.pathname.split('/').filter(Boolean)[0] || '');
+  const viewUrl = p => (ROOT ? `/${ROOT}/` : '/') + p;
+
+  const routes = {
+    '':                     { view: 'pages/home.html', init: initDashboard },
+    'settings/indicators':  { view: 'pages/settings/indicators/index.html', init: initIndicators },
+    'settings/departments': { view: 'pages/settings/departments/index.html' },
+    'settings/units':       { view: 'pages/settings/units/index.html' },
+    'settings/periods':     { view: 'pages/settings/periods/index.html' },
+  };
+
+  async function render(path){
+    const conf = routes[path] || routes[''];
+    try{
+      const html = await (await fetch(viewUrl(conf.view), {cache:'no-store'})).text();
+      outlet.innerHTML = html;
+      if (typeof conf.init === 'function') conf.init();
+      setActiveByHash(path);
+    }catch(e){
+      outlet.innerHTML = `<div class="container-page">
+        <div class="alert alert-danger">មិនអាចផ្ទុកទំព័រ៖ ${e.message}</div></div>`;
+    }
+  }
+
+  const parseHash = () => (location.hash || '#/').replace(/^#\//,'');
+  window.addEventListener('hashchange', ()=>render(parseHash()));
+  render(parseHash());
+
+  // ====== Active state on sidebar ======
+  function setActiveByHash(h){
+    const top = h.startsWith('settings/') ? 'settings'
+             : h.startsWith('reports')    ? 'reports'
+             : h.startsWith('depts')      ? 'depts'
+             : 'dashboard';
+    document.querySelectorAll('.navigation-left .nav-item').forEach(li=>{
+      li.classList.toggle('active', li.getAttribute('data-item')===top);
+    });
+  }
+
+  // ====== View init: Indicators ======
+  async function initIndicators(){
+    const tableEl = document.querySelector('#tblIndicators');
+    if (!tableEl) return;
+
+    // fill dept options
+    const depSel = document.getElementById('department_id');
+    if (depSel) {
+      const depts = await gasList('departments');
+      depSel.innerHTML = `<option value="">-- ជ្រើស --</option>` +
+        depts.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+    }
+
+    const [inds, depts] = await Promise.all([
+      gasList('indicators'),
+      gasList('departments')
+    ]);
+    const dmap = Object.fromEntries(depts.map(d=>[d.department_id,d.department_name]));
+
+    const dt = $('#tblIndicators').DataTable();
+    dt.clear();
+    inds.forEach(ind=>{
+      dt.row.add([
+        ind.indicator_id,
+        ind.indicator_name,
+        ind.indicator_type || '',
+        dmap[ind.department_id] || '',
+        `<button class="btn btn-sm btn-warning btnEdit">កែ</button>
+         <button class="btn btn-sm btn-danger btnDel">លុប</button>`
+      ]);
+    });
+    dt.draw();
+
+    // demo actions
+    $('#btnAdd').on('click',()=> $('#mdlIndicator').modal('show'));
+    $('#tblIndicators').on('click','.btnEdit', function(){
+      const r = dt.row($(this).closest('tr')).data();
+      $('#indicator_id').val(r[0]);
+      $('#indicator_name').val(r[1]);
+      $('#indicator_type').val(r[2]);
+      $('#department_id').val(Object.keys(dmap).find(k=>dmap[k]===r[3])||'');
+      $('#mdlIndicator').modal('show');
+    });
+  }
+
+  // ====== View init: Dashboard ======
+  async function initDashboard(){
+    let [indicators, departments, units, reports] = await Promise.all([
+      gasList('indicators').catch(()=>[]),
+      gasList('departments').catch(()=>[]),
+      gasList('units').catch(()=>[]),
+      gasList('reports').catch(()=>[]),
+    ]);
+
+    // KPIs
+    const $ = sel => document.querySelector(sel);
+    if ($('#kpiIndicators')) $('#kpiIndicators').textContent = indicators.length;
+    if ($('#kpiDepts'))      $('#kpiDepts').textContent      = departments.length;
+    if ($('#kpiUnits'))      $('#kpiUnits').textContent      = units.length;
+    if ($('#kpiReports'))    $('#kpiReports').textContent    = reports.length;
+
+    // Charts (if eCharts available)
+    if (window.echarts){
+      const ec = window.echarts;
+
+      // Monthly
+      const byMonth = {};
+      for(const r of reports){
+        const d = new Date(r.date || r.created_at || Date.now());
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        byMonth[key] = (byMonth[key]||0)+1;
       }
-    }
-    const parseHash = () => (location.hash || '#/').replace(/^#\//,'');
-    window.addEventListener('hashchange', ()=>render(parseHash()));
-    render(parseHash());
-
-    // Active state on sidebar
-    function setActiveByHash(h){
-      const top = h.startsWith('settings/') ? 'settings'
-               : h.startsWith('reports')    ? 'reports'
-               : h.startsWith('depts')      ? 'depts'
-               : 'dashboard';
-      document.querySelectorAll('.navigation-left .nav-item').forEach(li=>{
-        li.classList.toggle('active', li.getAttribute('data-item')===top);
+      const months = Object.keys(byMonth).sort();
+      const monthlySeries = months.map(m=>byMonth[m]);
+      const chartMonthly = ec.init(document.getElementById('chartMonthly'));
+      chartMonthly.setOption({
+        tooltip:{}, xAxis:{ type:'category', data: months }, yAxis:{ type:'value' },
+        series:[{ type:'bar', data: monthlySeries }]
       });
-    }
 
-    // ---- View init: Indicators ----
-    async function initIndicators(){
-      const tableEl = document.querySelector('#tblIndicators');
-      if (!tableEl) return;
-
-      // fill dept options
-      const depSel = document.getElementById('department_id');
-      if (depSel) {
-        const depts = await gasList('departments');
-        depSel.innerHTML = `<option value="">-- ជ្រើស --</option>` +
-          depts.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+      // By department
+      const nameByDept = Object.fromEntries(departments.map(d=>[d.department_id,d.department_name]));
+      const byDept = {};
+      for(const r of reports){
+        const k = r.department_id;
+        const name = nameByDept[k] || 'មិនបានកំណត់';
+        byDept[name] = (byDept[name]||0)+1;
       }
-
-      const [inds, depts] = await Promise.all([gasList('indicators'), gasList('departments')]);
-      const dmap = Object.fromEntries(depts.map(d=>[d.department_id,d.department_name]));
-
-      const dt = $('#tblIndicators').DataTable();
-      dt.clear();
-      inds.forEach(ind=>{
-        dt.row.add([
-          ind.indicator_id,
-          ind.indicator_name,
-          ind.indicator_type || '',
-          dmap[ind.department_id] || '',
-          `<button class="btn btn-sm btn-warning btnEdit">កែ</button>
-           <button class="btn btn-sm btn-danger btnDel">លុប</button>`
-        ]);
-      });
-      dt.draw();
-
-      // demo actions
-      $('#btnAdd').on('click',()=> $('#mdlIndicator').modal('show'));
-      $('#tblIndicators').on('click','.btnEdit', function(){
-        const r = dt.row($(this).closest('tr')).data();
-        $('#indicator_id').val(r[0]);
-        $('#indicator_name').val(r[1]);
-        $('#indicator_type').val(r[2]);
-        $('#department_id').val(Object.keys(dmap).find(k=>dmap[k]===r[3])||'');
-        $('#mdlIndicator').modal('show');
+      const deptData = Object.entries(byDept).map(([name,val])=>({name, value:val}));
+      const chartDept = ec.init(document.getElementById('chartDept'));
+      chartDept.setOption({
+        tooltip:{ trigger:'item' },
+        series:[{ type:'pie', radius:'70%', data: deptData }]
       });
     }
-  </script>
+
+    // Recent table
+    const tbl = document.querySelector('#tblRecent');
+    if (tbl && window.jQuery){
+      const jTbl = $(tbl).DataTable();
+      jTbl.clear();
+      reports.slice(0,10).forEach((r,i)=>{
+        const title = r.title || r.name || r.indicator_name || '—';
+        const dt    = (r.date || r.created_at || '').toString().slice(0,10);
+        const st    = r.status || 'OK';
+        const badge = st.toLowerCase().includes('ok') ? 'success'
+                    : st.toLowerCase().includes('review') ? 'warning' : 'secondary';
+        jTbl.row.add([i+1, title, dt, `<span class="badge bg-${badge}">${st}</span>`]);
+      });
+      jTbl.draw();
+    }
+  }
+</script>
+
 </body>
 </html>
+
 
