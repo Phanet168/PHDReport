@@ -1,3 +1,26 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8" />
+  <title>សូចនាករ | PHD Report</title>
+
+  <!-- Khmer Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <!-- Gull CSS + DataTables -->
+  <link href="../../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
+  <link href="../../dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet" />
+  <link href="../../dist-assets/css/plugins/datatables.min.css" rel="stylesheet" />
+
+  <style>
+    :root {
+      --kh-font: "Noto Sans Khmer", Nunito, Arial, sans-serif;
+      --kh-head: "Khmer Moul", "Noto Sans Khmer", sans-serif;
+    }
+    body { font-family: var(--kh-font) !important; }
+    .kh-head { font-family: var(--kh-head) !important; }
+  </style>
+</head>
+<body>
 <div class="container-page">
   <div class="breadcrumb">
     <h1 class="me-2 kh-head">សូចនាករ</h1>
@@ -14,7 +37,13 @@
       <div class="table-responsive">
         <table id="tblIndicators" class="display table table-striped" style="width:100%">
           <thead>
-            <tr><th>ID</th><th>ឈ្មោះសូចនាករ</th><th>ប្រភេទ</th><th>នាយកដ្ឋាន</th><th>សកម្មភាព</th></tr>
+            <tr>
+              <th>ID</th>
+              <th>ឈ្មោះសូចនាករ</th>
+              <th>ប្រភេទ</th>
+              <th>នាយកដ្ឋាន</th>
+              <th>សកម្មភាព</th>
+            </tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -30,9 +59,18 @@
       <div class="modal-header"><h5 class="modal-title kh-head">ព័ត៌មានសូចនាករ</h5></div>
       <div class="modal-body">
         <input type="hidden" id="indicator_id" />
-        <div class="mb-3"><label class="form-label">ឈ្មោះសូចនាករ</label><input class="form-control" id="indicator_name" required></div>
-        <div class="mb-3"><label class="form-label">ប្រភេទ</label><input class="form-control" id="indicator_type"></div>
-        <div class="mb-3"><label class="form-label">នាយកដ្ឋាន</label><select class="form-select" id="department_id"></select></div>
+        <div class="mb-3">
+          <label class="form-label">ឈ្មោះសូចនាករ</label>
+          <input class="form-control" id="indicator_name" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">ប្រភេទ</label>
+          <input class="form-control" id="indicator_type" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">នាយកដ្ឋាន</label>
+          <select class="form-select" id="department_id"></select>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">បោះបង់</button>
@@ -41,3 +79,126 @@
     </form>
   </div>
 </div>
+
+<!-- JS Libs -->
+<script src="../../dist-assets/js/plugins/jquery-3.3.1.min.js"></script>
+<script src="../../dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
+<script src="../../dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
+<script src="../../dist-assets/js/plugins/datatables.min.js"></script>
+
+<!-- App logic -->
+<script type="module">
+import { getAuth, isSuper } from '../../assets/js/app.auth.js';
+import { gasList, gasSave, gasDelete } from '../../assets/js/app.menu.js';
+
+// ====== INIT ======
+initIndicators();
+
+// ---- View init: Indicators ----
+async function initIndicators(){
+  const auth = getAuth();
+  const isSuperUser = isSuper(auth);
+  const tableEl = document.querySelector('#tblIndicators');
+  if (!tableEl) return;
+
+  // Load departments
+  const depts = await gasList('departments');
+  const deptMap = Object.fromEntries(depts.map(d=>[String(d.department_id), d.department_name]));
+
+  // Fill department select
+  const depSel = document.getElementById('department_id');
+  if (depSel) {
+    if (isSuperUser) {
+      depSel.innerHTML = `<option value="">-- ជ្រើស --</option>` +
+        depts.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+      depSel.disabled = false;
+    } else {
+      const mine = depts.find(d => String(d.department_id)===String(auth.department_id));
+      depSel.innerHTML = `<option value="${mine?.department_id||''}" selected>${mine?.department_name||'—'}</option>`;
+      depSel.disabled = true;
+    }
+  }
+
+  // Load indicators
+  let indicators = await gasList('indicators');
+  if (!isSuperUser) {
+    indicators = indicators.filter(x => String(x.department_id)===String(auth.department_id));
+  }
+
+  // Build DataTable
+  const dt = $('#tblIndicators').DataTable();
+  dt.clear();
+  indicators.forEach(ind=>{
+    dt.row.add([
+      ind.indicator_id,
+      ind.indicator_name,
+      ind.indicator_type || '',
+      deptMap[String(ind.department_id)] || '',
+      `<button class="btn btn-sm btn-warning btnEdit">កែ</button>
+       <button class="btn btn-sm btn-danger btnDel">លុប</button>`
+    ]);
+  });
+  dt.draw();
+
+  // Add
+  $('#btnAdd').off('click').on('click', ()=>{
+    $('#frmIndicator')[0].reset();
+    $('#indicator_id').val('');
+    if (!isSuperUser) {
+      $('#department_id').val(auth.department_id).prop('disabled', true);
+    } else {
+      $('#department_id').prop('disabled', false);
+    }
+    $('#mdlIndicator').modal('show');
+  });
+
+  // Edit
+  $('#tblIndicators').off('click', '.btnEdit').on('click', '.btnEdit', function(){
+    const r = dt.row($(this).closest('tr')).data();
+    $('#indicator_id').val(r[0]);
+    $('#indicator_name').val(r[1]);
+    $('#indicator_type').val(r[2]);
+    if (isSuperUser) {
+      const deptId = Object.keys(deptMap).find(k => deptMap[k]===r[3]) || '';
+      $('#department_id').val(deptId).prop('disabled', false);
+    } else {
+      $('#department_id').val(auth.department_id).prop('disabled', true);
+    }
+    $('#mdlIndicator').modal('show');
+  });
+
+  // Save
+  $('#frmIndicator').off('submit').on('submit', async e=>{
+    e.preventDefault();
+    const payload = {
+      indicator_id: $('#indicator_id').val() || null,
+      indicator_name: $('#indicator_name').val(),
+      indicator_type: $('#indicator_type').val() || '',
+      department_id: isSuperUser ? $('#department_id').val() : auth.department_id,
+      unit_id: auth.unit_id || null
+    };
+    try {
+      await gasSave('indicators', payload);
+      $('#mdlIndicator').modal('hide');
+      await initIndicators();
+    } catch(err) {
+      alert('រក្សាទុកបរាជ័យ: ' + (err.message||''));
+    }
+  });
+
+  // Delete
+  $('#tblIndicators').off('click', '.btnDel').on('click', '.btnDel', async function(){
+    const id = dt.row($(this).closest('tr')).data()?.[0];
+    if (!id) return;
+    if (!confirm('លុបសូចនាករនេះឬ?')) return;
+    try {
+      await gasDelete('indicators', id);
+      await initIndicators();
+    } catch(err) {
+      alert('លុបបរាជ័យ: ' + (err.message||''));
+    }
+  });
+}
+</script>
+</body>
+</html>
