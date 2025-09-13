@@ -1,6 +1,5 @@
 <!-- pages/settings/indicators/index.html -->
 <div class="container-page">
-  <!-- Breadcrumb -->
   <div class="breadcrumb">
     <h1 class="me-2 kh-head">សូចនាករ</h1>
     <ul>
@@ -11,7 +10,6 @@
   </div>
   <div class="separator-breadcrumb border-top"></div>
 
-  <!-- Card: Table -->
   <div class="card">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -45,7 +43,7 @@
     <form id="frmIndicator" class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title kh-head">ព័ត៌មានសូចនាករ</h5>
-        <!-- មិនប្រើ data-bs-dismiss → គ្រប់គ្រងតាម JS ដូចខាងក្រោម -->
+        <!-- គ្រប់គ្រងបិទដោយ JS មួយចំណោម -->
         <button type="button" class="btn-close" id="btnCloseIndicator" aria-label="Close"></button>
       </div>
 
@@ -85,26 +83,26 @@
 </style>
 
 <script type="module">
-  /* ===== Imports (relative from pages/settings/indicators/) ===== */
+  /* ===== Imports ===== */
   import { getAuth, isSuper } from '../../../assets/js/app.auth.js';
   import { gasList, gasDelete } from '../../../assets/js/app.menu.js';
-  // កំណត់៖ gasSave ដើមអាចមាន/អាចគ្មាន → ខាងក្រោមមាន fallback fetch
 
-  // expose init to router
+  // expose to router
   window.initIndicators = initIndicators;
 
   /* ===== DataTables guard ===== */
   async function ensureDT(timeoutMs = 8000) {
     const t0 = Date.now();
-    while (!(window.jQuery && jQuery.fn && jQuery.fn.DataTable)) {
+    while (!(window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable)) {
       if (Date.now() - t0 > timeoutMs) throw new Error('DataTables not loaded');
       await new Promise(r => setTimeout(r, 80));
     }
   }
 
-  /* ===== A11y-safe modal helpers (controller តែមួយ) ===== */
+  /* ===== Modal helpers (single controller) ===== */
   let __lastFocus = null;
   const modalEl = document.getElementById('mdlIndicator');
+
   function getBsModal(el){
     return (window.bootstrap && bootstrap.Modal)
       ? bootstrap.Modal.getOrCreateInstance(el, { backdrop:true, focus:true, keyboard:true })
@@ -136,10 +134,10 @@
       modalEl.removeAttribute('aria-hidden');
     }
   });
-  // កុំឲ្យ jQuery .modal គ្រប់គ្រង modal នេះ (កុំប៉ះ aria-hidden)
-  if (window.jQuery && jQuery.fn && jQuery.fn.modal) {
-    const orig = jQuery.fn.modal;
-    jQuery.fn.modal = function(cmd){
+  // បិទ jQuery .modal លើ modal នេះ ដើម្បីកុំឲ្យប៉ះទង្គិច ARIA
+  if (window.jQuery && window.jQuery.fn && window.jQuery.fn.modal) {
+    const orig = window.jQuery.fn.modal;
+    window.jQuery.fn.modal = function(cmd){
       if (this.is && this.is('#mdlIndicator')) {
         console.warn('[patch] ignore jQuery.modal("%s") on #mdlIndicator', cmd);
         return this;
@@ -148,7 +146,7 @@
     };
   }
 
-  /* ===== GAS upsert fallback (text/plain, with token) ===== */
+  /* ===== GAS upsert fallback ===== */
   function getGASBase() {
     const a = (window.APP && (APP.GAS_BASE || (APP.config && APP.config.GAS_BASE)));
     return window.GAS_BASE || a || window.GAS_URL || '';
@@ -159,7 +157,7 @@
     const url = `${base}?api=1&route=${encodeURIComponent(table)}&op=upsert`;
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, // ជៀស preflight
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify(payloadWithToken)
     });
     if (!res.ok) {
@@ -188,12 +186,11 @@
   /* ===== Page init ===== */
   async function initIndicators() {
     try {
-      // clear any stray aria-hidden
       document.body.removeAttribute('aria-hidden');
 
-      const $table = document.querySelector('#tblIndicators');
-      const $btnAdd = document.getElementById('btnAdd');
-      if (!$table) return;
+      const tableEl = document.getElementById('tblIndicators');
+      const btnAdd  = document.getElementById('btnAdd');
+      if (!tableEl) return;
 
       const auth       = getAuth();
       const superUser  = isSuper(auth);
@@ -202,25 +199,24 @@
       const token      = auth?.token || '';
       const canCreate  = superUser || String(auth?.role||'').toLowerCase() === 'dataentry';
 
-      // list/delete wrappers
       const apiList   = (table, params={}) => gasList(table, { ...params, token });
       const apiDelete = (table, idField, id) => gasDelete(table, idField, id, token);
 
-      // 1) Departments
-      const $depSel = document.getElementById('department_id');
-      if ($depSel) {
+      // Departments
+      const depSel = document.getElementById('department_id');
+      if (depSel) {
         let depts = await apiList('departments').catch(() => []);
         if (!superUser && ownDept) {
           depts = depts.filter(d => String(d.department_id) === String(ownDept));
         }
-        $depSel.innerHTML =
+        depSel.innerHTML =
           `<option value="">— ជ្រើស —</option>` +
           depts.map(d => `<option value="${d.department_id}">${d.department_name}</option>`).join('');
-        $depSel.disabled = !superUser;
-        if (!superUser && ownDept) $depSel.value = ownDept;
+        depSel.disabled = !superUser;
+        if (!superUser && ownDept) depSel.value = ownDept;
       }
 
-      // 2) Load data
+      // Load data
       let [indicators, departments] = await Promise.all([
         apiList('indicators').catch(() => []),
         apiList('departments').catch(() => [])
@@ -230,10 +226,10 @@
         indicators = indicators.filter(x => String(x.department_id) === String(ownDept));
       }
 
-      // 3) DataTable
+      // DataTables (ប្រើ window.jQuery ដោយផ្ទាល់—មិនប្រើ $)
       await ensureDT();
-      const $ = window.jQuery;
-      const dt = $( $table ).DataTable({
+      const jq = window.jQuery;
+      const dt = jq(tableEl).DataTable({
         destroy: true,
         pageLength: 25,
         lengthChange: false,
@@ -251,10 +247,10 @@
       });
       dt.draw();
 
-      // 4) Add button
-      if ($btnAdd) {
-        $btnAdd.style.display = canCreate ? '' : 'none';
-        $btnAdd.onclick = canCreate ? () => {
+      // Add button
+      if (btnAdd) {
+        btnAdd.style.display = canCreate ? '' : 'none';
+        btnAdd.onclick = canCreate ? () => {
           document.getElementById('frmIndicator').reset();
           document.getElementById('indicator_id').value = '';
           if (!superUser && ownDept) document.getElementById('department_id').value = ownDept;
@@ -262,32 +258,31 @@
         } : null;
       }
 
-      // 5) Edit/Delete (delegate with jQuery for DT rows)
-      $('#tblIndicators')
+      // Edit/Delete delegation (ប្រើ jq មិនប្រើ $)
+      jq('#tblIndicators')
         .off('click', '.btnEdit')
         .on('click', '.btnEdit', function () {
-          const row = dt.row($(this).closest('tr')).data();
+          const row = dt.row(jq(this).closest('tr')).data();
           const [id, name, type, deptName] = row;
 
           document.getElementById('indicator_id').value   = id;
           document.getElementById('indicator_name').value = name;
           document.getElementById('indicator_type').value = type;
 
-          const depSel = document.getElementById('department_id');
-          if (depSel) {
-            const opt = Array.from(depSel.options).find(o => o.textContent.trim() === String(deptName).trim());
-            depSel.value = opt ? opt.value : (superUser ? depSel.value : (ownDept || ''));
+          const sel = document.getElementById('department_id');
+          if (sel) {
+            const opt = Array.from(sel.options).find(o => o.textContent.trim() === String(deptName).trim());
+            sel.value = opt ? opt.value : (superUser ? sel.value : (ownDept || ''));
           }
           showModalById('mdlIndicator');
         });
 
-      $('#tblIndicators')
+      jq('#tblIndicators')
         .off('click', '.btnDel')
         .on('click', '.btnDel', async function () {
-          const row = dt.row($(this).closest('tr')).data();
+          const row = dt.row(jq(this).closest('tr')).data();
           const [id] = row;
           if (!canCreate) return;
-
           if (confirm('តើចង់លុបធាតុនេះមែនទេ?')) {
             try {
               await apiDelete('indicators', 'indicator_id', id);
@@ -298,7 +293,7 @@
           }
         });
 
-      // 6) Vanilla submit (ឆ្លើយតប Save)
+      // Vanilla submit
       attachSaveHandler({ token, superUser, ownDept, ownUnit });
 
     } catch (err) {
@@ -310,7 +305,7 @@
   function attachSaveHandler(ctx) {
     const form = document.getElementById('frmIndicator');
     if (!form) return;
-    form.onSubmitPatched?.(); // cleanup old handler
+    form.onSubmitPatched?.();
 
     const btnSave = form.querySelector('button[type="submit"]');
     const handler = async (e) => {
@@ -359,7 +354,7 @@
       : '';
   }
 
-  /* ===== Ensure route triggers init (បើ router មិនហៅ) ===== */
+  /* Ensure init runs even if router forgets */
   (function ensureInit(){
     const safeInit = () => (typeof window.initIndicators === 'function') && window.initIndicators();
     if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(safeInit, 0);
