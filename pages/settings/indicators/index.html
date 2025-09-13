@@ -1,11 +1,10 @@
-<!-- pages/settings/indicators/index.html -->
+<!-- pages/settings/indicators/index.html (SAFE, no jQuery/Datatables) -->
+ 
 <div class="container-page">
   <div class="breadcrumb">
     <h1 class="me-2 kh-head">សូចនាករ</h1>
     <ul>
-      <li><a href="#/">Dashboard</a></li>
-      <li>Settings</li>
-      <li>Indicators</li>
+      <li><a href="#/">Dashboard</a></li><li>Settings</li><li>Indicators</li>
     </ul>
   </div>
   <div class="separator-breadcrumb border-top"></div>
@@ -14,64 +13,58 @@
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="card-title kh-head m-0">បញ្ជីសូចនាករ</h4>
-        <button id="btnAdd" class="btn btn-primary btn-sm">
-          <i class="i-Add"></i> បន្ថែម
-        </button>
+        <button id="btnAdd" class="btn btn-primary btn-sm"><i class="i-Add"></i> បន្ថែម</button>
       </div>
 
       <div class="table-responsive">
-        <table id="tblIndicators" class="display table table-striped" style="width:100%">
+        <table class="table table-striped align-middle">
           <thead>
             <tr>
-              <th>ID</th>
+              <th style="width:80px">ID</th>
               <th>ឈ្មោះសូចនាករ</th>
-              <th>ប្រភេទ</th>
-              <th>នាយកដ្ឋាន</th>
-              <th style="width:120px;">សកម្មភាព</th>
+              <th style="width:160px">ប្រភេទ</th>
+              <th style="width:220px">នាយកដ្ឋាន</th>
+              <th style="width:160px; white-space:nowrap">សកម្មភាព</th>
             </tr>
           </thead>
-          <tbody></tbody>
+          <tbody id="tbodyIndicators"></tbody>
         </table>
       </div>
+
+      <div class="small text-muted" id="statusLine"></div>
     </div>
   </div>
 </div>
 
-<!-- Modal: Add/Edit -->
+<!-- Modal -->
 <div class="modal fade" id="mdlIndicator" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form id="frmIndicator" class="modal-content">
+    <form class="modal-content" id="frmIndicator" novalidate>
       <div class="modal-header">
         <h5 class="modal-title kh-head">ព័ត៌មានសូចនាករ</h5>
-        <!-- គ្រប់គ្រងបិទដោយ JS មួយចំណោម -->
         <button type="button" class="btn-close" id="btnCloseIndicator" aria-label="Close"></button>
       </div>
-
       <div class="modal-body">
         <input type="hidden" id="indicator_id" />
-
         <div class="mb-3">
           <label for="indicator_name" class="form-label">ឈ្មោះសូចនាករ <span class="text-danger">*</span></label>
           <input id="indicator_name" class="form-control" required />
+          <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះសូចនាករ</div>
         </div>
-
         <div class="mb-3">
           <label for="indicator_type" class="form-label">ប្រភេទ</label>
           <input id="indicator_type" class="form-control" placeholder="ឧ. Output / Outcome / Process …" />
         </div>
-
         <div class="mb-3">
           <label for="department_id" class="form-label">នាយកដ្ឋាន</label>
           <select id="department_id" class="form-select"></select>
           <div class="form-text">Non-super ត្រូវចាក់សោរ (ប្រើ department របស់ខ្លួនដោយស្វ័យប្រវត្តិ)។</div>
         </div>
-
         <input type="hidden" id="unit_id" />
       </div>
-
       <div class="modal-footer">
         <button class="btn btn-secondary" type="button" id="btnCancelIndicator">បោះបង់</button>
-        <button class="btn btn-primary" type="submit">រក្សាទុក</button>
+        <button class="btn btn-primary" type="submit" id="btnSave">រក្សាទុក</button>
       </div>
     </form>
   </div>
@@ -79,288 +72,253 @@
 
 <style>
   .container-page { max-width: 1100px; margin: 0 auto; }
-  #tblIndicators td:last-child { white-space: nowrap; }
+  .table td, .table th { vertical-align: middle; }
 </style>
 
-<script type="module">
-  /* ===== Imports ===== */
-  import { getAuth, isSuper } from '../../../assets/js/app.auth.js';
-  import { gasList, gasDelete } from '../../../assets/js/app.menu.js';
+<script>
+// ========================= CONFIG =========================
+import { GAS_BASE } from '../../../assets/js/config.js';
+window.GAS_BASE = GAS_BASE; // តែងតែមានជា global
 
-  // expose to router
-  window.initIndicators = initIndicators;
 
-  /* ===== DataTables guard ===== */
-  async function ensureDT(timeoutMs = 8000) {
-    const t0 = Date.now();
-    while (!(window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable)) {
-      if (Date.now() - t0 > timeoutMs) throw new Error('DataTables not loaded');
-      await new Promise(r => setTimeout(r, 80));
-    }
-  }
+function getAuth() {
+  try { return JSON.parse(localStorage.getItem('auth') || '{}'); }
+  catch { return {}; }
+}
+function isSuper(auth) { return String(auth?.role||'').toLowerCase() === 'super'; }
+function status(msg)   { document.getElementById('statusLine').textContent = msg || ''; }
 
-  /* ===== Modal helpers (single controller) ===== */
-  let __lastFocus = null;
-  const modalEl = document.getElementById('mdlIndicator');
-
-  function getBsModal(el){
-    return (window.bootstrap && bootstrap.Modal)
-      ? bootstrap.Modal.getOrCreateInstance(el, { backdrop:true, focus:true, keyboard:true })
-      : null;
-  }
-  function showModalById(id) {
-    const el = document.getElementById(id); if (!el) return;
-    __lastFocus = (document.activeElement instanceof HTMLElement) ? document.activeElement : null;
-    el.removeAttribute('aria-hidden'); el.setAttribute('role','dialog');
-    el.setAttribute('aria-modal','true'); el.setAttribute('tabindex','-1');
-    const inst = getBsModal(el); if (inst) inst.show(); else { el.style.display = 'block'; }
-    requestAnimationFrame(() => {
-      const f = el.querySelector('[autofocus], input, select, textarea, button, [href], [tabindex]:not([tabindex="-1"])');
-      (f || el).focus?.();
-    });
-  }
-  function hideModalById(id) {
-    const el = document.getElementById(id); if (!el) return;
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-    const inst = getBsModal(el); if (inst) inst.hide(); else { el.style.display = 'none'; }
-    requestAnimationFrame(() => { el.setAttribute('aria-hidden','true'); el.removeAttribute('aria-modal'); });
-    if (__lastFocus && typeof __lastFocus.focus === 'function') __lastFocus.focus();
-    __lastFocus = null;
-  }
-  document.getElementById('btnCloseIndicator')?.addEventListener('click', () => hideModalById('mdlIndicator'));
-  document.getElementById('btnCancelIndicator')?.addEventListener('click', () => hideModalById('mdlIndicator'));
-  document.addEventListener('focusin', (e) => {
-    if (modalEl && modalEl.contains(e.target) && modalEl.getAttribute('aria-hidden') === 'true') {
-      modalEl.removeAttribute('aria-hidden');
-    }
+// ========================= API (vanilla fetch) =========================
+async function apiList(table, params = {}) {
+  const token = getAuth()?.token || '';
+  const q = new URLSearchParams({ api:'1', route:table, op:'list', token, ...params }).toString();
+  const res = await fetch(`${window.GAS_BASE}?${q}`, { method: 'GET' });
+  const json = await res.json().catch(()=> ({}));
+  if (!res.ok || json?.error) throw new Error(json?.error || `HTTP ${res.status}`);
+  return json.rows || [];
+}
+async function apiUpsert(table, payload) {
+  const token = getAuth()?.token || '';
+  const res = await fetch(`${window.GAS_BASE}?api=1&route=${encodeURIComponent(table)}&op=upsert`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, // avoid preflight
+    body: JSON.stringify({ ...payload, token })
   });
-  // បិទ jQuery .modal លើ modal នេះ ដើម្បីកុំឲ្យប៉ះទង្គិច ARIA
-  if (window.jQuery && window.jQuery.fn && window.jQuery.fn.modal) {
-    const orig = window.jQuery.fn.modal;
-    window.jQuery.fn.modal = function(cmd){
-      if (this.is && this.is('#mdlIndicator')) {
-        console.warn('[patch] ignore jQuery.modal("%s") on #mdlIndicator', cmd);
-        return this;
-      }
-      return orig.apply(this, arguments);
-    };
+  const json = await res.json().catch(()=> ({}));
+  if (!res.ok || json?.error) throw new Error(json?.error || `HTTP ${res.status}`);
+  return json.row || json;
+}
+async function apiDelete(table, idField, id) {
+  const token = getAuth()?.token || '';
+  const q = new URLSearchParams({ api:'1', route:table, op:'delete', [idField]:id, token }).toString();
+  const res = await fetch(`${window.GAS_BASE}?${q}`, { method: 'POST' });
+  const json = await res.json().catch(()=> ({}));
+  if (!res.ok || json?.error) throw new Error(json?.error || `HTTP ${res.status}`);
+  return json;
+}
+
+// ========================= Modal (A11y-safe) =========================
+let __lastFocus = null;
+function getBsModal(el){
+  return (window.bootstrap && bootstrap.Modal)
+    ? bootstrap.Modal.getOrCreateInstance(el, { backdrop:true, keyboard:true, focus:true })
+    : null;
+}
+function showModalById(id){
+  const el = document.getElementById(id); if (!el) return;
+  __lastFocus = (document.activeElement instanceof HTMLElement) ? document.activeElement : null;
+  el.removeAttribute('aria-hidden'); el.setAttribute('role','dialog');
+  el.setAttribute('aria-modal','true'); el.setAttribute('tabindex','-1');
+  const m = getBsModal(el); if (m) m.show(); else el.style.display = 'block';
+  requestAnimationFrame(() => {
+    (el.querySelector('[autofocus], input, select, textarea, button') || el).focus?.();
+  });
+}
+function hideModalById(id){
+  const el = document.getElementById(id); if (!el) return;
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  const m = getBsModal(el); if (m) m.hide(); else el.style.display = 'none';
+  requestAnimationFrame(() => { el.setAttribute('aria-hidden','true'); el.removeAttribute('aria-modal'); });
+  if (__lastFocus?.focus) __lastFocus.focus();
+  __lastFocus = null;
+}
+document.getElementById('btnCloseIndicator').addEventListener('click', ()=> hideModalById('mdlIndicator'));
+document.getElementById('btnCancelIndicator').addEventListener('click', ()=> hideModalById('mdlIndicator'));
+document.addEventListener('focusin', e => {
+  const el = document.getElementById('mdlIndicator');
+  if (el && el.contains(e.target) && el.getAttribute('aria-hidden') === 'true') el.removeAttribute('aria-hidden');
+});
+
+// ========================= Page Logic =========================
+let CACHE = { departments: [], indicators: [] };
+
+function canEditRow(ind, auth){
+  if (isSuper(auth)) return true;
+  const isDE = String(auth?.role||'').toLowerCase() === 'dataentry';
+  return isDE && String(ind.department_id) === String(auth?.department_id);
+}
+
+function renderTable() {
+  const auth = getAuth();
+  const tbody = document.getElementById('tbodyIndicators');
+  tbody.innerHTML = '';
+  const rows = CACHE.indicators;
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+    return;
   }
-
-  /* ===== GAS upsert fallback ===== */
-  function getGASBase() {
-    const a = (window.APP && (APP.GAS_BASE || (APP.config && APP.config.GAS_BASE)));
-    return window.GAS_BASE || a || window.GAS_URL || '';
-  }
-  async function gasSaveFallback(table, payloadWithToken) {
-    const base = getGASBase();
-    if (!base) throw new Error('GAS_BASE not configured');
-    const url = `${base}?api=1&route=${encodeURIComponent(table)}&op=upsert`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: JSON.stringify(payloadWithToken)
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(()=> '');
-      throw new Error(`HTTP ${res.status} ${res.statusText}${text ? ' - ' + text : ''}`);
-    }
-    const json = await res.json();
-    if (json?.error) throw new Error(json.error);
-    return json?.row || json;
-  }
-  async function saveIndicator(payload, token) {
-    const withToken = { ...payload, token };
-    if (typeof window.gasSave === 'function') {
-      try {
-        const r = await window.gasSave('indicators', withToken);
-        if (r?.error) throw new Error(r.error);
-        return r;
-      } catch (e) {
-        console.warn('[gasSave] failed → fallback fetch', e);
-        return gasSaveFallback('indicators', withToken);
-      }
-    }
-    return gasSaveFallback('indicators', withToken);
-  }
-
-  /* ===== Page init ===== */
-  async function initIndicators() {
-    try {
-      document.body.removeAttribute('aria-hidden');
-
-      const tableEl = document.getElementById('tblIndicators');
-      const btnAdd  = document.getElementById('btnAdd');
-      if (!tableEl) return;
-
-      const auth       = getAuth();
-      const superUser  = isSuper(auth);
-      const ownDept    = auth?.department_id || null;
-      const ownUnit    = auth?.unit_id || null;
-      const token      = auth?.token || '';
-      const canCreate  = superUser || String(auth?.role||'').toLowerCase() === 'dataentry';
-
-      const apiList   = (table, params={}) => gasList(table, { ...params, token });
-      const apiDelete = (table, idField, id) => gasDelete(table, idField, id, token);
-
-      // Departments
-      const depSel = document.getElementById('department_id');
-      if (depSel) {
-        let depts = await apiList('departments').catch(() => []);
-        if (!superUser && ownDept) {
-          depts = depts.filter(d => String(d.department_id) === String(ownDept));
+  const deptMap = Object.fromEntries(CACHE.departments.map(d => [String(d.department_id), d.department_name]));
+  const frag = document.createDocumentFragment();
+  rows.forEach(ind => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${ind.indicator_id}</td>
+      <td>${ind.indicator_name}</td>
+      <td>${ind.indicator_type || ''}</td>
+      <td>${deptMap[String(ind.department_id)] || ''}</td>
+      <td>
+        ${canEditRow(ind, auth)
+          ? `<button class="btn btn-sm btn-warning me-2" data-act="edit" data-id="${ind.indicator_id}">កែ</button>
+             <button class="btn btn-sm btn-danger" data-act="del" data-id="${ind.indicator_id}">លុប</button>`
+          : `<span class="text-muted">—</span>`
         }
-        depSel.innerHTML =
-          `<option value="">— ជ្រើស —</option>` +
-          depts.map(d => `<option value="${d.department_id}">${d.department_name}</option>`).join('');
-        depSel.disabled = !superUser;
-        if (!superUser && ownDept) depSel.value = ownDept;
-      }
+      </td>`;
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+}
 
-      // Load data
-      let [indicators, departments] = await Promise.all([
-        apiList('indicators').catch(() => []),
-        apiList('departments').catch(() => [])
-      ]);
-      const deptMap = Object.fromEntries(departments.map(d => [String(d.department_id), d.department_name]));
-      if (!superUser && ownDept) {
-        indicators = indicators.filter(x => String(x.department_id) === String(ownDept));
-      }
+async function loadPage() {
+  try {
+    if (!window.GAS_BASE) throw new Error('មិនបានកំណត់ GAS_BASE');
+    status('កំពុងផ្ទុកទិន្នន័យ…');
+    const auth = getAuth();
+    const superUser = isSuper(auth);
+    // departments
+    let departments = await apiList('departments');
+    if (!superUser && auth?.department_id) {
+      departments = departments.filter(d => String(d.department_id) === String(auth.department_id));
+    }
+    // indicators
+    let indicators = await apiList('indicators');
+    if (!superUser && auth?.department_id) {
+      indicators = indicators.filter(x => String(x.department_id) === String(auth.department_id));
+    }
+    CACHE.departments = departments;
+    CACHE.indicators = indicators;
+    fillDepartmentSelect(departments, superUser ? '' : auth?.department_id);
+    renderTable();
+    applyRoleUI();
+    status(`បានផ្ទុក ${CACHE.indicators.length} សូចនាករ`);
+  } catch (err) {
+    console.error(err);
+    alert('បរាជ័យផ្ទុកទិន្នន័យ: ' + (err?.message || err));
+    status('បរាជ័យផ្ទុកទិន្នន័យ');
+  }
+}
 
-      // DataTables (ប្រើ window.jQuery ដោយផ្ទាល់—មិនប្រើ $)
-      await ensureDT();
-      const jq = window.jQuery;
-      const dt = jq(tableEl).DataTable({
-        destroy: true,
-        pageLength: 25,
-        lengthChange: false,
-        order: [[0, 'asc']]
-      });
-      dt.clear();
-      indicators.forEach(ind => {
-        dt.row.add([
-          ind.indicator_id,
-          ind.indicator_name,
-          ind.indicator_type || '',
-          deptMap[String(ind.department_id)] || '',
-          renderActions(ind, auth)
-        ]);
-      });
-      dt.draw();
+function fillDepartmentSelect(depts, value){
+  const sel = document.getElementById('department_id');
+  sel.innerHTML = `<option value="">— ជ្រើស —</option>` + depts.map(d =>
+    `<option value="${d.department_id}">${d.department_name}</option>`).join('');
+  if (value) sel.value = value;
+  sel.disabled = !isSuper(getAuth());
+}
 
-      // Add button
-      if (btnAdd) {
-        btnAdd.style.display = canCreate ? '' : 'none';
-        btnAdd.onclick = canCreate ? () => {
-          document.getElementById('frmIndicator').reset();
-          document.getElementById('indicator_id').value = '';
-          if (!superUser && ownDept) document.getElementById('department_id').value = ownDept;
-          showModalById('mdlIndicator');
-        } : null;
-      }
+function applyRoleUI(){
+  const auth = getAuth();
+  const canCreate = isSuper(auth) || String(auth?.role||'').toLowerCase() === 'dataentry';
+  document.getElementById('btnAdd').style.display = canCreate ? '' : 'none';
+}
 
-      // Edit/Delete delegation (ប្រើ jq មិនប្រើ $)
-      jq('#tblIndicators')
-        .off('click', '.btnEdit')
-        .on('click', '.btnEdit', function () {
-          const row = dt.row(jq(this).closest('tr')).data();
-          const [id, name, type, deptName] = row;
+// ========================= Events =========================
+document.getElementById('btnAdd').addEventListener('click', () => {
+  const auth = getAuth();
+  document.getElementById('frmIndicator').reset();
+  document.getElementById('indicator_id').value = '';
+  if (!isSuper(auth) && auth?.department_id) document.getElementById('department_id').value = auth.department_id;
+  showModalById('mdlIndicator');
+});
 
-          document.getElementById('indicator_id').value   = id;
-          document.getElementById('indicator_name').value = name;
-          document.getElementById('indicator_type').value = type;
+// delegate row buttons
+document.getElementById('tbodyIndicators').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const id = btn.getAttribute('data-id');
+  const act = btn.getAttribute('data-act');
+  const row = CACHE.indicators.find(x => String(x.indicator_id) === String(id));
+  if (!row) return;
 
-          const sel = document.getElementById('department_id');
-          if (sel) {
-            const opt = Array.from(sel.options).find(o => o.textContent.trim() === String(deptName).trim());
-            sel.value = opt ? opt.value : (superUser ? sel.value : (ownDept || ''));
-          }
-          showModalById('mdlIndicator');
-        });
-
-      jq('#tblIndicators')
-        .off('click', '.btnDel')
-        .on('click', '.btnDel', async function () {
-          const row = dt.row(jq(this).closest('tr')).data();
-          const [id] = row;
-          if (!canCreate) return;
-          if (confirm('តើចង់លុបធាតុនេះមែនទេ?')) {
-            try {
-              await apiDelete('indicators', 'indicator_id', id);
-              await initIndicators();
-            } catch (err) {
-              alert('បរាជ័យលុប: ' + (err?.message || err));
-            }
-          }
-        });
-
-      // Vanilla submit
-      attachSaveHandler({ token, superUser, ownDept, ownUnit });
-
+  if (act === 'edit') {
+    document.getElementById('indicator_id').value = row.indicator_id;
+    document.getElementById('indicator_name').value = row.indicator_name || '';
+    document.getElementById('indicator_type').value = row.indicator_type || '';
+    document.getElementById('department_id').value = row.department_id || '';
+    showModalById('mdlIndicator');
+  }
+  if (act === 'del') {
+    if (!confirm('តើចង់លុបធាតុនេះមែនទេ?')) return;
+    try {
+      await apiDelete('indicators', 'indicator_id', row.indicator_id);
+      CACHE.indicators = CACHE.indicators.filter(x => String(x.indicator_id) !== String(row.indicator_id));
+      renderTable();
+      status('លុបទិន្នន័យរួចរាល់');
     } catch (err) {
-      console.error('[Indicators] init failed:', err);
-      alert('មិនអាចផ្ទុកទំព័រ Indicators: ' + (err?.message || err));
+      console.error(err);
+      alert('បរាជ័យលុប: ' + (err?.message || err));
     }
   }
+});
 
-  function attachSaveHandler(ctx) {
-    const form = document.getElementById('frmIndicator');
-    if (!form) return;
-    form.onSubmitPatched?.();
+// form submit
+document.getElementById('frmIndicator').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('btnSave');
 
-    const btnSave = form.querySelector('button[type="submit"]');
-    const handler = async (e) => {
-      e.preventDefault();
-      const { token, superUser, ownDept, ownUnit } = ctx || {};
-
-      const payload = {
-        indicator_id   : document.getElementById('indicator_id')?.value || null,
-        indicator_name : (document.getElementById('indicator_name')?.value || '').trim(),
-        indicator_type : (document.getElementById('indicator_type')?.value || '').trim(),
-        department_id  : superUser ? (document.getElementById('department_id')?.value || '') : (ownDept || ''),
-        unit_id        : ownUnit || null
-      };
-      if (!payload.indicator_name) {
-        alert('សូមបញ្ចូល ឈ្មោះសូចនាករ');
-        document.getElementById('indicator_name')?.focus();
-        return;
-      }
-
-      const oldHtml = btnSave ? btnSave.innerHTML : '';
-      if (btnSave) { btnSave.disabled = true; btnSave.innerHTML = 'កំពុងរក្សាទុក…'; }
-
-      try {
-        await saveIndicator(payload, token);
-        hideModalById('mdlIndicator');
-        await window.initIndicators?.();
-      } catch (err) {
-        console.error('[Save indicator] failed:', err);
-        alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
-      } finally {
-        if (btnSave) { btnSave.disabled = false; btnSave.innerHTML = oldHtml; }
-      }
-    };
-
-    form.addEventListener('submit', handler);
-    form.onSubmitPatched = () => form.removeEventListener('submit', handler);
+  const auth = getAuth();
+  const superUser = isSuper(auth);
+  const payload = {
+    indicator_id   : document.getElementById('indicator_id').value || null,
+    indicator_name : document.getElementById('indicator_name').value.trim(),
+    indicator_type : document.getElementById('indicator_type').value.trim(),
+    department_id  : superUser ? document.getElementById('department_id').value : (auth?.department_id || ''),
+    unit_id        : auth?.unit_id || null
+  };
+  if (!payload.indicator_name) {
+    document.getElementById('indicator_name').classList.add('is-invalid');
+    document.getElementById('indicator_name').focus();
+    return;
+  } else {
+    document.getElementById('indicator_name').classList.remove('is-invalid');
   }
 
-  function renderActions(ind, auth) {
-    const can = isSuper(auth)
-      || (String(auth?.role||'').toLowerCase() === 'dataentry'
-          && String(ind.department_id) === String(auth?.department_id));
-    return can
-      ? `<button class="btn btn-sm btn-warning btnEdit">កែ</button>
-         <button class="btn btn-sm btn-danger btnDel">លុប</button>`
-      : '';
+  const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'កំពុងរក្សាទុក…';
+  try {
+    const row = await apiUpsert('indicators', payload);
+    // update cache
+    const idx = CACHE.indicators.findIndex(x => String(x.indicator_id) === String(row.indicator_id));
+    if (idx >= 0) CACHE.indicators[idx] = row; else CACHE.indicators.push(row);
+    renderTable();
+    hideModalById('mdlIndicator');
+    status('រក្សាទុករួចរាល់');
+  } catch (err) {
+    console.error(err);
+    alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
+  } finally {
+    btn.disabled = false; btn.innerHTML = old;
   }
+});
 
-  /* Ensure init runs even if router forgets */
-  (function ensureInit(){
-    const safeInit = () => (typeof window.initIndicators === 'function') && window.initIndicators();
-    if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(safeInit, 0);
-    else document.addEventListener('DOMContentLoaded', safeInit);
-    window.addEventListener('hashchange', () => {
-      if (location.hash.replace('#','') === '/settings/indicators') safeInit();
-    });
-  })();
+// auto-init (even if router forgets)
+(function ensureInit(){
+  const go = () => loadPage();
+  if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(go, 0);
+  else document.addEventListener('DOMContentLoaded', go);
+  window.addEventListener('hashchange', () => {
+    if (location.hash.replace('#','') === '/settings/indicators') loadPage();
+  });
+})();
 </script>
+
+<!-- Bootstrap 5 bundle (required for modal JS) -->
+<script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
