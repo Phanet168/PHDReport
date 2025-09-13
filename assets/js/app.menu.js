@@ -1,95 +1,114 @@
 // assets/js/app.menu.js
+// ------------------------------------------------------------
+// Client helpers for GAS API + Menus (role-aware)
+// ------------------------------------------------------------
 import { GAS_BASE } from './config.js';
 import { getAuth, isSuper } from './app.auth.js';
-//import { getAuth } from './app.auth.js';
 
-/* Save (Add/Update) via op=upsert */
+/* ============================================================
+ * Constants
+ * ========================================================== */
+const ID_FIELDS = {
+  users: 'user_id',
+  departments: 'department_id',
+  units: 'unit_id',
+  periods: 'period_id',
+  indicators: 'indicator_id',
+  reports: 'report_id',
+  issues: 'issues_id',
+  actions: 'action_id',
+};
+
+/* ============================================================
+ * Shared fetch helpers
+ * ========================================================== */
+// GET list
+export async function gasList(route, params = {}) {
+  const u = new URL(GAS_BASE);
+  u.searchParams.set('api', '1');
+  u.searchParams.set('route', route);
+  u.searchParams.set('op', 'list');
+
+  // append query params
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, v);
+  });
+
+  // include token if available (server will use it for ACL on indicators/reports)
+  const auth = getAuth();
+  if (auth?.token) u.searchParams.set('token', auth.token);
+
+  const r = await fetch(u, { cache: 'no-store' });
+  const txt = await r.text();
+  try {
+    const j = JSON.parse(txt || '{}');
+    if (j.error) throw new Error(j.error);
+    // server returns { rows, total, ... } OR []
+    if (Array.isArray(j)) return j;
+    if (Array.isArray(j.rows)) return j.rows;
+    return [];
+  } catch (e) {
+    console.error('gasList parse error:', e, 'raw:', txt);
+     // return empty array to avoid breaking UI
+    return [];
+  }
+}
+
+// UPSERT (Add/Update)
 export async function gasSave(route, data) {
   const u = new URL(GAS_BASE);
   u.searchParams.set('api', '1');
   u.searchParams.set('route', route);
   u.searchParams.set('op', 'upsert');
 
-  // ផ្ញើ token ទៅ server ដើម្បី backend អាចកំណត់សិទ្ធិ
+  // attach token for ACL
   const auth = getAuth();
   const payload = { ...data, token: auth?.token || '' };
 
   const r = await fetch(u, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' }, // ងាយស្រួល debug
-    body: JSON.stringify(payload)
-  });
-  const txt = await r.text();
-  const j = JSON.parse(txt || '{}');
-  if (j.error) throw new Error(j.error);
-  return j;
-}
-
-/* Delete via op=delete — ត្រូវបញ្ជាក់ idField ត្រឹមត្រូវ */
-export async function gasDelete(route, idField, id) {
-  const u = new URL(GAS_BASE);
-  u.searchParams.set('api', '1');
-  u.searchParams.set('route', route);
-  u.searchParams.set('op', 'delete');
-
-  // id field តាមតារាង (ឧ. indicator_id)
-  u.searchParams.set(idField, id);
-
-  // ផ្ញើ token
-  const auth = getAuth();
-  if (auth?.token) u.searchParams.set('token', auth.token);
-
-  const r = await fetch(u);
-  const txt = await r.text();
-  const j = JSON.parse(txt || '{}');
-  if (j.error) throw new Error(j.error);
-  return j;
-}
-
-/* ------------------ Save (Add/Update) ------------------ */
-export async function gasSave(route, data) {
-  const u = new URL(GAS_BASE);
-  u.searchParams.set('api', '1');
-  u.searchParams.set('route', route);
-  u.searchParams.set('op', 'save');
-
-  const r = await fetch(u, {
-    method: 'POST',
-    body: JSON.stringify(data),
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' }, // ok (server accepts json/text)
+    body: JSON.stringify(payload),
   });
   const txt = await r.text();
   try {
-    const j = JSON.parse(txt);
+    const j = JSON.parse(txt || '{}');
     if (j.error) throw new Error(j.error);
-    return j;
+    return j; // { row: {...} }
   } catch (e) {
     console.error('gasSave parse error:', e, 'raw:', txt);
     throw e;
   }
 }
 
-/* ------------------ Delete ------------------ */
+// DELETE (id by proper field name)
 export async function gasDelete(route, id) {
+  const idField = ID_FIELDS[route] || 'id';
   const u = new URL(GAS_BASE);
   u.searchParams.set('api', '1');
   u.searchParams.set('route', route);
   u.searchParams.set('op', 'delete');
-  u.searchParams.set('id', id);
+  u.searchParams.set(idField, id);
 
-  const r = await fetch(u);
+  // include token for ACL
+  const auth = getAuth();
+  if (auth?.token) u.searchParams.set('token', auth.token);
+
+  const r = await fetch(u, { cache: 'no-store' });
   const txt = await r.text();
   try {
-    const j = JSON.parse(txt);
+    const j = JSON.parse(txt || '{}');
     if (j.error) throw new Error(j.error);
-    return j;
+    return j; // { ok:true }
   } catch (e) {
     console.error('gasDelete parse error:', e, 'raw:', txt);
     throw e;
   }
 }
 
-/* ------------------ Role helpers ------------------ */
+/* ============================================================
+ * Role helpers
+ * ========================================================== */
 function isDataEntry(auth) {
   const role = String(auth?.role || '').toLowerCase();
   if (role === 'dataentry' || role === 'data_entry') return true;
@@ -99,7 +118,10 @@ function isDataEntry(auth) {
   return false;
 }
 
-/* ------------------ Departments/Units submenu ------------------ */
+/* ============================================================
+ * Menus
+ * ========================================================== */
+// Departments/Units submenu (role filtered)
 export async function buildDeptMenu(targetUlId = 'deptMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
@@ -111,11 +133,10 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
   `;
 
   const auth = getAuth();
-
   try {
     let depts = await gasList('departments');
 
-    // Non-super: មើលតែ department របស់ខ្លួន
+    // Non-super: restrict to own department (if present)
     if (!isSuper(auth) && auth?.department_id) {
       depts = depts.filter(d => String(d.department_id) === String(auth.department_id));
     }
@@ -124,21 +145,19 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
       box.innerHTML = `
         <li class="nav-item">
           <a href="#"><span class="item-name text-muted">គ្មានទិន្នន័យ</span></a>
-        </li>
-      `;
+        </li>`;
       return;
     }
 
-    // ទាញ units រួមៗ
+    // fetch units per dept (in parallel)
     const results = await Promise.all(
       depts.map(async d => {
         let units = await gasList('units', { department_id: d.department_id });
 
-        // Non-super: បើមាន unit_id ក៏ filter units ផង
+        // Non-super: restrict to own unit too (if present)
         if (!isSuper(auth) && auth?.unit_id) {
           units = units.filter(u => String(u.unit_id) === String(auth.unit_id));
         }
-
         return { dept: d, units };
       })
     );
@@ -152,13 +171,11 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
           </a>
         </li>
       `);
-
       if (!units.length) {
         parts.push(`
           <li class="nav-item">
             <a href="#"><span class="item-name text-muted ps-4">— គ្មានផ្នែក</span></a>
-          </li>
-        `);
+          </li>`);
       } else {
         for (const u of units) {
           parts.push(`
@@ -172,39 +189,41 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
         }
       }
     }
-
     box.innerHTML = parts.join('');
   } catch (err) {
     console.error('buildDeptMenu failed:', err);
     box.innerHTML = `
       <li class="nav-item">
         <a href="#"><span class="item-name text-danger">បរាជ័យ៖ ${err.message}</span></a>
-      </li>
-    `;
+      </li>`;
   }
 }
 
-/* ------------------ Settings submenu (role-aware) ------------------ */
+// Settings submenu (role-aware)
 export async function buildSettingsMenu(targetUlId = 'settingsMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
 
   const auth = getAuth();
-
-  const itemsAll = [
-    { key: 'indicators',  label: 'សូចនាករ',  icon: 'i-Bar-Chart', href: '#/settings/indicators' },
-    { key: 'departments', label: 'នាយកដ្ឋាន', icon: 'i-Building',  href: '#/settings/departments' },
-    { key: 'units',       label: 'ផ្នែក',     icon: 'i-Right',     href: '#/settings/units' },
-    { key: 'periods',     label: 'រយៈពេល',   icon: 'i-Calendar',  href: '#/settings/periods' },
+  const ITEMS = [
+    { key: 'indicators',  label: 'សូចនាករ',   icon: 'i-Bar-Chart', href: '#/settings/indicators' },
+    { key: 'departments', label: 'នាយកដ្ឋាន',  icon: 'i-Building',  href: '#/settings/departments' },
+    { key: 'units',       label: 'ផ្នែក',      icon: 'i-Right',     href: '#/settings/units' },
+    { key: 'periods',     label: 'រយៈពេល',    icon: 'i-Calendar',  href: '#/settings/periods' },
   ];
 
   let visible = [];
-  if (isSuper(auth)) visible = itemsAll;                         // Super → ទាំងអស់
-  else if (isDataEntry(auth)) visible = itemsAll.filter(x => x.key === 'indicators'); // DataEntry → តែ Indicators
-  else visible = itemsAll.filter(x => x.key === 'indicators');   // Default → តែ Indicators
+  if (isSuper(auth)) {
+    visible = ITEMS;                       // Super → all
+  } else if (isDataEntry(auth)) {
+    visible = ITEMS.filter(x => x.key === 'indicators'); // Data entry → only indicators
+  } else {
+    visible = ITEMS.filter(x => x.key === 'indicators'); // Default fallback
+  }
 
   if (!visible.length) {
-    box.innerHTML = `<li><span class="item-name text-muted">គ្មានសិទ្ធិ</span></li>`;
+    box.innerHTML = `<li class="nav-item">
+      <span class="item-name text-muted">គ្មានសិទ្ធិ</span></li>`;
     return;
   }
 
@@ -217,7 +236,3 @@ export async function buildSettingsMenu(targetUlId = 'settingsMenu') {
     </li>
   `).join('');
 }
-
-
-
-
