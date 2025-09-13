@@ -22,19 +22,20 @@ const ID_FIELDS = {
 /* ============================================================
  * Shared fetch helpers
  * ========================================================== */
-// GET list
+
+/** GET list (auto-attaches token for server-side ACL) */
 export async function gasList(route, params = {}) {
   const u = new URL(GAS_BASE);
   u.searchParams.set('api', '1');
   u.searchParams.set('route', route);
   u.searchParams.set('op', 'list');
 
-  // append query params
+  // attach filters
   Object.entries(params).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, v);
   });
 
-  // include token if available (server will use it for ACL on indicators/reports)
+  // attach token
   const auth = getAuth();
   if (auth?.token) u.searchParams.set('token', auth.token);
 
@@ -43,18 +44,18 @@ export async function gasList(route, params = {}) {
   try {
     const j = JSON.parse(txt || '{}');
     if (j.error) throw new Error(j.error);
-    // server returns { rows, total, ... } OR []
+    // server may return { rows, total, ... } or []
     if (Array.isArray(j)) return j;
     if (Array.isArray(j.rows)) return j.rows;
     return [];
   } catch (e) {
-    console.error('gasList parse error:', e, 'raw:', txt);
-     // return empty array to avoid breaking UI
+    console.error('[gasList] parse error:', e, 'raw:', txt);
+    // avoid breaking UI
     return [];
   }
 }
 
-// UPSERT (Add/Update)
+/** UPSERT (Add/Update) -> op=upsert + token */
 export async function gasSave(route, data) {
   const u = new URL(GAS_BASE);
   u.searchParams.set('api', '1');
@@ -67,7 +68,7 @@ export async function gasSave(route, data) {
 
   const r = await fetch(u, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' }, // ok (server accepts json/text)
+    headers: { 'Content-Type': 'application/json' }, // server accepts json/text
     body: JSON.stringify(payload),
   });
   const txt = await r.text();
@@ -76,21 +77,22 @@ export async function gasSave(route, data) {
     if (j.error) throw new Error(j.error);
     return j; // { row: {...} }
   } catch (e) {
-    console.error('gasSave parse error:', e, 'raw:', txt);
+    console.error('[gasSave] parse error:', e, 'raw:', txt);
     throw e;
   }
 }
 
-// DELETE (id by proper field name)
-export async function gasDelete(route, id) {
-  const idField = ID_FIELDS[route] || 'id';
+/** DELETE -> you MUST pass the correct idField name (e.g. 'indicator_id') */
+export async function gasDelete(route, idField, idVal) {
   const u = new URL(GAS_BASE);
   u.searchParams.set('api', '1');
   u.searchParams.set('route', route);
   u.searchParams.set('op', 'delete');
-  u.searchParams.set(idField, id);
 
-  // include token for ACL
+  // IMPORTANT: server expects ?<idField>=<idVal> (not ?id=)
+  u.searchParams.set(idField || ID_FIELDS[route] || 'id', idVal);
+
+  // attach token for ACL
   const auth = getAuth();
   if (auth?.token) u.searchParams.set('token', auth.token);
 
@@ -99,9 +101,9 @@ export async function gasDelete(route, id) {
   try {
     const j = JSON.parse(txt || '{}');
     if (j.error) throw new Error(j.error);
-    return j; // { ok:true }
+    return j; // { ok: true }
   } catch (e) {
-    console.error('gasDelete parse error:', e, 'raw:', txt);
+    console.error('[gasDelete] parse error:', e, 'raw:', txt);
     throw e;
   }
 }
@@ -121,7 +123,8 @@ function isDataEntry(auth) {
 /* ============================================================
  * Menus
  * ========================================================== */
-// Departments/Units submenu (role filtered)
+
+/** Departments/Units submenu (role filtered) */
 export async function buildDeptMenu(targetUlId = 'deptMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
@@ -199,7 +202,7 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
   }
 }
 
-// Settings submenu (role-aware)
+/** Settings submenu (role-aware) */
 export async function buildSettingsMenu(targetUlId = 'settingsMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
@@ -216,9 +219,9 @@ export async function buildSettingsMenu(targetUlId = 'settingsMenu') {
   if (isSuper(auth)) {
     visible = ITEMS;                       // Super → all
   } else if (isDataEntry(auth)) {
-    visible = ITEMS.filter(x => x.key === 'indicators'); // Data entry → only indicators
+    visible = ITEMS.filter(x => x.key === 'indicators'); // DataEntry → only indicators
   } else {
-    visible = ITEMS.filter(x => x.key === 'indicators'); // Default fallback
+    visible = ITEMS.filter(x => x.key === 'indicators'); // Fallback
   }
 
   if (!visible.length) {
