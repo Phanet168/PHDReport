@@ -16,7 +16,6 @@
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="card-title kh-head m-0">បញ្ជីសូចនាករ</h4>
-        <!-- ប៊ូតុងនេះ JS នឹងលាក់បើគ្មានសិទ្ធិ -->
         <button id="btnAdd" class="btn btn-primary btn-sm">
           <i class="i-Add"></i> បន្ថែម
         </button>
@@ -46,7 +45,8 @@
     <form id="frmIndicator" class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title kh-head">ព័ត៌មានសូចនាករ</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <!-- មិនប្រើ data-bs-dismiss → គ្រប់គ្រងតាម JS ដូចខាងក្រោម -->
+        <button type="button" class="btn-close" id="btnCloseIndicator" aria-label="Close"></button>
       </div>
 
       <div class="modal-body">
@@ -72,7 +72,7 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
+        <button class="btn btn-secondary" type="button" id="btnCancelIndicator">បោះបង់</button>
         <button class="btn btn-primary" type="submit">រក្សាទុក</button>
       </div>
     </form>
@@ -85,15 +85,112 @@
 </style>
 
 <script type="module">
-  // សំខាន់៖ ប្រើ relative paths (កុំប្រើ '/assets/...')
-  import { getAuth, isSuper } from './assets/js/app.auth.js';
-  import { gasList, gasSave, gasDelete } from './assets/js/app.menu.js';
+  /* ===== Imports (relative from pages/settings/indicators/) ===== */
+  import { getAuth, isSuper } from '../../../assets/js/app.auth.js';
+  import { gasList, gasDelete } from '../../../assets/js/app.menu.js';
+  // កំណត់៖ gasSave ដើមអាចមាន/អាចគ្មាន → ខាងក្រោមមាន fallback fetch
 
-  // expose function សម្រាប់ router នៅ index.html
+  // expose init to router
   window.initIndicators = initIndicators;
 
+  /* ===== DataTables guard ===== */
+  async function ensureDT(timeoutMs = 8000) {
+    const t0 = Date.now();
+    while (!(window.jQuery && jQuery.fn && jQuery.fn.DataTable)) {
+      if (Date.now() - t0 > timeoutMs) throw new Error('DataTables not loaded');
+      await new Promise(r => setTimeout(r, 80));
+    }
+  }
+
+  /* ===== A11y-safe modal helpers (controller តែមួយ) ===== */
+  let __lastFocus = null;
+  const modalEl = document.getElementById('mdlIndicator');
+  function getBsModal(el){
+    return (window.bootstrap && bootstrap.Modal)
+      ? bootstrap.Modal.getOrCreateInstance(el, { backdrop:true, focus:true, keyboard:true })
+      : null;
+  }
+  function showModalById(id) {
+    const el = document.getElementById(id); if (!el) return;
+    __lastFocus = (document.activeElement instanceof HTMLElement) ? document.activeElement : null;
+    el.removeAttribute('aria-hidden'); el.setAttribute('role','dialog');
+    el.setAttribute('aria-modal','true'); el.setAttribute('tabindex','-1');
+    const inst = getBsModal(el); if (inst) inst.show(); else { el.style.display = 'block'; }
+    requestAnimationFrame(() => {
+      const f = el.querySelector('[autofocus], input, select, textarea, button, [href], [tabindex]:not([tabindex="-1"])');
+      (f || el).focus?.();
+    });
+  }
+  function hideModalById(id) {
+    const el = document.getElementById(id); if (!el) return;
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    const inst = getBsModal(el); if (inst) inst.hide(); else { el.style.display = 'none'; }
+    requestAnimationFrame(() => { el.setAttribute('aria-hidden','true'); el.removeAttribute('aria-modal'); });
+    if (__lastFocus && typeof __lastFocus.focus === 'function') __lastFocus.focus();
+    __lastFocus = null;
+  }
+  document.getElementById('btnCloseIndicator')?.addEventListener('click', () => hideModalById('mdlIndicator'));
+  document.getElementById('btnCancelIndicator')?.addEventListener('click', () => hideModalById('mdlIndicator'));
+  document.addEventListener('focusin', (e) => {
+    if (modalEl && modalEl.contains(e.target) && modalEl.getAttribute('aria-hidden') === 'true') {
+      modalEl.removeAttribute('aria-hidden');
+    }
+  });
+  // កុំឲ្យ jQuery .modal គ្រប់គ្រង modal នេះ (កុំប៉ះ aria-hidden)
+  if (window.jQuery && jQuery.fn && jQuery.fn.modal) {
+    const orig = jQuery.fn.modal;
+    jQuery.fn.modal = function(cmd){
+      if (this.is && this.is('#mdlIndicator')) {
+        console.warn('[patch] ignore jQuery.modal("%s") on #mdlIndicator', cmd);
+        return this;
+      }
+      return orig.apply(this, arguments);
+    };
+  }
+
+  /* ===== GAS upsert fallback (text/plain, with token) ===== */
+  function getGASBase() {
+    const a = (window.APP && (APP.GAS_BASE || (APP.config && APP.config.GAS_BASE)));
+    return window.GAS_BASE || a || window.GAS_URL || '';
+  }
+  async function gasSaveFallback(table, payloadWithToken) {
+    const base = getGASBase();
+    if (!base) throw new Error('GAS_BASE not configured');
+    const url = `${base}?api=1&route=${encodeURIComponent(table)}&op=upsert`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, // ជៀស preflight
+      body: JSON.stringify(payloadWithToken)
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(()=> '');
+      throw new Error(`HTTP ${res.status} ${res.statusText}${text ? ' - ' + text : ''}`);
+    }
+    const json = await res.json();
+    if (json?.error) throw new Error(json.error);
+    return json?.row || json;
+  }
+  async function saveIndicator(payload, token) {
+    const withToken = { ...payload, token };
+    if (typeof window.gasSave === 'function') {
+      try {
+        const r = await window.gasSave('indicators', withToken);
+        if (r?.error) throw new Error(r.error);
+        return r;
+      } catch (e) {
+        console.warn('[gasSave] failed → fallback fetch', e);
+        return gasSaveFallback('indicators', withToken);
+      }
+    }
+    return gasSaveFallback('indicators', withToken);
+  }
+
+  /* ===== Page init ===== */
   async function initIndicators() {
     try {
+      // clear any stray aria-hidden
+      document.body.removeAttribute('aria-hidden');
+
       const $table = document.querySelector('#tblIndicators');
       const $btnAdd = document.getElementById('btnAdd');
       if (!$table) return;
@@ -102,128 +199,156 @@
       const superUser  = isSuper(auth);
       const ownDept    = auth?.department_id || null;
       const ownUnit    = auth?.unit_id || null;
+      const token      = auth?.token || '';
       const canCreate  = superUser || String(auth?.role||'').toLowerCase() === 'dataentry';
 
-      // 1) Departments (Super = ជ្រើសបាន / Non-super = ចាក់សោរ)
+      // list/delete wrappers
+      const apiList   = (table, params={}) => gasList(table, { ...params, token });
+      const apiDelete = (table, idField, id) => gasDelete(table, idField, id, token);
+
+      // 1) Departments
       const $depSel = document.getElementById('department_id');
       if ($depSel) {
-        let depts = await gasList('departments').catch(() => []);
+        let depts = await apiList('departments').catch(() => []);
         if (!superUser && ownDept) {
           depts = depts.filter(d => String(d.department_id) === String(ownDept));
         }
         $depSel.innerHTML =
           `<option value="">— ជ្រើស —</option>` +
-          depts.map(d => `<option value="\${d.department_id}">\${d.department_name}</option>`).join('');
+          depts.map(d => `<option value="${d.department_id}">${d.department_name}</option>`).join('');
         $depSel.disabled = !superUser;
         if (!superUser && ownDept) $depSel.value = ownDept;
       }
 
       // 2) Load data
       let [indicators, departments] = await Promise.all([
-        gasList('indicators').catch(() => []),
-        gasList('departments').catch(() => [])
+        apiList('indicators').catch(() => []),
+        apiList('departments').catch(() => [])
       ]);
-      const deptMap = Object.fromEntries(departments.map(d => [d.department_id, d.department_name]));
-
-      // Non-super: filter តែនាយកដ្ឋានខ្លួន
+      const deptMap = Object.fromEntries(departments.map(d => [String(d.department_id), d.department_name]));
       if (!superUser && ownDept) {
         indicators = indicators.filter(x => String(x.department_id) === String(ownDept));
       }
 
-      // 3) DataTable (re-init safely)
+      // 3) DataTable
+      await ensureDT();
       const $ = window.jQuery;
-      const dt = $ ? $( $table ).DataTable({ destroy: true }) : null;
-      if (!dt) return;
-
+      const dt = $( $table ).DataTable({
+        destroy: true,
+        pageLength: 25,
+        lengthChange: false,
+        order: [[0, 'asc']]
+      });
       dt.clear();
       indicators.forEach(ind => {
         dt.row.add([
           ind.indicator_id,
           ind.indicator_name,
           ind.indicator_type || '',
-          deptMap[ind.department_id] || '',
+          deptMap[String(ind.department_id)] || '',
           renderActions(ind, auth)
         ]);
       });
       dt.draw();
 
-      // 4) Add button (role-aware)
+      // 4) Add button
       if ($btnAdd) {
         $btnAdd.style.display = canCreate ? '' : 'none';
         $btnAdd.onclick = canCreate ? () => {
           document.getElementById('frmIndicator').reset();
           document.getElementById('indicator_id').value = '';
           if (!superUser && ownDept) document.getElementById('department_id').value = ownDept;
-          $('#mdlIndicator').modal('show');
+          showModalById('mdlIndicator');
         } : null;
       }
 
-      // 5) Submit (Add/Update)
-      $('#frmIndicator').off('submit').on('submit', async (e) => {
-        e.preventDefault();
-        if (!canCreate) return;
-
-        const payload = {
-          indicator_id   : document.getElementById('indicator_id').value || null,
-          indicator_name : document.getElementById('indicator_name').value.trim(),
-          indicator_type : document.getElementById('indicator_type').value.trim(),
-          department_id  : superUser ? document.getElementById('department_id').value : ownDept,
-          unit_id        : ownUnit || null
-        };
-        if (!payload.indicator_name) {
-          alert('សូមបញ្ចូល ឈ្មោះសូចនាករ');
-          return;
-        }
-
-        try {
-          await gasSave('indicators', payload);     // server: op=upsert (+token)
-          $('#mdlIndicator').modal('hide');
-          await initIndicators();                   // reload table
-        } catch (err) {
-          alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
-        }
-      });
-
-      // 6) Edit/Delete (delegate events)
+      // 5) Edit/Delete (delegate with jQuery for DT rows)
       $('#tblIndicators')
         .off('click', '.btnEdit')
         .on('click', '.btnEdit', function () {
           const row = dt.row($(this).closest('tr')).data();
           const [id, name, type, deptName] = row;
-          if (!canEditRow(auth, deptName, deptMap)) return;
 
           document.getElementById('indicator_id').value   = id;
           document.getElementById('indicator_name').value = name;
           document.getElementById('indicator_type').value = type;
-          const depId = findDeptIdByName(deptName, deptMap) || ownDept || '';
-          document.getElementById('department_id').value  = depId;
 
-          $('#mdlIndicator').modal('show');
+          const depSel = document.getElementById('department_id');
+          if (depSel) {
+            const opt = Array.from(depSel.options).find(o => o.textContent.trim() === String(deptName).trim());
+            depSel.value = opt ? opt.value : (superUser ? depSel.value : (ownDept || ''));
+          }
+          showModalById('mdlIndicator');
         });
 
       $('#tblIndicators')
         .off('click', '.btnDel')
         .on('click', '.btnDel', async function () {
           const row = dt.row($(this).closest('tr')).data();
-          const [id, , , deptName] = row;
-          if (!canCreate || !canEditRow(auth, deptName, deptMap)) return;
+          const [id] = row;
+          if (!canCreate) return;
 
           if (confirm('តើចង់លុបធាតុនេះមែនទេ?')) {
             try {
-              await gasDelete('indicators', 'indicator_id', id); // server: ?indicator_id=...
+              await apiDelete('indicators', 'indicator_id', id);
               await initIndicators();
             } catch (err) {
               alert('បរាជ័យលុប: ' + (err?.message || err));
             }
           }
         });
+
+      // 6) Vanilla submit (ឆ្លើយតប Save)
+      attachSaveHandler({ token, superUser, ownDept, ownUnit });
+
     } catch (err) {
       console.error('[Indicators] init failed:', err);
       alert('មិនអាចផ្ទុកទំព័រ Indicators: ' + (err?.message || err));
     }
   }
 
-  /* ===== Helpers ===== */
+  function attachSaveHandler(ctx) {
+    const form = document.getElementById('frmIndicator');
+    if (!form) return;
+    form.onSubmitPatched?.(); // cleanup old handler
+
+    const btnSave = form.querySelector('button[type="submit"]');
+    const handler = async (e) => {
+      e.preventDefault();
+      const { token, superUser, ownDept, ownUnit } = ctx || {};
+
+      const payload = {
+        indicator_id   : document.getElementById('indicator_id')?.value || null,
+        indicator_name : (document.getElementById('indicator_name')?.value || '').trim(),
+        indicator_type : (document.getElementById('indicator_type')?.value || '').trim(),
+        department_id  : superUser ? (document.getElementById('department_id')?.value || '') : (ownDept || ''),
+        unit_id        : ownUnit || null
+      };
+      if (!payload.indicator_name) {
+        alert('សូមបញ្ចូល ឈ្មោះសូចនាករ');
+        document.getElementById('indicator_name')?.focus();
+        return;
+      }
+
+      const oldHtml = btnSave ? btnSave.innerHTML : '';
+      if (btnSave) { btnSave.disabled = true; btnSave.innerHTML = 'កំពុងរក្សាទុក…'; }
+
+      try {
+        await saveIndicator(payload, token);
+        hideModalById('mdlIndicator');
+        await window.initIndicators?.();
+      } catch (err) {
+        console.error('[Save indicator] failed:', err);
+        alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
+      } finally {
+        if (btnSave) { btnSave.disabled = false; btnSave.innerHTML = oldHtml; }
+      }
+    };
+
+    form.addEventListener('submit', handler);
+    form.onSubmitPatched = () => form.removeEventListener('submit', handler);
+  }
+
   function renderActions(ind, auth) {
     const can = isSuper(auth)
       || (String(auth?.role||'').toLowerCase() === 'dataentry'
@@ -234,16 +359,13 @@
       : '';
   }
 
-  function canEditRow(auth, deptName, map) {
-    if (isSuper(auth)) return true;
-    const isDE = String(auth?.role||'').toLowerCase() === 'dataentry';
-    if (!isDE) return false;
-    const depId = findDeptIdByName(deptName, map);
-    return String(depId) === String(auth?.department_id);
-  }
-
-  function findDeptIdByName(name, map) {
-    const pair = Object.entries(map).find(([, v]) => v === name);
-    return pair ? pair[0] : null;
-  }
+  /* ===== Ensure route triggers init (បើ router មិនហៅ) ===== */
+  (function ensureInit(){
+    const safeInit = () => (typeof window.initIndicators === 'function') && window.initIndicators();
+    if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(safeInit, 0);
+    else document.addEventListener('DOMContentLoaded', safeInit);
+    window.addEventListener('hashchange', () => {
+      if (location.hash.replace('#','') === '/settings/indicators') safeInit();
+    });
+  })();
 </script>
