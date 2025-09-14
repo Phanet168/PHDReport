@@ -146,18 +146,18 @@
 /* align action column to the right for neat look */
 #tblIndicators td:last-child{ text-align:right; white-space:nowrap; }
 #tblIndicators th:last-child{ text-align:right; }
-/* ជួរឈរ សកម្មភាព — កំណត់ទំហំ និងរៀបទីតាំងប៊ូតុងខាងស្តាំ */
+/* កំណត់ទំហំ/ទីតាំងជួរឈរ សកម្មភាព */
 #tblIndicators th:last-child,
-#tblIndicators td:last-child{
-  width: 170px;                /* ចង់ធំ/តូច កែតម្លៃនេះបាន */
-  padding-right: 12px;
+#tblIndicators td.td-actions{
+  width:170px;                 /* ប្ដូរទំហំតាមចិត្ត */
+  padding-right:12px;
+}
+#tblIndicators td.td-actions .actions-right{
+  display:flex;
+  justify-content:flex-end;    /* ប៊ូតុងទៅស្តាំ */
+  gap:.45rem;
 }
 
-#tblIndicators td:last-child > .actions-right{
-  display: flex;               /* ឲ្យប៊ូតុងបត់ទៅស្តាំ */
-  justify-content: flex-end;
-  gap: .45rem;
-}
 
 
 </style>
@@ -280,44 +280,86 @@
   }
 
   function renderTable(){
-    const deptName = Object.fromEntries(CACHE.departments.map(d=>[String(d.department_id), d.department_name]));
-    const unitNameByDept = {};
-    for (const [depId, units] of Object.entries(CACHE.unitsByDept)){
-      unitNameByDept[depId] = Object.fromEntries((units||[]).map(u=>[String(u.unit_id), u.unit_name]));
-    }
-
-    const rows = CACHE.indicators.filter(r=>{
-      if (!FILTER_Q) return true;
-      return JSON.stringify(r).toLowerCase().includes(FILTER_Q);
-    });
-
-    if (!rows.length){
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
-      return;
-    }
-
-    const frag = document.createDocumentFragment();
-    for (const ind of rows){
-      const depId = String(ind.department_id||'');
-      const unitId= String(ind.unit_id||'');
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${ind.indicator_id}</td>
-        <td>${ind.indicator_name}</td>
-        <td>${ind.indicator_type||''}</td>
-        <td>${deptName[depId] || ''}</td>
-        <td>${(unitNameByDept[depId]||{})[unitId] || ''}</td>
-        <td>
-          ${canEditRow(ind)
-            ? `<button class="btn btn-sm btn-warning me-2" data-act="edit" data-id="${ind.indicator_id}">កែ</button>
-               <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${ind.indicator_id}">លុប</button>`
-            : `<span class="text-muted">—</span>`}
-        </td>`;
-      frag.appendChild(tr);
-    }
-    tbody.innerHTML = '';
-    tbody.appendChild(frag);
+  const deptName = Object.fromEntries(CACHE.departments.map(d => [String(d.department_id), d.department_name]));
+  const unitNameByDept = {};
+  for (const [depId, units] of Object.entries(CACHE.unitsByDept)){
+    unitNameByDept[depId] = Object.fromEntries((units || []).map(u => [String(u.unit_id), u.unit_name]));
   }
+
+  const rows = CACHE.indicators.filter(r => {
+    if (!FILTER_Q) return true;
+    return JSON.stringify(r).toLowerCase().includes(FILTER_Q);
+  });
+
+  if (!rows.length){
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  for (const ind of rows){
+    const depId = String(ind.department_id || '');
+    const unitId = String(ind.unit_id || '');
+
+    const actions = canEditRow(ind)
+      ? `<div class="actions-right">
+           <button class="btn btn-sm btn-warning" data-act="edit" data-id="${ind.indicator_id}">កែ</button>
+           <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${ind.indicator_id}">លុប</button>
+         </div>`
+      : `<div class="actions-right"><span class="text-muted">—</span></div>`;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${ind.indicator_id}</td>
+      <td>${ind.indicator_name}</td>
+      <td>${ind.indicator_type || ''}</td>
+      <td>${deptName[depId] || ''}</td>
+      <td>${(unitNameByDept[depId] || {})[unitId] || ''}</td>
+      <td class="td-actions">${actions}</td>`;
+    frag.appendChild(tr);
+  }
+  tbody.innerHTML = '';
+  tbody.appendChild(frag);
+}
+
+  const deptName = Object.fromEntries(CACHE.departments.map(d=>[String(d.department_id), d.department_name]));
+  const unitNameByDept = {};
+  for (const [depId, units] of Object.entries(CACHE.unitsByDept)){
+    unitNameByDept[depId] = Object.fromEntries((units||[]).map(u=>[String(u.unit_id), u.unit_name]));
+  }
+
+  const rows = CACHE.indicators.filter(r=>{
+    if (!FILTER_Q) return true;
+    return JSON.stringify(r).toLowerCase().includes(FILTER_Q);
+  });
+
+  if (!rows.length){
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  for (const ind of rows){
+    const depId = String(ind.department_id||'');
+    const unitId= String(ind.unit_id||'');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${ind.indicator_id}</td>
+      <td>${ind.indicator_name}</td>
+      <td>${ind.indicator_type||''}</td>
+      <td>${deptName[depId] || ''}</td>
+      <td>${(unitNameByDept[depId]||{})[unitId] || ''}</td>
+      <td>
+        <div class="actions-right">
+          <button class="btn btn-sm btn-warning" data-act="edit" data-id="${ind.indicator_id}">កែ</button>
+          <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${ind.indicator_id}">លុប</button>
+        </div>
+      </td>`;
+    frag.appendChild(tr);
+  }
+  tbody.innerHTML = '';
+  tbody.appendChild(frag);
+}
 
   // search
   if (txtSearch){
