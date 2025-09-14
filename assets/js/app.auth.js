@@ -1,115 +1,98 @@
-/* ======================================================================
- * PHD Report – Auth helper (ES Module)
- * Path: assets/js/app.auth.js
- * ==================================================================== */
+// assets/js/app.auth.js
 
-const LS_KEY = 'phd_auth';   // localStorage key we use to store auth
-
-/* ---------- Storage helpers ---------- */
-export function setAuth(obj) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(obj || null)); }
-  catch (_) {}
-}
+// ---- Local storage auth helpers ----
+const KEY = 'auth';
 
 export function getAuth() {
   try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return null;
-    const a = JSON.parse(raw);
-    // expired token guard (if server sends exp=unix seconds)
-    if (a && a.exp && Number(a.exp) < Math.floor(Date.now()/1000)) {
-      clearAuth();
-      return null;
-    }
-    return a;
-  } catch (_) {
+    return JSON.parse(localStorage.getItem(KEY) || 'null');
+  } catch {
     return null;
   }
 }
 
-export function clearAuth() {
-  try { localStorage.removeItem(LS_KEY); } catch (_) {}
-}
-
-/* ---------- Roles ---------- */
-export function isSuper(a = getAuth()) {
-  const t = String(a?.user_type || '').toLowerCase();
-  return t === 'superuser' || a?.user_root === 'all' || a?.role === 'super';
-}
-export function isDataEntry(a = getAuth()) {
-  const t = String(a?.user_type || '').toLowerCase();
-  return t === 'admin' || t === 'dataentry' || a?.role === 'dataentry';
-}
-export function isViewer(a = getAuth()) {
-  const t = String(a?.user_type || '').toLowerCase();
-  return t === 'viewer' || (!isSuper(a) && !isDataEntry(a));
-}
-
-/* ---------- Post-login redirect ---------- */
-export function gotoAfterLogin(auth = getAuth()) {
-  // You can adjust paths to match your project
-  if (isSuper(auth))       return location.replace('index.html');
-  if (isDataEntry(auth))   return location.replace('pages/admin/index.html');
-  if (isViewer(auth))      return location.replace('pages/user/index.html');
-  return location.replace('index.html');
-}
-
-/* ---------- Logout with redirect ---------- */
-export function logout(redirect = 'login.html') {
-  clearAuth();
-  // hard redirect so all modules reload fresh
-  location.replace(redirect);
-}
-
-/* ---------- Login button wiring ---------- */
-/**
- * Turn a <a id="btnLogin"> into login / logout UI.
- * - If not logged in → "ចូលប្រើប្រាស់" and link to login.html
- * - If logged in     → "username • ចេញ" and logout on click
- */
-export function applyLoginButton(btn) {
-  if (!btn) return;
-  const auth = getAuth();
-
-  if (!auth) {
-    btn.textContent = 'ចូលប្រើប្រាស់';
-    btn.classList.remove('btn-outline-danger');
-    btn.classList.add('btn-outline-primary');
-    btn.href = 'login.html';
-    btn.onclick = null;
-    return;
+export function setAuth(obj) {
+  try {
+    if (!obj) localStorage.removeItem(KEY);
+    else localStorage.setItem(KEY, JSON.stringify(obj));
+  } catch {
+    // silent fail if storage is unavailable
   }
-
-  btn.textContent = `${auth.user_name || 'អ្នកប្រើ'} • ចេញ`;
-  btn.classList.remove('btn-outline-primary');
-  btn.classList.add('btn-outline-danger');
-  btn.href = '#';
-  btn.onclick = (e) => {
-    e.preventDefault();
-    logout('login.html'); // redirect after logout
-  };
 }
 
-/* ---------- Convenience: add auth header/qs if needed ---------- */
-/**
- * Build URL with common api params and token.
- * Usage:
- *   const url = buildApiUrl(BASE, {route:'departments', op:'list', department_id: 1});
- *   const res = await fetch(url);
- */
-export function buildApiUrl(base, params = {}) {
-  const u = new URL(base);
-  u.searchParams.set('api', '1');
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, v);
-  });
-  const a = getAuth();
-  if (a?.token) u.searchParams.set('token', a.token);
-  return u.toString();
-}
-export function ensureLoggedIn(redirect = 'login.html') {
-  const a = getAuth();
-  if (!a) location.replace(redirect);
+export function getToken() {
+  return getAuth()?.token || '';
 }
 
+export function isSuper(auth = getAuth()) {
+  return String(auth?.role || '').toLowerCase() === 'super';
+}
 
+// token valid if has token and (no exp given OR exp > now)
+export function isTokenValid(auth = getAuth()) {
+  const has = !!auth?.token;
+  const exp = Number(auth?.exp || 0);
+  if (!has) return false;
+  if (!exp) return true;
+  const now = Math.floor(Date.now() / 1000);
+  return exp > now;
+}
+
+// For backward compatibility: returns "token=..." (NO leading &)
+export function tokenQS() {
+  const tok = getToken();
+  return tok ? `token=${encodeURIComponent(tok)}` : '';
+}
+
+// Preferred helper for URLs: returns "&token=..." or "" if missing
+export function authTokenParam() {
+  const tok = getToken();
+  return tok ? `&token=${encodeURIComponent(tok)}` : '';
+}
+
+// ---- Small helpers for pages ----
+export function ensureLoggedIn(loginPath = 'login.html') {
+  const auth = getAuth();
+  if (isTokenValid(auth)) return;
+
+  // avoid redirect loop if already on login page
+  const hereFile = (location.pathname.split('/').pop() || '').toLowerCase();
+  const loginFile = (loginPath.split('/').pop() || '').toLowerCase();
+  if (hereFile === loginFile) return;
+
+  // make login URL robust for subfolders
+  const baseDir = location.pathname.replace(/\/[^/]*$/, '/');
+  const loginUrl = loginPath.startsWith('http')
+    ? loginPath
+    : baseDir + loginPath.replace(/^\/+/, '');
+
+  const ret = encodeURIComponent(location.href);
+  location.href = `${loginUrl}?return=${ret}`;
+}
+
+export function applyLoginButton(btnEl) {
+  if (!btnEl) return;
+  const auth = getAuth();
+  const baseDir = location.pathname.replace(/\/[^/]*$/, '/');
+
+  if (isTokenValid(auth)) {
+    btnEl.textContent = 'ចាកចេញ';
+    btnEl.classList.remove('btn-outline-primary');
+    btnEl.classList.add('btn-outline-danger');
+    btnEl.href = '#';
+    // use onclick to avoid stacking multiple listeners
+    btnEl.onclick = (e) => {
+      e.preventDefault();
+      setAuth(null);
+      // redirect to login and keep a return target back to index
+      const ret = encodeURIComponent(baseDir + 'index.html');
+      location.href = `${baseDir}login.html?return=${ret}`;
+    };
+  } else {
+    btnEl.textContent = 'ចូលប្រើប្រាស់';
+    btnEl.classList.add('btn-outline-primary');
+    btnEl.classList.remove('btn-outline-danger');
+    btnEl.href = `${baseDir}login.html`;
+    btnEl.onclick = null;
+  }
+}

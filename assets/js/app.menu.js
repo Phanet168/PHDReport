@@ -1,181 +1,113 @@
 // assets/js/app.menu.js
-// ------------------------------------------------------------
-// Client helpers for GAS API + Menus (role-aware)
-// ------------------------------------------------------------
 import { GAS_BASE } from './config.js';
 import { getAuth, isSuper } from './app.auth.js';
 
-/* ============================================================
- * Constants
- * ========================================================== */
-export const ID_FIELDS = {
-  users: 'user_id',
-  departments: 'department_id',
-  units: 'unit_id',
-  periods: 'period_id',
-  indicators: 'indicator_id',
-  reports: 'report_id',
-  issues: 'issue_id',     // ✅ FIX: server uses issue_id
-  actions: 'action_id',
-};
+/* ============================== */
+/* Util: compose API URL safely   */
+/* ============================== */
+function makeApiUrl(extraParams = {}) {
+  // GAS_BASE អាចជា ".../exec?api=1" ឬ ".../exec"
+  const base = new URL(GAS_BASE, location.origin);
+  const sp = base.searchParams;
 
-/* ============================================================
- * Small guards
- * ========================================================== */
-function requireGAS() {
-  const base = (typeof window !== 'undefined' && window.GAS_BASE) || GAS_BASE || '';
-  if (!base) throw new Error('GAS_BASE not configured');
-  return base;
-}
-function currentToken() {
-  try { return getAuth()?.token || ''; } catch { return ''; }
+  if (!sp.has('api')) sp.set('api', '1');
+  for (const [k, v] of Object.entries(extraParams)) {
+    if (v !== undefined && v !== null && v !== '') sp.set(k, v);
+  }
+  return base.toString();
 }
 
-/* ============================================================
- * Shared fetch helpers
- * ========================================================== */
+/* ============================== */
+/* Shared: List / Save / Delete   */
+/* ============================== */
 
-/** GET list (auto-attaches token for server-side ACL) */
+/** GET list rows from route (backend will enforce ACL by token) */
 export async function gasList(route, params = {}) {
-  const base = requireGAS();
-  const u = new URL(base);
-  u.searchParams.set('api', '1');
-  u.searchParams.set('route', route);
-  u.searchParams.set('op', 'list');
-
-  // attach filters
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, v);
+  const token = getAuth()?.token || '';
+  const url = makeApiUrl({
+    route,
+    op: 'list',
+    token,              // ✅ FIX: remove the leading dot
+    ...params,
   });
 
-  // attach token
-  const token = currentToken();
-  if (token) u.searchParams.set('token', token);
+  const r = await fetch(url, { cache: 'no-store' });
+  const text = await r.text();
+  if (!r.ok) {
+    console.error('gasList http error:', r.status, r.statusText, text);
+    throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+  }
 
-  const r = await fetch(u.toString(), { cache: 'no-store' });
-  const txt = await r.text();
-  let j;
-  try { j = JSON.parse(txt || '{}'); } catch {
-    console.error('[gasList] JSON parse error. raw:', txt);
-    throw new Error('Invalid JSON from server');
+  try {
+    const j = JSON.parse(text);
+    if (j && j.ok === false) throw new Error(j.error || 'API error');
+    if (Array.isArray(j?.rows)) return j.rows;
+    if (Array.isArray(j)) return j; // fallback if server returns raw array
+    return [];
+  } catch (e) {
+    console.error('gasList parse error:', e, 'raw:', text);
+    throw e;
   }
-  if (!r.ok || j?.error) {
-    const msg = j?.error || `HTTP ${r.status}`;
-    console.error('[gasList] error =>', msg);
-    throw new Error(msg);
-  }
-  // server: { rows, total, ... } or []
-  if (Array.isArray(j)) return j;
-  return Array.isArray(j.rows) ? j.rows : [];
 }
 
-/** UPSERT (Add/Update) -> op=upsert + token */
-export async function gasSave(route, data) {
-  const base = requireGAS();
-  const u = new URL(base);
-  u.searchParams.set('api', '1');
-  u.searchParams.set('route', route);
-  u.searchParams.set('op', 'upsert');
+/** UPSERT row to route (POST) */
+export async function gasSave(route, payload = {}) {
+  const token = getAuth()?.token || '';
+  const url = makeApiUrl({ route, op: 'upsert' });
 
-  // attach token for ACL
-  const token = currentToken();
-  const payload = { ...data, token };
-
-  const r = await fetch(u.toString(), {
+  const r = await fetch(url, {
     method: 'POST',
-    // ⚠️ server recommends text/plain to avoid preflight (see safeJson_)
-    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'text/plain' }, // avoid CORS preflight
+    body: JSON.stringify({ ...payload, token }),
   });
-  const txt = await r.text();
-  let j;
-  try { j = JSON.parse(txt || '{}'); } catch {
-    console.error('[gasSave] JSON parse error. raw:', txt);
-    throw new Error('Invalid JSON from server');
+
+  const text = await r.text();
+  if (!r.ok) {
+    console.error('gasSave http error:', r.status, r.statusText, text);
+    throw new Error(`HTTP ${r.status}: ${r.statusText}`);
   }
-  if (!r.ok || j?.error) {
-    const msg = j?.error || `HTTP ${r.status}`;
-    console.error('[gasSave] error =>', msg);
-    throw new Error(msg);
+
+  try {
+    const j = JSON.parse(text);
+    if (j && j.ok === false) throw new Error(j.error || 'API error');
+    return j; // { row: {...} } per Code.gs
+  } catch (e) {
+    console.error('gasSave parse error:', e, 'raw:', text);
+    throw e;
   }
-  // server: { row: {...} }
-  return j.row || j;
 }
 
-/** DELETE -> you MUST pass the correct idField name (e.g. 'indicator_id') */
-export async function gasDelete(route, idField, idVal) {
-  const base = requireGAS();
-  const key = idField || ID_FIELDS[route] || 'id';
+/** DELETE row by id */
+export async function gasDelete(route, idField, id) {
+  const token = getAuth()?.token || '';
+  const url = makeApiUrl({ route, op: 'delete' });
 
-  const u = new URL(base);
-  u.searchParams.set('api', '1');
-  u.searchParams.set('route', route);
-  u.searchParams.set('op', 'delete');
-  u.searchParams.set(key, idVal);
-
-  const token = currentToken();
-  if (token) u.searchParams.set('token', token);
-
-  // Use POST to align with server write ops
-  const r = await fetch(u.toString(), { method: 'POST', cache: 'no-store' });
-  const txt = await r.text();
-  let j;
-  try { j = JSON.parse(txt || '{}'); } catch {
-    console.error('[gasDelete] JSON parse error. raw:', txt);
-    throw new Error('Invalid JSON from server');
-  }
-  if (!r.ok || j?.error) {
-    const msg = j?.error || `HTTP ${r.status}`;
-    console.error('[gasDelete] error =>', msg);
-    throw new Error(msg);
-  }
-  return j; // { ok: true }
-}
-
-/** Optional: bulk import helper (super/scoped write) */
-export async function gasImport(route, records = []) {
-  const base = requireGAS();
-  const u = new URL(base);
-  u.searchParams.set('api', '1');
-  u.searchParams.set('route', route);
-  u.searchParams.set('op', 'import');
-
-  const token = currentToken();
-  const payload = Array.isArray(records) ? records : [];
-  // server will inject department for scoped non-super; include token in body
-  const r = await fetch(u.toString(), {
+  const r = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-    body: JSON.stringify({ token, ...{ records: undefined } }) // token is in body if server reads; but server reads body array directly
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ [idField]: id, token }),
   });
 
-  // NOTE: server expects body as pure array; send separately:
-  // -> we need a second call that actually sends the array (without wrapper)
-  // but since server code checks `Array.isArray(body)` already,
-  // we do a proper request here:
-  const r2 = await fetch(u.toString(), {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-    body: JSON.stringify(records.concat()) // pure array
-  });
-  const txt = await r2.text();
-  let j;
-  try { j = JSON.parse(txt || '{}'); } catch {
-    console.error('[gasImport] JSON parse error. raw:', txt);
-    throw new Error('Invalid JSON from server');
+  const text = await r.text();
+  if (!r.ok) {
+    console.error('gasDelete http error:', r.status, r.statusText, text);
+    throw new Error(`HTTP ${r.status}: ${r.statusText}`);
   }
-  if (!r2.ok || j?.error) {
-    const msg = j?.error || `HTTP ${r2.status}`;
-    console.error('[gasImport] error =>', msg);
-    throw new Error(msg);
+
+  try {
+    const j = JSON.parse(text);
+    if (j && j.ok === false) throw new Error(j.error || 'API error');
+    return j; // { ok:true, ... }
+  } catch (e) {
+    console.error('gasDelete parse error:', e, 'raw:', text);
+    throw e;
   }
-  return j; // { ok:true, count:n }
 }
 
-/* ============================================================
- * Role helpers
- * ========================================================== */
-function isDataEntry(auth) {
+/* ============================== */
+/* Role helpers                   */
+/* ============================== */
+export function isDataEntry(auth) {
   const role = String(auth?.role || '').toLowerCase();
   if (role === 'dataentry' || role === 'data_entry') return true;
   if (Array.isArray(auth?.roles)) {
@@ -184,122 +116,174 @@ function isDataEntry(auth) {
   return false;
 }
 
-/* ============================================================
- * Menus
- * ========================================================== */
+/* ============================== */
+/* Menu skeleton helper           */
+/* ============================== */
+function menuSkeleton(n=3){
+  return Array.from({length:n})
+    .map(()=>`<li class="nav-item"><span class="item-name skeleton skeleton-text"></span></li>`)
+    .join('');
+}
 
-/** Departments/Units submenu (role filtered) */
+/* ============================== */
+/* Departments/Units menu         */
+/* ============================== */
 export async function buildDeptMenu(targetUlId = 'deptMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
 
-  box.innerHTML = `
-    <li class="nav-item">
-      <a href="#"><span class="item-name text-muted">កំពុងទាញទិន្នន័យ...</span></a>
-    </li>
-  `;
+  // skeleton loading
+  box.innerHTML = Array.from({ length: 4 })
+    .map(() => `<li class="nav-item"><span class="item-name skeleton skeleton-text"></span></li>`)
+    .join('');
 
   const auth = getAuth();
   try {
+    // 1) ទាញនាយកដ្ឋាន (filter តាម role)
     let depts = await gasList('departments');
-
-    // Non-super: restrict to own department (if present)
     if (!isSuper(auth) && auth?.department_id) {
       depts = depts.filter(d => String(d.department_id) === String(auth.department_id));
     }
 
-    if (!depts.length) {
-      box.innerHTML = `
-        <li class="nav-item">
-          <a href="#"><span class="item-name text-muted">គ្មានទិន្នន័យ</span></a>
-        </li>`;
-      return;
+    // 2) ទាញ units ម្តង ហើយ group តាម department_id
+    const allUnits = await gasList('units');
+    const byDep = new Map();
+    for (const u of allUnits) {
+      const key = String(u.department_id ?? '');
+      if (!byDep.has(key)) byDep.set(key, []);
+      byDep.get(key).push(u);
     }
 
-    // fetch units per dept (in parallel)
-    const results = await Promise.all(
-      depts.map(async d => {
-        let units = await gasList('units', { department_id: d.department_id });
-
-        // Non-super: restrict to own unit too (if present)
-        if (!isSuper(auth) && auth?.unit_id) {
-          units = units.filter(u => String(u.unit_id) === String(auth.unit_id));
-        }
-        return { dept: d, units };
-      })
-    );
-
+    // 3) សង់ម៉ឺនុយ: ក្រោមនាយកដ្ឋាននីមួយៗ បង្ហាញ Units របស់វាប៉ុណ្ណោះ
     const parts = [];
-    for (const { dept: d, units } of results) {
-      parts.push(`
-        <li class="nav-item">
-          <a href="#"><i class="nav-icon i-Building"></i>
-            <span class="item-name">${d.department_name}</span>
-          </a>
-        </li>
-      `);
-      if (!units.length) {
+    if (!depts.length) {
+      parts.push(`<li class="nav-item"><span class="item-name text-muted">គ្មានទិន្នន័យ</span></li>`);
+    } else {
+      for (const d of depts) {
         parts.push(`
-          <li class="nav-item">
-            <a href="#"><span class="item-name text-muted ps-4">— គ្មានផ្នែក</span></a>
-          </li>`);
-      } else {
-        for (const u of units) {
-          parts.push(`
-            <li class="nav-item">
-              <a href="pages/departments/${d.department_id}/units/${u.unit_id}/index.html">
-                <i class="nav-icon i-Right"></i>
-                <span class="item-name ps-3">${u.unit_name}</span>
-              </a>
-            </li>
-          `);
+          <li class="nav-item mt-2 mb-1">
+            <span class="item-name text-uppercase small text-muted ps-2">${d.department_name}</span>
+          </li>
+        `);
+
+        const units = byDep.get(String(d.department_id)) || [];
+        if (!units.length) {
+          parts.push(`<li class="nav-item"><span class="item-name text-muted ps-4">— គ្មានផ្នែក</span></li>`);
+        } else {
+          for (const u of units) {
+            parts.push(`
+              <li class="nav-item">
+                <a href="pages/departments/${d.department_id}/units/${u.unit_id}/index.html">
+                  <i class="nav-icon i-Right"></i>
+                  <span class="item-name ps-3">${u.unit_name}</span>
+                </a>
+              </li>
+            `);
+          }
         }
       }
     }
+
+    // 4) (ជាជម្រើស) បង្ហាញ Units ដែលគ្មាន department_id ក្រោម “មិនបានកំណត់”
+    const orphan = byDep.get('') || byDep.get('undefined') || [];
+    if (orphan.length) {
+      parts.push(`
+        <li class="nav-item mt-2 mb-1">
+          <span class="item-name text-uppercase small text-muted ps-2">មិនបានកំណត់នាយកដ្ឋាន</span>
+        </li>
+      `);
+      for (const u of orphan) {
+        parts.push(`
+          <li class="nav-item">
+            <a href="pages/departments/unknown/units/${u.unit_id}/index.html">
+              <i class="nav-icon i-Right"></i>
+              <span class="item-name ps-3">${u.unit_name}</span>
+            </a>
+          </li>
+        `);
+      }
+    }
+
     box.innerHTML = parts.join('');
   } catch (err) {
     console.error('buildDeptMenu failed:', err);
+    const rid = `retry-${targetUlId}`;
     box.innerHTML = `
       <li class="nav-item">
-        <a href="#"><span class="item-name text-danger">បរាជ័យ៖ ${err.message}</span></a>
+        <a href="#" id="${rid}">
+          <span class="item-name text-danger">បរាជ័យក្នុងការទាញទិន្នន័យ — ចុចដើម្បីសាកម្ដងទៀត</span>
+        </a>
       </li>`;
+    const btn = document.getElementById(rid);
+    if (btn) btn.addEventListener('click', (e) => { e.preventDefault(); buildDeptMenu(targetUlId); });
   }
 }
 
-/** Settings submenu (role-aware) */
-export async function buildSettingsMenu(targetUlId = 'settingsMenu') {
+
+/* ============================== */
+/* Settings menu                  */
+/* ============================== */
+export async function buildSettingsMenu(targetUlId='settingsMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
+  box.innerHTML = menuSkeleton(3);
 
   const auth = getAuth();
-  const ITEMS = [
-    { key: 'indicators',  label: 'សូចនាករ',   icon: 'i-Bar-Chart', href: '#/settings/indicators' },
-    { key: 'departments', label: 'នាយកដ្ឋាន',  icon: 'i-Building',  href: '#/settings/departments' },
-    { key: 'units',       label: 'ផ្នែក',      icon: 'i-Right',     href: '#/settings/units' },
-    { key: 'periods',     label: 'រយៈពេល',    icon: 'i-Calendar',  href: '#/settings/periods' },
-  ];
+  try {
+    const itemsAll = [
+      { key: 'indicators',  label: 'សូចនាករ',  icon: 'i-Bar-Chart', href: '#/settings/indicators' },
+      { key: 'departments', label: 'នាយកដ្ឋាន', icon: 'i-Building',  href: '#/settings/departments' },
+      { key: 'units',       label: 'ផ្នែក',     icon: 'i-Right',     href: '#/settings/units' },
+      { key: 'periods',     label: 'រយៈពេល',   icon: 'i-Calendar',  href: '#/settings/periods' },
+    ];
 
-  let visible = [];
-  if (isSuper(auth)) {
-    visible = ITEMS;                       // Super → all
-  } else if (isDataEntry(auth)) {
-    visible = ITEMS.filter(x => x.key === 'indicators'); // DataEntry → only indicators
-  } else {
-    visible = ITEMS.filter(x => x.key === 'indicators'); // Viewer → indicators read-only (UI hides create buttons elsewhere)
+    let visible;
+    if (isSuper(auth)) visible = itemsAll;
+    else if (isDataEntry(auth)) visible = itemsAll.filter(x => x.key === 'indicators');
+    else visible = itemsAll.filter(x => x.key === 'indicators');
+
+    const html = [`<li class="nav-item mt-2 mb-1"><span class="text-uppercase text-muted small ps-3">ការកំណត់ (Settings)</span></li>`];
+    visible.forEach(it => {
+      html.push(`
+        <li class="nav-item">
+          <a href="${it.href}">
+            <i class="nav-icon ${it.icon}"></i>
+            <span class="item-name">${it.label}</span>
+          </a>
+        </li>
+      `);
+    });
+    box.innerHTML = html.join('');
+  } catch (err) {
+    console.error('buildSettingsMenu failed:', err);
+    const rid = `retry-${targetUlId}`;
+    box.innerHTML = `
+      <li class="nav-item">
+        <a href="#" id="${rid}">
+          <span class="item-name text-danger">បរាជ័យក្នុងការទាញម៉ឺនុយ — ចុចដើម្បីសាកម្ដងទៀត</span>
+        </a>
+      </li>`;
+    const btn = document.getElementById(rid);
+    if (btn) btn.addEventListener('click', (e)=>{ e.preventDefault(); buildSettingsMenu(targetUlId); });
   }
-
-  if (!visible.length) {
-    box.innerHTML = `<li class="nav-item">
-      <span class="item-name text-muted">គ្មានសិទ្ធិ</span></li>`;
-    return;
-  }
-
-  box.innerHTML = visible.map(it => `
-    <li class="nav-item">
-      <a href="${it.href}">
-        <i class="nav-icon ${it.icon}"></i>
-        <span class="item-name">${it.label}</span>
-      </a>
-    </li>
-  `).join('');
 }
+
+/* ============================== */
+/* Optional: init both menus      */
+/* ============================== */
+export async function initMenus() {
+  await Promise.allSettled([
+    buildDeptMenu('deptMenu'),
+    buildSettingsMenu('settingsMenu'),
+  ]);
+}
+
+/* ============================== */
+/* Constants for ID fields        */
+/* ============================== */
+export const ID_FIELDS = {
+  indicators: 'indicator_id',
+  departments: 'department_id',
+  units: 'unit_id',
+  reports: 'report_id',
+};

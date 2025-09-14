@@ -1,48 +1,66 @@
-<!-- pages/settings/indicators/index.html (SAFE, no jQuery/Datatables) -->
- 
-<div class="container-page">
-  <div class="breadcrumb">
-    <h1 class="me-2 kh-head">សូចនាករ</h1>
-    <ul>
-      <li><a href="#/">Dashboard</a></li><li>Settings</li><li>Indicators</li>
-    </ul>
-  </div>
-  <div class="separator-breadcrumb border-top"></div>
+<!-- pages/settings/indicators/index.html -->
+<div class="settings-page">
+  <div class="container-page">
 
-  <div class="card">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="card-title kh-head m-0">បញ្ជីសូចនាករ</h4>
-        <button id="btnAdd" class="btn btn-primary btn-sm"><i class="i-Add"></i> បន្ថែម</button>
+    <!-- Page head -->
+    <div class="page-head">
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="kh-head h4 m-0">សូចនាករ</h1>
+        <nav aria-label="breadcrumb" class="small">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+            <li class="breadcrumb-item">Settings</li>
+            <li class="breadcrumb-item active" aria-current="page">Indicators</li>
+          </ol>
+        </nav>
       </div>
-
-      <div class="table-responsive">
-        <table class="table table-striped align-middle">
-          <thead>
-            <tr>
-              <th style="width:80px">ID</th>
-              <th>ឈ្មោះសូចនាករ</th>
-              <th style="width:160px">ប្រភេទ</th>
-              <th style="width:220px">នាយកដ្ឋាន</th>
-              <th style="width:160px; white-space:nowrap">សកម្មភាព</th>
-            </tr>
-          </thead>
-          <tbody id="tbodyIndicators"></tbody>
-        </table>
-      </div>
-
-      <div class="small text-muted" id="statusLine"></div>
+      <div class="separator-breadcrumb border-top"></div>
     </div>
+
+    <!-- Body: centered card -->
+    <div class="page-body">
+      <div class="card shadow-sm centered-card">
+        <div class="card-body">
+
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <h4 class="card-title kh-head m-0">បញ្ជីសូចនាករ</h4>
+            <div class="d-flex gap-2">
+              <button id="btnAdd" class="btn btn-primary btn-sm">
+                <i class="i-Add"></i> បន្ថែម
+              </button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table id="tblIndicators" class="table table-striped table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th style="width:90px">ID</th>
+                  <th>ឈ្មោះសូចនាករ</th>
+                  <th style="width:180px">ប្រភេទ</th>
+                  <th style="width:260px">នាយកដ្ឋាន</th>
+                  <th style="width:160px">សកម្មភាព</th>
+                </tr>
+              </thead>
+              <tbody><!-- initIndicators() នឹងបំពេញ --></tbody>
+            </table>
+          </div>
+
+          <div class="small text-muted mt-2" id="statusLine"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<!-- Modal -->
+<!-- Modal Add/Edit -->
 <div class="modal fade" id="mdlIndicator" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <form class="modal-content" id="frmIndicator" novalidate>
       <div class="modal-header">
         <h5 class="modal-title kh-head">ព័ត៌មានសូចនាករ</h5>
-        <button type="button" class="btn-close" id="btnCloseIndicator" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="indicator_id" />
@@ -53,17 +71,16 @@
         </div>
         <div class="mb-3">
           <label for="indicator_type" class="form-label">ប្រភេទ</label>
-          <input id="indicator_type" class="form-control" placeholder="ឧ. Output / Outcome / Process …" />
+          <input id="indicator_type" class="form-control" placeholder="ឧ. Output / Outcome / Process" />
         </div>
         <div class="mb-3">
           <label for="department_id" class="form-label">នាយកដ្ឋាន</label>
           <select id="department_id" class="form-select"></select>
-          <div class="form-text">Non-super ត្រូវចាក់សោរ (ប្រើ department របស់ខ្លួនដោយស្វ័យប្រវត្តិ)។</div>
+          <div class="form-text">អ្នកប្រើសាមញ្ញ ត្រូវបានចាក់សោរតាមនាយកដ្ឋានរបស់ខ្លួន។</div>
         </div>
-        <input type="hidden" id="unit_id" />
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" type="button" id="btnCancelIndicator">បោះបង់</button>
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
         <button class="btn btn-primary" type="submit" id="btnSave">រក្សាទុក</button>
       </div>
     </form>
@@ -71,268 +88,32 @@
 </div>
 
 <style>
-  .container-page { max-width: 1100px; margin: 0 auto; }
-  .table td, .table th { vertical-align: middle; }
+  /* page chain: fill space above footer */
+  .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+  .container-page{width:100%; max-width:1280px; margin:0 auto;
+    padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
+
+  /* tidy spacing from header & between blocks */
+  .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
+  .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
+  .separator-breadcrumb{ margin-top:2px; }
+
+  /* centered card */
+  .centered-card{
+    width:100%; max-width:1100px;
+    margin-top:12px;                 /* extra gap under page head */
+    border:1px solid #eef0f4; border-radius:14px;
+  }
+  @media (min-width:1400px){ .centered-card{ max-width:1200px; } }
+
+  /* table cosmetics */
+  .table thead th{ white-space:nowrap; }
+  #tblIndicators td:last-child{ white-space:nowrap; }
+
+  /* optional skeleton row */
+  .skel{ position:relative; overflow:hidden; background:#f3f4f6; height:44px; }
+  .skel::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+    animation:shimmer 1.1s infinite; }
+  @keyframes shimmer{ 100%{ transform:translateX(100%);} }
 </style>
-
-<!-- 1) CONFIG + PAGE LOGIC (module, so import works) -->
-<script type="module">
-  import { GAS_BASE } from '../../../assets/js/config.js';
-  window.GAS_BASE = window.GAS_BASE || GAS_BASE || '';
-
-  function getAuth() {
-    try { return JSON.parse(localStorage.getItem('auth') || '{}'); }
-    catch { return {}; }
-  }
-  function isSuper(auth) { return String(auth?.role||'').toLowerCase() === 'super'; }
-  function status(msg)   { document.getElementById('statusLine').textContent = msg || ''; }
-
-  // ========================= API (vanilla fetch) =========================
-  async function apiList(table, params = {}) {
-    const token = getAuth()?.token || '';
-    const q = new URLSearchParams({ api:'1', route:table, op:'list', token, ...params }).toString();
-    const res = await fetch(`${window.GAS_BASE}?${q}`, { method: 'GET' });
-    const json = await res.json().catch(()=> ({}));
-    if (!res.ok || json?.error) throw new Error(json?.error || `HTTP ${res.status}`);
-    return json.rows || [];
-  }
-  async function apiUpsert(table, payload) {
-    const token = getAuth()?.token || '';
-    const res = await fetch(`${window.GAS_BASE}?api=1&route=${encodeURIComponent(table)}&op=upsert`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: JSON.stringify({ ...payload, token })
-    });
-    const json = await res.json().catch(()=> ({}));
-    if (!res.ok || json?.error) throw new Error(json?.error || `HTTP ${res.status}`);
-    return json.row || json;
-  }
-  async function apiDelete(table, idField, id) {
-    const token = getAuth()?.token || '';
-    const q = new URLSearchParams({ api:'1', route:table, op:'delete', [idField]:id, token }).toString();
-    const res = await fetch(`${window.GAS_BASE}?${q}`, { method: 'POST' });
-    const json = await res.json().catch(()=> ({}));
-    if (!res.ok || json?.error) throw new Error(json?.error || `HTTP ${res.status}`);
-    return json;
-  }
-
-  // ========================= Modal helpers =========================
-  let __lastFocus = null;
-  function getBsModal(el){
-    return (window.bootstrap && bootstrap.Modal)
-      ? bootstrap.Modal.getOrCreateInstance(el, { backdrop:true, keyboard:true, focus:true })
-      : null;
-  }
-  function showModalById(id){
-    const el = document.getElementById(id); if (!el) return;
-    __lastFocus = (document.activeElement instanceof HTMLElement) ? document.activeElement : null;
-    el.removeAttribute('aria-hidden'); el.setAttribute('role','dialog');
-    el.setAttribute('aria-modal','true'); el.setAttribute('tabindex','-1');
-    const m = getBsModal(el); if (m) m.show(); else el.style.display = 'block';
-    requestAnimationFrame(() => {
-      (el.querySelector('[autofocus], input, select, textarea, button') || el).focus?.();
-    });
-  }
-  function hideModalById(id){
-    const el = document.getElementById(id); if (!el) return;
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-    const m = getBsModal(el); if (m) m.hide(); else el.style.display = 'none';
-    requestAnimationFrame(() => { el.setAttribute('aria-hidden','true'); el.removeAttribute('aria-modal'); });
-    if (__lastFocus?.focus) __lastFocus.focus();
-    __lastFocus = null;
-  }
-  document.getElementById('btnCloseIndicator').addEventListener('click', ()=> hideModalById('mdlIndicator'));
-  document.getElementById('btnCancelIndicator').addEventListener('click', ()=> hideModalById('mdlIndicator'));
-  document.addEventListener('focusin', e => {
-    const el = document.getElementById('mdlIndicator');
-    if (el && el.contains(e.target) && el.getAttribute('aria-hidden') === 'true') el.removeAttribute('aria-hidden');
-  });
-
-  // ========================= Page Logic =========================
-  let CACHE = { departments: [], indicators: [] };
-
-  function canEditRow(ind, auth){
-    if (isSuper(auth)) return true;
-    const isDE = String(auth?.role||'').toLowerCase() === 'dataentry';
-    return isDE && String(ind.department_id) === String(auth?.department_id);
-  }
-
-  function renderTable() {
-    const auth = getAuth();
-    const tbody = document.getElementById('tbodyIndicators');
-    tbody.innerHTML = '';
-    const rows = CACHE.indicators;
-    if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
-      return;
-    }
-    const deptMap = Object.fromEntries(CACHE.departments.map(d => [String(d.department_id), d.department_name]));
-    const frag = document.createDocumentFragment();
-    rows.forEach(ind => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${ind.indicator_id}</td>
-        <td>${ind.indicator_name}</td>
-        <td>${ind.indicator_type || ''}</td>
-        <td>${deptMap[String(ind.department_id)] || ''}</td>
-        <td>
-          ${canEditRow(ind, auth)
-            ? `<button class="btn btn-sm btn-warning me-2" data-act="edit" data-id="${ind.indicator_id}">កែ</button>
-               <button class="btn btn-sm btn-danger" data-act="del" data-id="${ind.indicator_id}">លុប</button>`
-            : `<span class="text-muted">—</span>`}
-        </td>`;
-      frag.appendChild(tr);
-    });
-    tbody.appendChild(frag);
-  }
-
-  async function loadPage() {
-    try {
-      if (!window.GAS_BASE) throw new Error('មិនបានកំណត់ GAS_BASE');
-      status('កំពុងផ្ទុកទិន្នន័យ…');
-      const auth = getAuth();
-      const superUser = isSuper(auth);
-      let departments = await apiList('departments');
-      if (!superUser && auth?.department_id) {
-        departments = departments.filter(d => String(d.department_id) === String(auth.department_id));
-      }
-      let indicators = await apiList('indicators');
-      if (!superUser && auth?.department_id) {
-        indicators = indicators.filter(x => String(x.department_id) === String(auth.department_id));
-      }
-      CACHE.departments = departments;
-      CACHE.indicators = indicators;
-      fillDepartmentSelect(departments, superUser ? '' : auth?.department_id);
-      renderTable();
-      applyRoleUI();
-      status(`បានផ្ទុក ${CACHE.indicators.length} សូចនាករ`);
-    } catch (err) {
-      console.error(err);
-      alert('បរាជ័យផ្ទុកទិន្នន័យ: ' + (err?.message || err));
-      status('បរាជ័យផ្ទុកទិន្នន័យ');
-    }
-  }
-
-  function fillDepartmentSelect(depts, value){
-    const sel = document.getElementById('department_id');
-    sel.innerHTML = `<option value="">— ជ្រើស —</option>` + depts.map(d =>
-      `<option value="${d.department_id}">${d.department_name}</option>`).join('');
-    if (value) sel.value = value;
-    sel.disabled = !isSuper(getAuth());
-  }
-
-  function applyRoleUI(){
-    const auth = getAuth();
-    const canCreate = isSuper(auth) || String(auth?.role||'').toLowerCase() === 'dataentry';
-    document.getElementById('btnAdd').style.display = canCreate ? '' : 'none';
-  }
-
-  // Events
-  document.getElementById('btnAdd').addEventListener('click', () => {
-    const auth = getAuth();
-    document.getElementById('frmIndicator').reset();
-    document.getElementById('indicator_id').value = '';
-    if (!isSuper(auth) && auth?.department_id) document.getElementById('department_id').value = auth.department_id;
-    showModalById('mdlIndicator');
-  });
-
-  document.getElementById('tbodyIndicators').addEventListener('click', async (e) => {
-    const btn = e.target.closest('button[data-act]');
-    if (!btn) return;
-    const id = btn.getAttribute('data-id');
-    const act = btn.getAttribute('data-act');
-    const row = CACHE.indicators.find(x => String(x.indicator_id) === String(id));
-    if (!row) return;
-
-    if (act === 'edit') {
-      document.getElementById('indicator_id').value = row.indicator_id;
-      document.getElementById('indicator_name').value = row.indicator_name || '';
-      document.getElementById('indicator_type').value = row.indicator_type || '';
-      document.getElementById('department_id').value = row.department_id || '';
-      showModalById('mdlIndicator');
-    }
-    if (act === 'del') {
-      if (!confirm('តើចង់លុបធាតុនេះមែនទេ?')) return;
-      try {
-        await apiDelete('indicators', 'indicator_id', row.indicator_id);
-        CACHE.indicators = CACHE.indicators.filter(x => String(x.indicator_id) !== String(row.indicator_id));
-        renderTable();
-        status('លុបទិន្នន័យរួចរាល់');
-      } catch (err) {
-        console.error(err);
-        alert('បរាជ័យលុប: ' + (err?.message || err));
-      }
-    }
-  });
-
-  document.getElementById('frmIndicator').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('btnSave');
-
-    const auth = getAuth();
-    const superUser = isSuper(auth);
-    const payload = {
-      indicator_id   : document.getElementById('indicator_id').value || null,
-      indicator_name : document.getElementById('indicator_name').value.trim(),
-      indicator_type : document.getElementById('indicator_type').value.trim(),
-      department_id  : superUser ? document.getElementById('department_id').value : (auth?.department_id || ''),
-      unit_id        : auth?.unit_id || null
-    };
-    if (!payload.indicator_name) {
-      document.getElementById('indicator_name').classList.add('is-invalid');
-      document.getElementById('indicator_name').focus();
-      return;
-    } else {
-      document.getElementById('indicator_name').classList.remove('is-invalid');
-    }
-
-    const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'កំពុងរក្សាទុក…';
-    try {
-      const row = await apiUpsert('indicators', payload);
-      const idx = CACHE.indicators.findIndex(x => String(x.indicator_id) === String(row.indicator_id));
-      if (idx >= 0) CACHE.indicators[idx] = row; else CACHE.indicators.push(row);
-      renderTable();
-      hideModalById('mdlIndicator');
-      status('រក្សាទុករួចរាល់');
-    } catch (err) {
-      console.error(err);
-      alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
-    } finally {
-      btn.disabled = false; btn.innerHTML = old;
-    }
-  });
-
-  (function ensureInit(){
-    const go = () => loadPage();
-    if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(go, 0);
-    else document.addEventListener('DOMContentLoaded', go);
-    window.addEventListener('hashchange', () => {
-      if (location.hash.replace('#','') === '/settings/indicators') loadPage();
-    });
-  })();
-</script>
-
-<!-- 2) $ SAFE WRAPPER (NOT module) -->
-<script>
-  // $ SAFE WRAPPER — អាចទទួល selector string, DOM element ឬ jQuery object
-  (function () {
-    var jq = window.jQuery || null;
-    var prevDollar = window.$;
-    if (jq && window.$ === jq) return; // already jQuery
-
-    function isElem(x){ return x && (x.nodeType === 1 || x === document || x === window); }
-
-    window.$ = function (arg, root) {
-      if (typeof arg === 'string') return (root || document).querySelector(arg);
-      if (isElem(arg) || (jq && arg && arg.jquery)) return arg;
-      return null;
-    };
-    window.$.all = function (sel, root) { return (root || document).querySelectorAll(sel); };
-    window.$.prev = prevDollar;
-    if (jq) window.$.jq = jq;
-  })();
-</script>
-
-
-<!-- Bootstrap 5 bundle (required for modal JS) -->
-<script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
