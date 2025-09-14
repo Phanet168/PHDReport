@@ -1,0 +1,119 @@
+<!-- pages/settings/department/index.html -->
+<div class="settings-page">
+  <div class="container-page">
+
+    <!-- Page head -->
+    <div class="page-head">
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="kh-head h4 m-0">សូចនាករ</h1>
+        <nav aria-label="breadcrumb" class="small">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+            <li class="breadcrumb-item">Settings</li>
+            <li class="breadcrumb-item active" aria-current="page">Indicators</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="separator-breadcrumb border-top"></div>
+    </div>
+
+    <!-- Body: centered card -->
+    <div class="page-body">
+      <div class="card shadow-sm centered-card">
+        <div class="card-body">
+
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <h4 class="card-title kh-head m-0">បញ្ជីសូចនាករ</h4>
+            <div class="d-flex gap-2">
+              <button id="btnAdd" class="btn btn-primary btn-sm">
+                <i class="i-Add"></i> បន្ថែម
+              </button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table id="tblIndicators" class="table table-striped table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th style="width:90px">ID</th>
+                  <th>ឈ្មោះសូចនាករ</th>
+                  <th style="width:180px">ប្រភេទ</th>
+                  <th style="width:260px">នាយកដ្ឋាន</th>
+                  <th style="width:160px">សកម្មភាព</th>
+                </tr>
+              </thead>
+              <tbody><!-- initIndicators() នឹងបំពេញ --></tbody>
+            </table>
+          </div>
+
+          <div class="small text-muted mt-2" id="statusLine"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Add/Edit -->
+<div class="modal fade" id="mdlIndicator" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" id="frmIndicator" novalidate>
+      <div class="modal-header">
+        <h5 class="modal-title kh-head">ព័ត៌មានសូចនាករ</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="indicator_id" />
+        <div class="mb-3">
+          <label for="indicator_name" class="form-label">ឈ្មោះសូចនាករ <span class="text-danger">*</span></label>
+          <input id="indicator_name" class="form-control" required />
+          <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះសូចនាករ</div>
+        </div>
+        <div class="mb-3">
+          <label for="indicator_type" class="form-label">ប្រភេទ</label>
+          <input id="indicator_type" class="form-control" placeholder="ឧ. Output / Outcome / Process" />
+        </div>
+        <div class="mb-3">
+          <label for="department_id" class="form-label">នាយកដ្ឋាន</label>
+          <select id="department_id" class="form-select"></select>
+          <div class="form-text">អ្នកប្រើសាមញ្ញ ត្រូវបានចាក់សោរតាមនាយកដ្ឋានរបស់ខ្លួន។</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
+        <button class="btn btn-primary" type="submit" id="btnSave">រក្សាទុក</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  /* page chain: fill space above footer */
+  .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+  .container-page{width:100%; max-width:1280px; margin:0 auto;
+    padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
+
+  /* tidy spacing from header & between blocks */
+  .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
+  .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
+  .separator-breadcrumb{ margin-top:2px; }
+
+  /* centered card */
+  .centered-card{
+    width:100%; max-width:1100px;
+    margin-top:12px;                 /* extra gap under page head */
+    border:1px solid #eef0f4; border-radius:14px;
+  }
+  @media (min-width:1400px){ .centered-card{ max-width:1200px; } }
+
+  /* table cosmetics */
+  .table thead th{ white-space:nowrap; }
+  #tblIndicators td:last-child{ white-space:nowrap; }
+
+  /* optional skeleton row */
+  .skel{ position:relative; overflow:hidden; background:#f3f4f6; height:44px; }
+  .skel::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+    animation:shimmer 1.1s infinite; }
+  @keyframes shimmer{ 100%{ transform:translateX(100%);} }
+</style>

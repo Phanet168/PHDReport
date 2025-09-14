@@ -1,0 +1,235 @@
+<!-- pages/settings/indicators/index.html -->
+<div class="container-page">
+  <div class="breadcrumb">
+    <h1 class="me-2 kh-head">សូចនាករ</h1>
+    <ul><li><a href="#/">Dashboard</a></li><li>Settings</li><li>Indicators</li></ul>
+  </div>
+  <div class="separator-breadcrumb border-top"></div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="card-title kh-head m-0">បញ្ជីសូចនាករ</h4>
+        <button id="btnAdd" class="btn btn-primary btn-sm"><i class="i-Add"></i> បន្ថែម</button>
+      </div>
+
+      <div class="table-responsive">
+        <table id="tblIndicators" class="table table-striped align-middle">
+          <thead>
+            <tr>
+              <th style="width:80px">ID</th>
+              <th>ឈ្មោះសូចនាករ</th>
+              <th style="width:160px">ប្រភេទ</th>
+              <th style="width:220px">នាយកដ្ឋាន</th>
+              <th style="width:160px">សកម្មភាព</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="small text-muted" id="statusLine"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Add/Edit -->
+<div class="modal fade" id="mdlIndicator" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" id="frmIndicator" novalidate>
+      <div class="modal-header">
+        <h5 class="modal-title kh-head">ព័ត៌មានសូចនាករ</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="indicator_id" />
+        <div class="mb-3">
+          <label for="indicator_name" class="form-label">ឈ្មោះសូចនាករ <span class="text-danger">*</span></label>
+          <input id="indicator_name" class="form-control" required />
+          <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះសូចនាករ</div>
+        </div>
+        <div class="mb-3">
+          <label for="indicator_type" class="form-label">ប្រភេទ</label>
+          <input id="indicator_type" class="form-control" placeholder="ឧ. Output / Outcome / Process" />
+        </div>
+        <div class="mb-3">
+          <label for="department_id" class="form-label">នាយកដ្ឋាន</label>
+          <select id="department_id" class="form-select"></select>
+          <div class="form-text">អ្នកប្រើសាមញ្ញ អាចជ្រើសបានត្រឹមនាយកដ្ឋានរបស់ខ្លួន។</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
+        <button class="btn btn-primary" type="submit" id="btnSave">រក្សាទុក</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { getAuth, isSuper } from '../../../assets/js/app.auth.js';
+  import { gasList, gasSave, gasDelete, ID_FIELDS } from '../../../assets/js/app.menu.js';
+
+  let CACHE = { departments: [], indicators: [] };
+  const $status = (msg)=> document.getElementById('statusLine').textContent = msg || '';
+
+  // Keep one Modal instance (Bootstrap 5 requires an element, not a selector)
+  const mdlEl   = document.getElementById('mdlIndicator');
+  const MODAL   = window.bootstrap ? new bootstrap.Modal(mdlEl) : null;
+
+  function canEditRow(ind, auth){
+    if (isSuper(auth)) return true;
+    return auth && String(ind.department_id) === String(auth.department_id);
+  }
+
+  function renderTable(){
+    const auth  = getAuth();
+    const tbody = document.querySelector('#tblIndicators tbody');
+    tbody.innerHTML = '';
+
+    if (!CACHE.indicators.length){
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+      return;
+    }
+    const deptMap = Object.fromEntries(CACHE.departments.map(d => [String(d.department_id), d.department_name]));
+
+    const frag = document.createDocumentFragment();
+    for (const ind of CACHE.indicators){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${ind.indicator_id}</td>
+        <td>${ind.indicator_name}</td>
+        <td>${ind.indicator_type || ''}</td>
+        <td>${deptMap[String(ind.department_id)] || ''}</td>
+        <td>
+          ${canEditRow(ind, auth)
+            ? `<button class="btn btn-sm btn-warning me-2" data-act="edit" data-id="${ind.indicator_id}">កែ</button>
+               <button class="btn btn-sm btn-danger" data-act="del"  data-id="${ind.indicator_id}">លុប</button>`
+            : `<span class="text-muted">—</span>`}
+        </td>`;
+      frag.appendChild(tr);
+    }
+    tbody.appendChild(frag);
+  }
+
+  function fillDepartments(prefValue){
+    const sel = document.getElementById('department_id');
+    sel.innerHTML = `<option value="">— ជ្រើស —</option>` +
+      CACHE.departments.map(d => `<option value="${d.department_id}">${d.department_name}</option>`).join('');
+    if (prefValue) sel.value = prefValue;
+    sel.disabled = !isSuper(getAuth());
+  }
+
+  async function loadPage(){
+    try{
+      $status('កំពុងផ្ទុកទិន្នន័យ…');
+      const auth = getAuth();
+
+      let [depts, inds] = await Promise.all([
+        gasList('departments'),
+        gasList('indicators')
+      ]);
+
+      if (!isSuper(auth) && auth?.department_id){
+        depts = depts.filter(d => String(d.department_id) === String(auth.department_id));
+        inds  = inds.filter(x => String(x.department_id) === String(auth.department_id));
+      }
+
+      CACHE.departments = depts;
+      CACHE.indicators  = inds;
+
+      fillDepartments(auth?.department_id);
+      renderTable();
+      $status(`បានផ្ទុក ${inds.length} សូចនាករ`);
+    }catch(err){
+      console.error(err);
+      $status('បរាជ័យផ្ទុកទិន្នន័យ');
+    }
+  }
+
+  // -- Events --
+  document.getElementById('btnAdd').addEventListener('click', ()=>{
+    const auth = getAuth();
+    document.getElementById('frmIndicator').reset();
+    document.getElementById('indicator_id').value = '';
+    if (!isSuper(auth) && auth?.department_id){
+      document.getElementById('department_id').value = auth.department_id;
+    }
+    MODAL && MODAL.show();
+  });
+
+  document.getElementById('tblIndicators').addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+
+    const id  = btn.dataset.id;
+    const row = CACHE.indicators.find(x => String(x.indicator_id) === String(id));
+    if (!row) return;
+
+    if (btn.dataset.act === 'edit'){
+      document.getElementById('indicator_id').value   = row.indicator_id;
+      document.getElementById('indicator_name').value = row.indicator_name || '';
+      document.getElementById('indicator_type').value = row.indicator_type || '';
+      document.getElementById('department_id').value  = row.department_id || '';
+      MODAL && MODAL.show();
+    }
+
+    if (btn.dataset.act === 'del'){
+      if (!confirm('តើចង់លុបធាតុនេះមែនទេ?')) return;
+      try{
+        await gasDelete('indicators', ID_FIELDS.indicators, row.indicator_id);
+        CACHE.indicators = CACHE.indicators.filter(x => String(x.indicator_id) !== String(id));
+        renderTable();
+        $status('លុបរួចរាល់');
+      }catch(err){
+        console.error(err);
+        alert('បរាជ័យលុប: ' + (err?.message || err));
+      }
+    }
+  });
+
+  document.getElementById('frmIndicator').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const auth = getAuth();
+
+    const payload = {
+      indicator_id   : document.getElementById('indicator_id').value || null,
+      indicator_name : document.getElementById('indicator_name').value.trim(),
+      indicator_type : document.getElementById('indicator_type').value.trim(),
+      department_id  : isSuper(auth)
+        ? document.getElementById('department_id').value
+        : (auth?.department_id || '')
+    };
+
+    if (!payload.indicator_name){
+      document.getElementById('indicator_name').classList.add('is-invalid');
+      document.getElementById('indicator_name').focus();
+      return;
+    } else {
+      document.getElementById('indicator_name').classList.remove('is-invalid');
+    }
+
+    const btn = document.getElementById('btnSave');
+    const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'កំពុងរក្សាទុក…';
+
+    try{
+      const saved = await gasSave('indicators', payload);
+      const row   = saved.row || saved;
+      const i     = CACHE.indicators.findIndex(x => String(x.indicator_id) === String(row.indicator_id));
+      if (i >= 0) CACHE.indicators[i] = row; else CACHE.indicators.push(row);
+      renderTable();
+      MODAL && MODAL.hide();
+      $status('រក្សាទុករួចរាល់');
+    }catch(err){
+      console.error(err);
+      alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
+    }finally{
+      btn.disabled = false; btn.innerHTML = old;
+    }
+  });
+
+  // Init when this partial is inserted OR opened directly
+  (document.readyState === 'loading')
+    ? document.addEventListener('DOMContentLoaded', loadPage)
+    : loadPage();
+</script>

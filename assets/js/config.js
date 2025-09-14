@@ -1,5 +1,5 @@
 // === Base URL of your deployed Apps Script Web App (must end with /exec) ===
-export const GAS_BASE = 'https://script.google.com/macros/s/AKfycbyeTJ3TktyKXcQ4Papuwu0_oJJj5wRBatQ4V2iEW-a6egGAVZukkuzagtVkOnBiUivY4A/exec';
+export const GAS_BASE = 'https://script.google.com/macros/s/AKfycbwQXnt94_gGbJd3iZXk8hb-3xbA6oGwXuEcx4xqzu7GBYK9yVTfT_hZOSTBmvz8E_l-tg/exec';
 
 
 

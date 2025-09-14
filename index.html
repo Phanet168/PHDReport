@@ -232,16 +232,17 @@
 
 <!-- App JS -->
 <script type="module">
-  import { ensureLoggedIn, applyLoginButton, getAuth, isSuper } from './assets/js/app.auth.js';
-  import { buildDeptMenu, buildSettingsMenu, gasList } from './assets/js/app.menu.js';
+import { ensureLoggedIn, applyLoginButton, getAuth, isSuper } from './assets/js/app.auth.js';
+import { buildDeptMenu, buildSettingsMenu, gasList, gasSave, gasDelete, ID_FIELDS } from './assets/js/app.menu.js';
+
 
   /* ---------- Simple loader controller ---------- */
   const AppLoader = (() => {
     let count = 0;
     const el = document.getElementById('appLoading');
     const textEl = document.getElementById('appLoadingText');
-    function show(msg){ count++; if(msg) textEl.textContent = msg; el.classList.remove('hidden'); }
-    function hide(){ count = Math.max(0, count - 1); if (count === 0) el.classList.add('hidden'); }
+    function show(msg){ count++; if(textEl && msg) textEl.textContent = msg; el && el.classList.remove('hidden'); }
+    function hide(){ count = Math.max(0, count - 1); if (count === 0 && el) el.classList.add('hidden'); }
     async function wrap(promise, msg){ show(msg); try { return await promise; } finally { hide(); } }
     return { show, hide, wrap };
   })();
@@ -249,35 +250,36 @@
   // Require login (if dashboard should be protected)
   ensureLoggedIn('login.html');
 
-  // Build submenus + first route under loader
-  const firstLoad = Promise.all([
+  // Build submenus under loader
+  await AppLoader.wrap(Promise.all([
     buildDeptMenu('deptMenu'),
     buildSettingsMenu('settingsMenu'),
-  ]);
-  await AppLoader.wrap(firstLoad, 'កំពុងផ្ទុកទិន្នន័យ…');
+  ]), 'កំពុងផ្ទុកទិន្នន័យ…');
 
-  // Header user UI
+  // Header user UI (safe guards)
   (function updateUserUI(){
     const auth = getAuth();
-    const btn = document.getElementById('btnLogin');
-    const nameEl = document.getElementById('userName');
-    const roleEl = document.getElementById('userRole');
-    const avatar = document.getElementById('userAvatar');
+    const btn   = document.getElementById('btnLogin');
+    const nameEl= document.getElementById('userName');
+    const roleEl= document.getElementById('userRole');
+    const avatar= document.getElementById('userAvatar');
 
     const displayName = (a)=> a?.full_name || a?.display_name || a?.user_fullname || a?.user_name || a?.username || 'អ្នកប្រើប្រាស់';
     const role = String(auth?.role || 'viewer').toLowerCase();
-    nameEl.textContent = displayName(auth);
-    roleEl.textContent = role;
-    roleEl.className = 'badge-role ' + (role==='super' ? 'bg-primary text-white' :
-                                        role.includes('data') ? 'bg-success text-white' :
-                                        'bg-light text-secondary');
-    // avatar letter
-    const letter = (displayName(auth).match(/[A-Za-zក-ហ]/) || ['U'])[0].toUpperCase();
-    avatar.textContent = letter;
 
-    applyLoginButton(btn); // this sets logout behaviour if logged in
+    if (nameEl) nameEl.textContent = displayName(auth);
+    if (roleEl){
+      roleEl.textContent = role;
+      roleEl.className = 'badge-role ' + (role==='super' ? 'bg-primary text-white'
+                                   : role.includes('data') ? 'bg-success text-white'
+                                   : 'bg-light text-secondary');
+    }
+    if (avatar){
+      const letter = (displayName(auth).match(/[A-Za-zក-ហ]/) || ['U'])[0].toUpperCase();
+      avatar.textContent = letter;
+    }
 
-    // hide super-only primary items if not super
+    if (btn) applyLoginButton(btn);
     document.querySelectorAll('.menu-super-only').forEach(el=>{
       el.style.display = isSuper(auth) ? '' : 'none';
     });
@@ -302,22 +304,27 @@
       const res = await fetch(viewUrl(conf.view), { cache:'no-store' });
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       const html = await res.text();
-      outlet.innerHTML = html;
-      if (typeof conf.init === 'function') await AppLoader.wrap(conf.init(), 'កំពុងរៀបចំទំព័រ…');
+      if (outlet) outlet.innerHTML = html;
+      if (typeof conf.init === 'function') {
+        await AppLoader.wrap(conf.init(), 'កំពុងរៀបចំទំព័រ…');
+      }
       setActiveByHash(path);
     }catch(e){
-      outlet.innerHTML = `
-        <div class="container-page">
-          <div class="alert alert-danger mt-3">
-            មិនអាចផ្ទុកទំព័រ: ${conf.view}<br/>
-            <small class="text-muted">${e.message || e}</small>
-          </div>
-        </div>`;
+      if (outlet) {
+        outlet.innerHTML = `
+          <div class="container-page">
+            <div class="alert alert-danger mt-3">
+              មិនអាចផ្ទុកទំព័រ: ${conf.view}<br/>
+              <small class="text-muted">${e.message || e}</small>
+            </div>
+          </div>`;
+      }
     }
   }
   const parseHash = () => (location.hash || '#/').replace(/^#\//,'');
   window.addEventListener('hashchange', () => AppLoader.wrap(render(parseHash()), 'កំពុងផ្ទុកទំព័រ…'));
-  render(parseHash());
+  // initial render WITH loader
+  await AppLoader.wrap(render(parseHash()), 'កំពុងផ្ទុកទំព័រ…');
 
   function setActiveByHash(h){
     const top = h.startsWith('settings/') ? 'settings'
@@ -360,10 +367,7 @@
       const c1El = document.getElementById('chartMonthly');
       if (c1El){
         const c1 = ec.init(c1El, null, { devicePixelRatio: window.devicePixelRatio || 1 });
-        c1.setOption({
-          tooltip:{}, xAxis:{type:'category',data:months}, yAxis:{type:'value'},
-          series:[{type:'bar',data:series}]
-        });
+        c1.setOption({ tooltip:{}, xAxis:{type:'category',data:months}, yAxis:{type:'value'}, series:[{type:'bar',data:series}] });
       }
 
       // By department pie
@@ -383,49 +387,313 @@
     }
   }
 
-  /* ======================= Indicators view (list-only) ======================= */
-  async function initIndicators(){
-    const table = document.getElementById('tblIndicators');
-    if (!table || !window.jQuery) return;
-    const $ = window.jQuery;
-    const dt = $('#tblIndicators').DataTable({ destroy:true });
+  /* ======================= Indicators view ======================= */
+async function initIndicators(){
+  const auth = getAuth();
+  const SUPER = isSuper(auth);
 
-    const [inds, depts] = await AppLoader.wrap(Promise.all([
-      gasList('indicators'),
-      gasList('departments')
-    ]), 'កំពុងទាញសូចនាករ…');
+  // DOM
+  const table  = document.getElementById('tblIndicators');
+  const tbody  = table?.querySelector('tbody');
+  const btnAdd = document.getElementById('btnAdd');
+  const frm    = document.getElementById('frmIndicator');
+  const selDept= document.getElementById('department_id');
+  const selUnit= document.getElementById('unit_id');
+  const btnSave= document.getElementById('btnSave');
+  const modal  = makeModal('mdlIndicator'); // helper ដែលអ្នកមានរួច
 
-    const dmap = Object.fromEntries(depts.map(d=>[String(d.department_id), d.department_name]));
-    dt.clear();
-    inds.forEach(ind=>{
-      dt.row.add([
-        ind.indicator_id,
-        ind.indicator_name,
-        ind.indicator_type || '',
-        dmap[String(ind.department_id)] || '',
-        '<span class="text-muted">—</span>'
-      ]);
-    });
-    dt.draw();
+  if (!table || !tbody || !btnAdd || !frm || !selDept || !selUnit || !btnSave) return;
+
+  // STATE
+  let CACHE = { departments: [], indicators: [] };
+  const UNITS_CACHE = new Map();   // depId -> units[]
+  let unitsLoading = false;
+  let unitsReqSeq  = 0;            // សម្រាប់ប្រឆាំង race condition
+
+  // utilities
+  const setStatus = (m)=>{ const el = document.getElementById('statusLine'); if (el) el.textContent = m||''; };
+  const deptName = id => (CACHE.departments.find(d => String(d.department_id)===String(id))?.department_name || '');
+
+  function setUnitsLoading(on){
+    unitsLoading = !!on;
+    // បិទ/បើក Save បើយើងកំពុងទាញផ្នែក
+    btnSave.disabled = unitsLoading;
+    // បន្ថែម class loading នៅលើ wrapper នៃ select ផ្នែក
+    const wrap = selUnit.closest('.col-md-6') || selUnit.parentElement;
+    wrap?.classList.toggle('select-loading', unitsLoading);
   }
+
+  // skeleton rows
+  tbody.innerHTML = '';
+  for (let i=0;i<4;i++){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="5" class="skel"></td>`;
+    tbody.appendChild(tr);
+  }
+
+  // LOAD base data
+  try{
+    let [depts, inds] = await Promise.all([
+      gasList('departments'),
+      gasList('indicators'),
+    ]);
+
+    // lock scope for non-super
+    if (!SUPER && auth?.department_id){
+      const depId = String(auth.department_id);
+      depts = depts.filter(d => String(d.department_id) === depId);
+      inds  = inds.filter(r => String(r.department_id) === depId);
+      // prefetch units សម្រាប់ dep របស់អ្នកប្រើ
+      try { UNITS_CACHE.set(depId, await gasList('units', { department_id: depId })); } catch {}
+    }
+
+    CACHE.departments = depts;
+    CACHE.indicators  = inds;
+
+    await fillDeptSelect(SUPER ? '' : auth?.department_id);
+    await fillUnitSelect(SUPER ? selDept.value : auth?.department_id, SUPER ? '' : auth?.unit_id);
+
+    renderTable();
+    setStatus(`បានផ្ទុក ${inds.length} សូចនាករ`);
+  }catch(err){
+    console.error(err);
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">បរាជ័យផ្ទុកទិន្នន័យ</td></tr>`;
+    setStatus('បរាជ័យផ្ទុកទិន្នន័យ');
+  }
+
+  // -------- helpers --------
+  async function fillDeptSelect(selected){
+    selDept.innerHTML =
+      `<option value="">— ជ្រើសការិយាល័យ —</option>` +
+      CACHE.departments.map(d => `<option value="${d.department_id}">${d.department_name}</option>`).join('');
+    if (selected) selDept.value = selected;
+    selDept.disabled = !SUPER;
+  }
+
+  async function fillUnitSelect(departmentId, selected){
+    // មិនមាន dep → សម្អាត និងបិទ select
+    selUnit.innerHTML = `<option value="">— ជ្រើសផ្នែក —</option>`;
+    if (!departmentId) { selUnit.disabled = true; return; }
+
+    setUnitsLoading(true);
+    selUnit.disabled = true;
+    selUnit.innerHTML = `<option value="">កំពុងទាញទិន្នន័យ…</option>`;
+
+    const mySeq = ++unitsReqSeq;
+
+    try{
+      let units = UNITS_CACHE.get(String(departmentId));
+      if (!units) {
+        units = await gasList('units', { department_id: departmentId });
+        UNITS_CACHE.set(String(departmentId), units);
+      }
+      // ប្រសិនបើមាន req ថ្មីជាន់លើ កុំ render ទៀត
+      if (mySeq !== unitsReqSeq) return;
+
+      selUnit.innerHTML =
+        `<option value="">— ជ្រើសផ្នែក —</option>` +
+        (units||[]).map(u => `<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+      if (selected) selUnit.value = selected;
+      selUnit.disabled = !SUPER; // non-super locked
+    }catch(err){
+      console.error('load units failed:', err);
+      if (mySeq !== unitsReqSeq) return;
+      selUnit.innerHTML = `<option value="">បរាជ័យទាញទិន្នន័យ — សាកម្ដងទៀត</option>`;
+      selUnit.disabled = false; // អនុញ្ញាតឱ្យចុចប្ដូរវិញដើម្បី retry
+    }finally{
+      if (mySeq === unitsReqSeq) setUnitsLoading(false);
+    }
+  }
+
+  function canEditRow(ind){
+    if (SUPER) return true;
+    return String(ind.department_id) === String(auth?.department_id);
+  }
+
+  function renderTable(){
+    if (!CACHE.indicators.length){
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    for (const ind of CACHE.indicators){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${ind.indicator_id}</td>
+        <td>${ind.indicator_name}</td>
+        <td>${ind.indicator_type||''}</td>
+        <td>${deptName(ind.department_id)}</td>
+        <td>
+          ${canEditRow(ind)
+            ? `<button class="btn btn-sm btn-warning me-2" data-act="edit" data-id="${ind.indicator_id}">កែ</button>
+               <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${ind.indicator_id}">លុប</button>`
+            : `<span class="text-muted">—</span>`}
+        </td>`;
+      frag.appendChild(tr);
+    }
+    tbody.innerHTML = '';
+    tbody.appendChild(frag);
+  }
+
+  // -------- events --------
+  selDept.addEventListener('change', async (e)=> {
+    await fillUnitSelect(e.target.value, '');
+  });
+
+  btnAdd.addEventListener('click', async ()=>{
+    frm.reset();
+    document.getElementById('indicator_id').value = '';
+    if (SUPER){
+      selDept.disabled = false;
+      await fillUnitSelect(selDept.value, '');
+    }else{
+      selDept.value = auth?.department_id || '';
+      selDept.disabled = true;
+      await fillUnitSelect(auth?.department_id, auth?.unit_id);
+      selUnit.disabled = true;
+    }
+    modal && modal.show();
+  });
+
+  tbody.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const id  = btn.getAttribute('data-id');
+    const row = CACHE.indicators.find(x => String(x.indicator_id) === String(id));
+    if (!row) return;
+
+    if (btn.dataset.act === 'edit'){
+      frm.reset();
+      document.getElementById('indicator_id').value   = row.indicator_id;
+      document.getElementById('indicator_name').value = row.indicator_name || '';
+      document.getElementById('indicator_type').value = row.indicator_type || '';
+
+      // set dep -> load units -> select unit
+      selDept.value = row.department_id || '';
+      if (SUPER) selDept.disabled = false; else selDept.disabled = true;
+      await fillUnitSelect(row.department_id, row.unit_id || '');
+      if (!SUPER) selUnit.disabled = true;
+
+      modal && modal.show();
+    }
+
+    if (btn.dataset.act === 'del'){
+      if (!confirm('តើចង់លុបធាតុនេះមែនទេ?')) return;
+      try{
+        await gasDelete('indicators', ID_FIELDS.indicators, row.indicator_id);
+        CACHE.indicators = CACHE.indicators.filter(x => String(x.indicator_id) !== String(id));
+        renderTable();
+        setStatus('លុបរួចរាល់');
+      }catch(err){
+        console.error(err);
+        alert('បរាជ័យលុប: ' + (err?.message || err));
+      }
+    }
+  });
+
+  frm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if (unitsLoading) return; // កុំអោយ save ខណៈកំពុងទាញផ្នែក
+
+    const payload = {
+      indicator_id   : document.getElementById('indicator_id').value || null,
+      indicator_name : document.getElementById('indicator_name').value.trim(),
+      indicator_type : document.getElementById('indicator_type').value.trim(),
+      department_id  : SUPER ? selDept.value : (auth?.department_id || ''),
+      unit_id        : SUPER ? selUnit.value : (auth?.unit_id || '')
+    };
+
+    const nameEl = document.getElementById('indicator_name');
+    nameEl.classList.toggle('is-invalid', !payload.indicator_name);
+    if (!payload.indicator_name) return;
+
+    if (SUPER && !payload.department_id){ alert('សូមជ្រើសការិយាល័យ'); return; }
+    // បើចង់បង្ខំ Unit សម្រាប់ super:
+    // if (SUPER && !payload.unit_id){ alert('សូមជ្រើសផ្នែក'); return; }
+
+    const old = btnSave.innerHTML; btnSave.disabled = true; btnSave.innerHTML = 'កំពុងរក្សាទុក…';
+    try{
+      const saved = await gasSave('indicators', payload);
+      const row = saved.row || saved;
+      const i = CACHE.indicators.findIndex(x=>String(x.indicator_id)===String(row.indicator_id));
+      if (i>=0) CACHE.indicators[i] = row; else CACHE.indicators.push(row);
+      renderTable();
+      modal && modal.hide();
+      setStatus('រក្សាទុករួចរាល់');
+    }catch(err){
+      console.error(err);
+      alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
+    }finally{
+      btnSave.disabled = false; btnSave.innerHTML = old;
+    }
+  });
+}
+
+
+
+
+
+  /* ======================= Edit/Delete delegate (old way) ======================= */
+  // ---- Modal helper: works with BS5, BS4 (jQuery), or pure fallback
+function makeModal(id){
+  const el = typeof id === 'string' ? document.getElementById(id) : id;
+  if (!el) return null;
+
+  // BS5 path
+  if (window.bootstrap && bootstrap.Modal) {
+    let inst = bootstrap.Modal.getInstance ? bootstrap.Modal.getInstance(el) : null;
+    if (!inst) inst = new bootstrap.Modal(el, {backdrop:true, keyboard:true, focus:true});
+    return { show: ()=>inst.show(), hide: ()=>inst.hide() };
+  }
+
+  // BS4 path (jQuery plugin)
+  if (window.jQuery && jQuery.fn && jQuery.fn.modal) {
+    const $el = jQuery(el);
+    return { show: ()=>$el.modal('show'), hide: ()=>$el.modal('hide') };
+  }
+
+  // Last-resort fallback
+  return {
+    show(){ el.style.display='block'; el.removeAttribute('aria-hidden'); el.setAttribute('aria-modal','true'); },
+    hide(){ el.style.display='none';  el.setAttribute('aria-hidden','true'); el.removeAttribute('aria-modal'); }
+  };
+}
+document.getElementById('btnReload')?.addEventListener('click', async ()=>{
+  $status('កំពុងផ្ទុកឡើងវិញ…');
+  let [depts, inds] = await Promise.all([
+    gasList('departments'),
+    gasList('indicators')
+  ]);
+  if (!SUPER && auth?.department_id){
+    depts = depts.filter(d => String(d.department_id) === String(auth.department_id));
+    inds  = inds.filter(r => String(r.department_id) === String(auth.department_id));
+  }
+  CACHE.departments = depts;
+  CACHE.indicators  = inds;
+  await fillDeptSelect(SUPER ? selDept.value : auth?.department_id);
+  await fillUnitSelect(selDept.value || auth?.department_id, SUPER ? selUnit.value : auth?.unit_id);
+  renderTable();
+  $status(`បានផ្ទុកឡើងវិញ ${inds.length} មុខ`);
+});
+
+
+
 
   /* ======================= Khmer Date/Time (footer) ======================= */
   (function startKhClock(){
     const el = document.getElementById('clockKh');
-    const months = ['មករា','កម្ភែរី','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
-    const dow = ['អាទិត្យ','ចន្ទ','អង្គារ','ពុធ','ព្រហស្បតិ៍','សុក្រ','សៅរ៍'];
-    function pad(n){ return String(n).padStart(2,'0'); }
+    if (!el) return; // guard if footer clock not present
+    const months = ['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+    const dow    = ['អាទិត្យ','ចន្ទ','អង្គារ','ពុធ','ព្រហស្បតិ៍','សុក្រ','សៅរ៍'];
+    const pad = n => String(n).padStart(2,'0');
     function fmt(){
       const d = new Date();
-      const s = `${dow[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} • ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-      el.textContent = s;
+      el.textContent = `${dow[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} • ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
       document.title = `(${pad(d.getHours())}:${pad(d.getMinutes())}) PHD Report`;
     }
     fmt(); setInterval(fmt, 1000);
   })();
-
-  
-  
 </script>
+
 </body>
 </html>
