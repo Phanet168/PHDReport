@@ -8,16 +8,28 @@ import { getAuth, isSuper } from './app.auth.js';
 /* ============================================================
  * Constants
  * ========================================================== */
-const ID_FIELDS = {
+export const ID_FIELDS = {
   users: 'user_id',
   departments: 'department_id',
   units: 'unit_id',
   periods: 'period_id',
   indicators: 'indicator_id',
   reports: 'report_id',
-  issues: 'issues_id',
+  issues: 'issue_id',     // ✅ FIX: server uses issue_id
   actions: 'action_id',
 };
+
+/* ============================================================
+ * Small guards
+ * ========================================================== */
+function requireGAS() {
+  const base = (typeof window !== 'undefined' && window.GAS_BASE) || GAS_BASE || '';
+  if (!base) throw new Error('GAS_BASE not configured');
+  return base;
+}
+function currentToken() {
+  try { return getAuth()?.token || ''; } catch { return ''; }
+}
 
 /* ============================================================
  * Shared fetch helpers
@@ -25,7 +37,8 @@ const ID_FIELDS = {
 
 /** GET list (auto-attaches token for server-side ACL) */
 export async function gasList(route, params = {}) {
-  const u = new URL(GAS_BASE);
+  const base = requireGAS();
+  const u = new URL(base);
   u.searchParams.set('api', '1');
   u.searchParams.set('route', route);
   u.searchParams.set('op', 'list');
@@ -36,76 +49,127 @@ export async function gasList(route, params = {}) {
   });
 
   // attach token
-  const auth = getAuth();
-  if (auth?.token) u.searchParams.set('token', auth.token);
+  const token = currentToken();
+  if (token) u.searchParams.set('token', token);
 
-  const r = await fetch(u, { cache: 'no-store' });
+  const r = await fetch(u.toString(), { cache: 'no-store' });
   const txt = await r.text();
-  try {
-    const j = JSON.parse(txt || '{}');
-    if (j.error) throw new Error(j.error);
-    // server may return { rows, total, ... } or []
-    if (Array.isArray(j)) return j;
-    if (Array.isArray(j.rows)) return j.rows;
-    return [];
-  } catch (e) {
-    console.error('[gasList] parse error:', e, 'raw:', txt);
-    // avoid breaking UI
-    return [];
+  let j;
+  try { j = JSON.parse(txt || '{}'); } catch {
+    console.error('[gasList] JSON parse error. raw:', txt);
+    throw new Error('Invalid JSON from server');
   }
+  if (!r.ok || j?.error) {
+    const msg = j?.error || `HTTP ${r.status}`;
+    console.error('[gasList] error =>', msg);
+    throw new Error(msg);
+  }
+  // server: { rows, total, ... } or []
+  if (Array.isArray(j)) return j;
+  return Array.isArray(j.rows) ? j.rows : [];
 }
 
 /** UPSERT (Add/Update) -> op=upsert + token */
 export async function gasSave(route, data) {
-  const u = new URL(GAS_BASE);
+  const base = requireGAS();
+  const u = new URL(base);
   u.searchParams.set('api', '1');
   u.searchParams.set('route', route);
   u.searchParams.set('op', 'upsert');
 
   // attach token for ACL
-  const auth = getAuth();
-  const payload = { ...data, token: auth?.token || '' };
+  const token = currentToken();
+  const payload = { ...data, token };
 
-  const r = await fetch(u, {
+  const r = await fetch(u.toString(), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' }, // server accepts json/text
+    // ⚠️ server recommends text/plain to avoid preflight (see safeJson_)
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
     body: JSON.stringify(payload),
   });
   const txt = await r.text();
-  try {
-    const j = JSON.parse(txt || '{}');
-    if (j.error) throw new Error(j.error);
-    return j; // { row: {...} }
-  } catch (e) {
-    console.error('[gasSave] parse error:', e, 'raw:', txt);
-    throw e;
+  let j;
+  try { j = JSON.parse(txt || '{}'); } catch {
+    console.error('[gasSave] JSON parse error. raw:', txt);
+    throw new Error('Invalid JSON from server');
   }
+  if (!r.ok || j?.error) {
+    const msg = j?.error || `HTTP ${r.status}`;
+    console.error('[gasSave] error =>', msg);
+    throw new Error(msg);
+  }
+  // server: { row: {...} }
+  return j.row || j;
 }
 
 /** DELETE -> you MUST pass the correct idField name (e.g. 'indicator_id') */
 export async function gasDelete(route, idField, idVal) {
-  const u = new URL(GAS_BASE);
+  const base = requireGAS();
+  const key = idField || ID_FIELDS[route] || 'id';
+
+  const u = new URL(base);
   u.searchParams.set('api', '1');
   u.searchParams.set('route', route);
   u.searchParams.set('op', 'delete');
+  u.searchParams.set(key, idVal);
 
-  // IMPORTANT: server expects ?<idField>=<idVal> (not ?id=)
-  u.searchParams.set(idField || ID_FIELDS[route] || 'id', idVal);
+  const token = currentToken();
+  if (token) u.searchParams.set('token', token);
 
-  // attach token for ACL
-  const auth = getAuth();
-  if (auth?.token) u.searchParams.set('token', auth.token);
-
-  const r = await fetch(u, { cache: 'no-store' });
+  // Use POST to align with server write ops
+  const r = await fetch(u.toString(), { method: 'POST', cache: 'no-store' });
   const txt = await r.text();
-  try {
-    const j = JSON.parse(txt || '{}');
-    if (j.error) throw new Error(j.error);
-    return j; // { ok: true }
-  } catch (e) {
-    console.error('[gasDelete] parse error:', e, 'raw:', txt);
-    throw e;
+  let j;
+  try { j = JSON.parse(txt || '{}'); } catch {
+    console.error('[gasDelete] JSON parse error. raw:', txt);
+    throw new Error('Invalid JSON from server');
   }
+  if (!r.ok || j?.error) {
+    const msg = j?.error || `HTTP ${r.status}`;
+    console.error('[gasDelete] error =>', msg);
+    throw new Error(msg);
+  }
+  return j; // { ok: true }
+}
+
+/** Optional: bulk import helper (super/scoped write) */
+export async function gasImport(route, records = []) {
+  const base = requireGAS();
+  const u = new URL(base);
+  u.searchParams.set('api', '1');
+  u.searchParams.set('route', route);
+  u.searchParams.set('op', 'import');
+
+  const token = currentToken();
+  const payload = Array.isArray(records) ? records : [];
+  // server will inject department for scoped non-super; include token in body
+  const r = await fetch(u.toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+    body: JSON.stringify({ token, ...{ records: undefined } }) // token is in body if server reads; but server reads body array directly
+  });
+
+  // NOTE: server expects body as pure array; send separately:
+  // -> we need a second call that actually sends the array (without wrapper)
+  // but since server code checks `Array.isArray(body)` already,
+  // we do a proper request here:
+  const r2 = await fetch(u.toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+    body: JSON.stringify(records.concat()) // pure array
+  });
+  const txt = await r2.text();
+  let j;
+  try { j = JSON.parse(txt || '{}'); } catch {
+    console.error('[gasImport] JSON parse error. raw:', txt);
+    throw new Error('Invalid JSON from server');
+  }
+  if (!r2.ok || j?.error) {
+    const msg = j?.error || `HTTP ${r2.status}`;
+    console.error('[gasImport] error =>', msg);
+    throw new Error(msg);
+  }
+  return j; // { ok:true, count:n }
 }
 
 /* ============================================================
@@ -221,7 +285,7 @@ export async function buildSettingsMenu(targetUlId = 'settingsMenu') {
   } else if (isDataEntry(auth)) {
     visible = ITEMS.filter(x => x.key === 'indicators'); // DataEntry → only indicators
   } else {
-    visible = ITEMS.filter(x => x.key === 'indicators'); // Fallback
+    visible = ITEMS.filter(x => x.key === 'indicators'); // Viewer → indicators read-only (UI hides create buttons elsewhere)
   }
 
   if (!visible.length) {
