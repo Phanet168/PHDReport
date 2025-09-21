@@ -1,119 +1,229 @@
-<!-- pages/settings/department/index.html -->
-<div class="settings-page">
-  <div class="container-page">
+<script>
+  (() => {
+    // ---------- Config ----------
+    const API_BASE = window.APP_EXEC_URL || 'exec'; // set window.APP_EXEC_URL to your web app /exec URL if needed
+    const TBL_INDICATORS = 'indicators';
+    const TBL_DEPARTMENTS = 'departments';
+    const PK_IND = 'indicator_id';
+    const PK_DEP = 'department_id';
 
-    <!-- Page head -->
-    <div class="page-head">
-      <div class="d-flex align-items-center gap-2">
-        <h1 class="kh-head h4 m-0">សូចនាករ</h1>
-        <nav aria-label="breadcrumb" class="small">
-          <ol class="breadcrumb m-0">
-            <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
-            <li class="breadcrumb-item">Settings</li>
-            <li class="breadcrumb-item active" aria-current="page">Indicators</li>
-          </ol>
-        </nav>
-      </div>
-      <div class="separator-breadcrumb border-top"></div>
-    </div>
+    // ---------- Elements ----------
+    const tbody = document.querySelector('#tblIndicators tbody');
+    const statusLine = document.getElementById('statusLine');
+    const btnAdd = document.getElementById('btnAdd');
 
-    <!-- Body: centered card -->
-    <div class="page-body">
-      <div class="card shadow-sm centered-card">
-        <div class="card-body">
+    // Modal + form
+    const mdlEl = document.getElementById('mdlIndicator');
+    const frm = document.getElementById('frmIndicator');
+    const $id = document.getElementById('indicator_id');
+    const $name = document.getElementById('indicator_name');
+    const $type = document.getElementById('indicator_type');
+    const $dep = document.getElementById('department_id');
 
-          <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-            <h4 class="card-title kh-head m-0">បញ្ជីសូចនាករ</h4>
-            <div class="d-flex gap-2">
-              <button id="btnAdd" class="btn btn-primary btn-sm">
-                <i class="i-Add"></i> បន្ថែម
-              </button>
-            </div>
-          </div>
+    let mdl; // bootstrap.Modal instance
+    let CACHE = { departments: [], indicators: [], depById: {} };
 
-          <div class="table-responsive">
-            <table id="tblIndicators" class="table table-striped table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th style="width:90px">ID</th>
-                  <th>ឈ្មោះសូចនាករ</th>
-                  <th style="width:180px">ប្រភេទ</th>
-                  <th style="width:260px">នាយកដ្ឋាន</th>
-                  <th style="width:160px">សកម្មភាព</th>
-                </tr>
-              </thead>
-              <tbody><!-- initIndicators() នឹងបំពេញ --></tbody>
-            </table>
-          </div>
+    // ---------- Helpers ----------
+    function qs(obj){ return new URLSearchParams(obj).toString(); }
+    function apiGet(params){
+      const url = `${API_BASE}?${qs({api:1, ...params})}`;
+      return fetch(url, {method:'GET'}).then(r=>r.json());
+    }
+    function apiPost(params, bodyObj){
+      const url = `${API_BASE}?${qs({api:1, ...params})}`;
+      return fetch(url, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain'}, // avoid preflight
+        body: JSON.stringify(bodyObj||{})
+      }).then(r=>r.json());
+    }
+    function getLocal(k){ try{return JSON.parse(localStorage.getItem(k)||'null');}catch(_){return null;} }
+    function setLocal(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+    async function fetchTable(name){
+      const key = `tbl:${name}`;
+      const cached = getLocal(key);
+      const etag = cached?.meta?.etag || '';
+      const res = await apiGet({route:'table', op:'list', name, etag});
+      if (res?.ok && res.not_modified){ return cached; }
+      if (res?.ok){ setLocal(key,res); return res; }
+      throw new Error(res?.error || 'Fetch error');
+    }
+    async function bulkUpsert(name, rows, pk){
+      const res = await apiPost({route:'table', op:'bulk_upsert', name}, {name, pk, rows});
+      if (!res?.ok) throw new Error(res?.error || 'Upsert error');
+      // refresh local cache by re-fetching table to get new etag
+      await fetchTable(name);
+      return res;
+    }
+    function newId(prefix='ind'){ // time + random (safe enough for client-generated ids)
+      const t = Date.now().toString(36);
+      const r = Math.random().toString(36).slice(2,6);
+      return `${prefix}_${t}${r}`;
+    }
+    function setStatus(msg, ok=true){
+      statusLine.textContent = msg || '';
+      statusLine.classList.toggle('text-danger', !ok);
+    }
+    function toInt(v){ const n = Number(v); return Number.isFinite(n)? n : v; }
 
-          <div class="small text-muted mt-2" id="statusLine"></div>
-        </div>
-      </div>
-    </div>
+    // ---------- UI Render ----------
+    function renderTable(){
+      const rows = CACHE.indicators || [];
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      for (const r of rows){
+        const tr = document.createElement('tr');
+        const depName = CACHE.depById[String(r.department_id)] || '';
+        tr.innerHTML = `
+          <td>${r[PK_IND] ?? ''}</td>
+          <td>${escapeHtml(r.indicator_name||'')}</td>
+          <td>${escapeHtml(r.indicator_type||'')}</td>
+          <td>${escapeHtml(depName||'')}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary me-1" data-act="edit" data-id="${r[PK_IND]}">
+              <i class="i-Pen-2"></i> កែប្រែ
+            </button>
+            <button class="btn btn-sm btn-outline-danger" data-act="remove" data-id="${r[PK_IND]}">
+              <i class="i-Close"></i> លុប
+            </button>
+          </td>
+        `;
+        frag.appendChild(tr);
+      }
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
+    }
 
-  </div>
-</div>
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
 
-<!-- Modal Add/Edit -->
-<div class="modal fade" id="mdlIndicator" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <form class="modal-content" id="frmIndicator" novalidate>
-      <div class="modal-header">
-        <h5 class="modal-title kh-head">ព័ត៌មានសូចនាករ</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="indicator_id" />
-        <div class="mb-3">
-          <label for="indicator_name" class="form-label">ឈ្មោះសូចនាករ <span class="text-danger">*</span></label>
-          <input id="indicator_name" class="form-control" required />
-          <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះសូចនាករ</div>
-        </div>
-        <div class="mb-3">
-          <label for="indicator_type" class="form-label">ប្រភេទ</label>
-          <input id="indicator_type" class="form-control" placeholder="ឧ. Output / Outcome / Process" />
-        </div>
-        <div class="mb-3">
-          <label for="department_id" class="form-label">នាយកដ្ឋាន</label>
-          <select id="department_id" class="form-select"></select>
-          <div class="form-text">អ្នកប្រើសាមញ្ញ ត្រូវបានចាក់សោរតាមនាយកដ្ឋានរបស់ខ្លួន។</div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
-        <button class="btn btn-primary" type="submit" id="btnSave">រក្សាទុក</button>
-      </div>
-    </form>
-  </div>
-</div>
+    function fillDepartmentsSelect(){
+      const opts = ['<option value="">— ជ្រើសរើស —</option>'];
+      for (const d of CACHE.departments){
+        opts.push(`<option value="${d[PK_DEP]}">${escapeHtml(d.department_name || d.name || d[PK_DEP])}</option>`);
+      }
+      $dep.innerHTML = opts.join('');
+    }
 
-<style>
-  /* page chain: fill space above footer */
-  .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
-  .container-page{width:100%; max-width:1280px; margin:0 auto;
-    padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
+    function openModal(data){
+      $id.value = data?.[PK_IND] || '';
+      $name.value = data?.indicator_name || '';
+      $type.value = data?.indicator_type || '';
+      $dep.value = data?.department_id ?? '';
+      frm.classList.remove('was-validated');
+      if (!mdl) mdl = new bootstrap.Modal(mdlEl);
+      mdl.show();
+    }
 
-  /* tidy spacing from header & between blocks */
-  .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
-  .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
-  .separator-breadcrumb{ margin-top:2px; }
+    function getRowById(id){
+      return (CACHE.indicators||[]).find(r => String(r[PK_IND]) === String(id));
+    }
 
-  /* centered card */
-  .centered-card{
-    width:100%; max-width:1100px;
-    margin-top:12px;                 /* extra gap under page head */
-    border:1px solid #eef0f4; border-radius:14px;
-  }
-  @media (min-width:1400px){ .centered-card{ max-width:1200px; } }
+    function removeById(id){
+      const arr = CACHE.indicators||[];
+      const next = arr.filter(r => String(r[PK_IND]) !== String(id));
+      return next;
+    }
 
-  /* table cosmetics */
-  .table thead th{ white-space:nowrap; }
-  #tblIndicators td:last-child{ white-space:nowrap; }
+    // ---------- Events ----------
+    btnAdd?.addEventListener('click', () => openModal(null));
 
-  /* optional skeleton row */
-  .skel{ position:relative; overflow:hidden; background:#f3f4f6; height:44px; }
-  .skel::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
-    animation:shimmer 1.1s infinite; }
-  @keyframes shimmer{ 100%{ transform:translateX(100%);} }
-</style>
+    tbody.addEventListener('click', async (ev) => {
+      const btn = ev.target.closest('button[data-act]');
+      if (!btn) return;
+      const act = btn.dataset.act;
+      const id = btn.dataset.id;
+
+      if (act === 'edit'){
+        const row = getRowById(id);
+        if (!row) return;
+        openModal(row);
+      }
+      if (act === 'remove'){
+        const row = getRowById(id);
+        if (!row) return;
+        if (!confirm('តើអ្នកពិតជាចង់លុបទិន្នន័យនេះមែនទេ?')) return;
+        try{
+          setStatus('កំពុងលុប…');
+          // Implement delete as "replace_all" minus this row, or mark as _deleted (choose one).
+          // Here we do replace_all client-side snapshot for simplicity.
+          const kept = removeById(id);
+          await apiPost({route:'table', op:'replace_all', name:TBL_INDICATORS}, {name:TBL_INDICATORS, rows: kept});
+          // refresh local cache + UI
+          const ref = await fetchTable(TBL_INDICATORS);
+          CACHE.indicators = ref.data || [];
+          renderTable();
+          setStatus('លុបរួចរាល់');
+        }catch(err){
+          console.error(err);
+          setStatus('លុបបរាជ័យ: ' + err.message, false);
+        }
+      }
+    });
+
+    frm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // simple Bootstrap validation
+      if (!frm.checkValidity()){
+        frm.classList.add('was-validated');
+        return;
+      }
+      const isNew = !$id.value;
+      const payload = {
+        [PK_IND]: isNew ? newId('ind') : $id.value,
+        indicator_name: $name.value.trim(),
+        indicator_type: $type.value.trim(),
+        department_id: toInt($dep.value || '')
+      };
+
+      try{
+        setStatus(isNew ? 'កំពុងបន្ថែម…' : 'កំពុងរក្សាទុក…');
+        await bulkUpsert(TBL_INDICATORS, [payload], PK_IND);
+        const ref = await fetchTable(TBL_INDICATORS);
+        CACHE.indicators = ref.data || [];
+        renderTable();
+        setStatus('រក្សាទុករួចរាល់');
+        mdl?.hide();
+      }catch(err){
+        console.error(err);
+        setStatus('រក្សាទុកបរាជ័យ: ' + err.message, false);
+      }
+    });
+
+    // ---------- Init ----------
+    async function initIndicators(){
+      try{
+        setStatus('កំពុងផ្ទុកទិន្នន័យ…');
+        // skeleton rows while loading (optional)
+        tbody.innerHTML = `<tr><td colspan="5"><div class="skel"></div></td></tr>
+                           <tr><td colspan="5"><div class="skel"></div></td></tr>`;
+
+        const [depRes, indRes] = await Promise.all([
+          fetchTable(TBL_DEPARTMENTS),
+          fetchTable(TBL_INDICATORS)
+        ]);
+
+        CACHE.departments = depRes?.data || [];
+        CACHE.indicators  = indRes?.data || [];
+        CACHE.depById = Object.fromEntries((CACHE.departments||[]).map(d => [String(d[PK_DEP]), d.department_name || d.name || d[PK_DEP]]));
+
+        fillDepartmentsSelect();
+        renderTable();
+        setStatus(`បានផ្ទុកសរុប – នាយកដ្ឋាន: ${CACHE.departments.length} • សូចនាករ: ${CACHE.indicators.length}`);
+      }catch(err){
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="5" class="text-danger text-center py-4">បរាជ័យក្នុងការផ្ទុកទិន្នន័យ</td></tr>`;
+        setStatus('បរាជ័យក្នុងការផ្ទុកទិន្នន័យ: ' + err.message, false);
+      }
+    }
+
+    // kick off
+    document.addEventListener('DOMContentLoaded', initIndicators);
+  })();
+</script>
