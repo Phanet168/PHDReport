@@ -1,0 +1,230 @@
+<div class="settings-page">
+    <div class="container-page">
+
+        <!-- Page head -->
+        <div class="page-head">
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="kh-head h4 m-0">ការិយាល័យ</h1>
+                <nav aria-label="breadcrumb" class="small">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+                        <li class="breadcrumb-item">Settings</li>
+                        <li class="breadcrumb-item active" aria-current="page">Units</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="separator-breadcrumb border-top"></div>
+        </div>
+
+        <!-- Body -->
+        <div class="page-body">
+            <div class="card shadow-sm centered-card">
+                <div class="card-body">
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                        <h4 class="card-title kh-head m-0">បញ្ជីការិយាល័យ</h4>
+                        <div class="d-flex gap-2">
+                            <button id="btnAdd" class="btn btn-primary btn-sm">
+                                <i class="i-Add"></i> បន្ថែម
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="tblUnits" class="table table-striped table-hover align-middle mb-0">
+                            <thead>
+                            <tr>
+                                <th style="width:90px">ID</th>
+                                <th>ឈ្មោះការិយាល័យ</th>
+                                <th style="width:260px">នាយកដ្ឋាន</th>
+                                <th style="width:180px">ប្រភេទ</th>
+                                <th style="width:160px">សកម្មភាព</th>
+                            </tr>
+                            </thead>
+                            <tbody><!-- initUnits() fills --></tbody>
+                        </table>
+                    </div>
+
+                    <div class="small text-muted mt-2" id="statusLine"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal Add/Edit -->
+<div class="modal fade" id="mdlUnit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" id="frmUnit" novalidate>
+            <div class="modal-header">
+                <h5 class="modal-title kh-head">ព័ត៌មានការិយាល័យ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="unit_id" />
+                <div class="mb-3">
+                    <label for="unit_name" class="form-label">ឈ្មោះការិយាល័យ <span class="text-danger">*</span></label>
+                    <input id="unit_name" class="form-control" required />
+                    <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះការិយាល័យ</div>
+                </div>
+                <div class="mb-3">
+                    <label for="department_id" class="form-label">នាយកដ្ឋាន</label>
+                    <select id="department_id" class="form-select"></select>
+                </div>
+                <div class="mb-3">
+                    <label for="unit_type" class="form-label">ប្រភេទ</label>
+                    <input id="unit_type" class="form-control" placeholder="ឧ. Technical / Admin / Service" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
+                <button class="btn btn-primary" type="submit" id="btnSave">រក្សាទុក</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+    .container-page{width:100%; max-width:1280px; margin:0 auto; padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
+    .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
+    .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
+    .separator-breadcrumb{ margin-top:2px; }
+    .centered-card{ width:100%; max-width:1100px; margin-top:12px; border:1px solid #eef0f4; border-radius:14px; }
+    @media (min-width:1400px){ .centered-card{ max-width:1200px; } }
+    .table thead th{ white-space:nowrap; }
+
+    .actions-stack{ display:flex; flex-direction:column; gap:6px; }
+    #tblUnits td.actions-cell{ vertical-align:middle; white-space:normal; }
+    @media (min-width:576px){ .actions-stack .btn{ width:120px; } }
+</style>
+
+<script type="module">
+    import { apiList, apiUpsert, apiDelete, apiLogin } from '../../../assets/js/config.js';
+
+    const TBL_DEPARTMENTS = 'departments';
+    const TBL_UNITS = 'units';
+    const PK_UNIT = 'unit_id';
+    let AUTH = { token: '' };
+
+    const tbody = document.querySelector('#tblUnits tbody');
+    const statusLine = document.getElementById('statusLine');
+    const btnAdd = document.getElementById('btnAdd');
+
+    const mdlEl = document.getElementById('mdlUnit');
+    const frm = document.getElementById('frmUnit');
+    const $id = document.getElementById('unit_id');
+    const $name = document.getElementById('unit_name');
+    const $dep = document.getElementById('department_id');
+    const $type = document.getElementById('unit_type');
+    let mdl;
+
+    let CACHE = { departments: [], units: [], depById: {} };
+
+    function setStatus(msg, ok = true) {
+      statusLine.textContent = msg || '';
+      statusLine.classList.toggle('text-danger', !ok);
+    }
+    async function ensureLogin() {
+      if (AUTH.token) return;
+      const res = await apiLogin('admin', '123'); // 👉 ប្តូរ credential ពិត
+      AUTH.token = res.token;
+    }
+    function fillDepartmentsSelect() {
+      const opts = ['<option value="">— ជ្រើសរើស —</option>'];
+      for (const d of CACHE.departments) {
+        opts.push(`<option value="${d.department_id}">${d.department_name}</option>`);
+      }
+      $dep.innerHTML = opts.join('');
+    }
+    function render() {
+      const rows = CACHE.units;
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(u => `
+        <tr>
+          <td>${u[PK_UNIT]}</td>
+          <td>${u.unit_name||''}</td>
+          <td>${CACHE.depById[String(u.department_id)]||''}</td>
+          <td>${u.unit_type||''}</td>
+          <td class="actions-cell">
+            <div class="actions-stack">
+              <button class="btn btn-sm btn-outline-primary" data-act="edit" data-id="${u[PK_UNIT]}">កែប្រែ</button>
+              <button class="btn btn-sm btn-outline-danger" data-act="remove" data-id="${u[PK_UNIT]}">លុប</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+    function openModal(row) {
+      $id.value = row?.unit_id || '';
+      $name.value = row?.unit_name || '';
+      $dep.value = row?.department_id || '';
+      $type.value = row?.unit_type || '';
+      frm.classList.remove('was-validated');
+      if (!mdl) mdl = new bootstrap.Modal(mdlEl);
+      mdl.show();
+    }
+
+    // === Events ===
+    btnAdd?.addEventListener('click', () => openModal(null));
+    tbody.addEventListener('click', async ev => {
+      const btn = ev.target.closest('button[data-act]');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      if (btn.dataset.act === 'edit') {
+        const row = CACHE.units.find(r => String(r[PK_UNIT]) === String(id));
+        if (row) openModal(row);
+      }
+      if (btn.dataset.act === 'remove') {
+        if (!confirm('លុបទិន្នន័យនេះ?')) return;
+        try {
+          await ensureLogin();
+          await apiDelete(TBL_UNITS, PK_UNIT, id, AUTH.token);
+          await loadAll();
+        } catch (err) { setStatus('បរាជ័យ: ' + err.message, false); }
+      }
+    });
+
+    frm.addEventListener('submit', async e => {
+      e.preventDefault(); e.stopPropagation();
+      if (!frm.checkValidity()) { frm.classList.add('was-validated'); return; }
+      const isNew = !$id.value;
+      const payload = {
+        [PK_UNIT]: isNew ? undefined : $id.value,
+        unit_name: $name.value.trim(),
+        department_id: Number($dep.value || ''),
+        unit_type: $type.value.trim()
+      };
+      try {
+        await ensureLogin();
+        await apiUpsert(TBL_UNITS, payload, AUTH.token);
+        mdl?.hide();
+        await loadAll();
+      } catch (err) { setStatus('បរាជ័យ: ' + err.message, false); }
+    });
+
+    // === Init ===
+    async function loadAll() {
+      try {
+        setStatus('កំពុងផ្ទុកទិន្នន័យ…');
+        const [deps, units] = await Promise.all([
+          apiList(TBL_DEPARTMENTS),
+          apiList(TBL_UNITS)
+        ]);
+        CACHE.departments = deps;
+        CACHE.units = units;
+        CACHE.depById = Object.fromEntries(deps.map(d => [String(d.department_id), d.department_name]));
+        fillDepartmentsSelect();
+        render();
+        setStatus(`បានផ្ទុកសរុប – នាយកដ្ឋាន: ${deps.length} • ការិយាល័យ: ${units.length}`);
+      } catch (err) {
+        console.error(err);
+        setStatus('បរាជ័យក្នុងការផ្ទុកទិន្នន័យ: ' + err.message, false);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', loadAll);
+</script>

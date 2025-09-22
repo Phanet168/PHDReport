@@ -1,229 +1,136 @@
-<script>
-  (() => {
-    // ---------- Config ----------
-    const API_BASE = window.APP_EXEC_URL || 'exec'; // set window.APP_EXEC_URL to your web app /exec URL if needed
-    const TBL_INDICATORS = 'indicators';
-    const TBL_DEPARTMENTS = 'departments';
-    const PK_IND = 'indicator_id';
-    const PK_DEP = 'department_id';
+<div class="settings-page">
+  <div class="container-page">
 
-    // ---------- Elements ----------
-    const tbody = document.querySelector('#tblIndicators tbody');
-    const statusLine = document.getElementById('statusLine');
-    const btnAdd = document.getElementById('btnAdd');
+    <div class="page-head">
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="kh-head h4 m-0">នាយកដ្ឋាន</h1>
+        <nav aria-label="breadcrumb" class="small">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+            <li class="breadcrumb-item">Settings</li>
+            <li class="breadcrumb-item active">Departments</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="separator-breadcrumb border-top"></div>
+    </div>
 
-    // Modal + form
-    const mdlEl = document.getElementById('mdlIndicator');
-    const frm = document.getElementById('frmIndicator');
-    const $id = document.getElementById('indicator_id');
-    const $name = document.getElementById('indicator_name');
-    const $type = document.getElementById('indicator_type');
-    const $dep = document.getElementById('department_id');
+    <div class="page-body">
+      <div class="card shadow-sm centered-card">
+        <div class="card-body">
 
-    let mdl; // bootstrap.Modal instance
-    let CACHE = { departments: [], indicators: [], depById: {} };
+          <div class="d-flex justify-content-between mb-3">
+            <h4 class="card-title kh-head m-0">បញ្ជីនាយកដ្ឋាន</h4>
+            <button id="btnAdd" class="btn btn-primary btn-sm"><i class="i-Add"></i> បន្ថែម</button>
+          </div>
 
-    // ---------- Helpers ----------
-    function qs(obj){ return new URLSearchParams(obj).toString(); }
-    function apiGet(params){
-      const url = `${API_BASE}?${qs({api:1, ...params})}`;
-      return fetch(url, {method:'GET'}).then(r=>r.json());
+          <div class="table-responsive">
+            <table id="tblDepts" class="table table-striped table-hover align-middle mb-0">
+              <thead>
+              <tr>
+                <th style="width:90px">ID</th>
+                <th>ឈ្មោះនាយកដ្ឋាន</th>
+                <th style="width:160px">សកម្មភាព</th>
+              </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="small text-muted mt-2" id="statusLine"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="mdlDept" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" id="frmDept" novalidate>
+      <div class="modal-header">
+        <h5 class="modal-title kh-head">ព័ត៌មាននាយកដ្ឋាន</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="department_id" />
+        <div class="mb-3">
+          <label for="department_name" class="form-label">ឈ្មោះនាយកដ្ឋាន <span class="text-danger">*</span></label>
+          <input id="department_name" class="form-control" required />
+          <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះ</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">បោះបង់</button>
+        <button class="btn btn-primary" type="submit">រក្សាទុក</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { apiList, apiUpsert, apiDelete, apiLogin } from '../../../assets/js/config.js';
+
+  const TBL = 'departments';
+  const PK = 'department_id';
+  let AUTH = { token:'' };
+
+  const tbody = document.querySelector('#tblDepts tbody');
+  const statusLine = document.getElementById('statusLine');
+  const btnAdd = document.getElementById('btnAdd');
+  const frm = document.getElementById('frmDept');
+  const $id = document.getElementById('department_id');
+  const $name = document.getElementById('department_name');
+  let mdl;
+
+  function setStatus(msg, ok=true){ statusLine.textContent=msg; statusLine.classList.toggle('text-danger',!ok); }
+  async function ensureLogin(){ if(AUTH.token) return; const res=await apiLogin('admin','123'); AUTH.token=res.token; }
+
+  function render(rows){
+    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="3" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`; return; }
+    tbody.innerHTML = rows.map(r=>`
+      <tr>
+        <td>${r[PK]}</td>
+        <td>${r.department_name||''}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-primary" data-act="edit" data-id="${r[PK]}">កែប្រែ</button>
+          <button class="btn btn-sm btn-outline-danger" data-act="remove" data-id="${r[PK]}">លុប</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function loadAll(){
+    setStatus('កំពុងផ្ទុក…');
+    try{
+      const rows = await apiList(TBL);
+      render(rows);
+      setStatus(`បានផ្ទុកសរុប: ${rows.length}`);
+    }catch(err){ console.error(err); setStatus('បរាជ័យ: '+err.message,false); }
+  }
+
+  btnAdd.addEventListener('click',()=>{ $id.value=''; $name.value=''; if(!mdl) mdl=new bootstrap.Modal(document.getElementById('mdlDept')); mdl.show(); });
+  tbody.addEventListener('click',async ev=>{
+    const btn=ev.target.closest('button[data-act]'); if(!btn) return;
+    const id=btn.dataset.id;
+    if(btn.dataset.act==='edit'){
+      const rows=await apiList(TBL); const row=rows.find(r=>String(r[PK])===String(id));
+      if(row){ $id.value=row[PK]; $name.value=row.department_name; if(!mdl) mdl=new bootstrap.Modal(document.getElementById('mdlDept')); mdl.show(); }
     }
-    function apiPost(params, bodyObj){
-      const url = `${API_BASE}?${qs({api:1, ...params})}`;
-      return fetch(url, {
-        method:'POST',
-        headers:{'Content-Type':'text/plain'}, // avoid preflight
-        body: JSON.stringify(bodyObj||{})
-      }).then(r=>r.json());
+    if(btn.dataset.act==='remove'){
+      if(!confirm('លុបទិន្នន័យនេះ?')) return;
+      try{ await ensureLogin(); await apiDelete(TBL,PK,id,AUTH.token); loadAll(); }
+      catch(err){ setStatus('បរាជ័យ: '+err.message,false); }
     }
-    function getLocal(k){ try{return JSON.parse(localStorage.getItem(k)||'null');}catch(_){return null;} }
-    function setLocal(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
-    async function fetchTable(name){
-      const key = `tbl:${name}`;
-      const cached = getLocal(key);
-      const etag = cached?.meta?.etag || '';
-      const res = await apiGet({route:'table', op:'list', name, etag});
-      if (res?.ok && res.not_modified){ return cached; }
-      if (res?.ok){ setLocal(key,res); return res; }
-      throw new Error(res?.error || 'Fetch error');
-    }
-    async function bulkUpsert(name, rows, pk){
-      const res = await apiPost({route:'table', op:'bulk_upsert', name}, {name, pk, rows});
-      if (!res?.ok) throw new Error(res?.error || 'Upsert error');
-      // refresh local cache by re-fetching table to get new etag
-      await fetchTable(name);
-      return res;
-    }
-    function newId(prefix='ind'){ // time + random (safe enough for client-generated ids)
-      const t = Date.now().toString(36);
-      const r = Math.random().toString(36).slice(2,6);
-      return `${prefix}_${t}${r}`;
-    }
-    function setStatus(msg, ok=true){
-      statusLine.textContent = msg || '';
-      statusLine.classList.toggle('text-danger', !ok);
-    }
-    function toInt(v){ const n = Number(v); return Number.isFinite(n)? n : v; }
+  });
 
-    // ---------- UI Render ----------
-    function renderTable(){
-      const rows = CACHE.indicators || [];
-      if (!rows.length){
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
-        return;
-      }
-      const frag = document.createDocumentFragment();
-      for (const r of rows){
-        const tr = document.createElement('tr');
-        const depName = CACHE.depById[String(r.department_id)] || '';
-        tr.innerHTML = `
-          <td>${r[PK_IND] ?? ''}</td>
-          <td>${escapeHtml(r.indicator_name||'')}</td>
-          <td>${escapeHtml(r.indicator_type||'')}</td>
-          <td>${escapeHtml(depName||'')}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary me-1" data-act="edit" data-id="${r[PK_IND]}">
-              <i class="i-Pen-2"></i> កែប្រែ
-            </button>
-            <button class="btn btn-sm btn-outline-danger" data-act="remove" data-id="${r[PK_IND]}">
-              <i class="i-Close"></i> លុប
-            </button>
-          </td>
-        `;
-        frag.appendChild(tr);
-      }
-      tbody.innerHTML = '';
-      tbody.appendChild(frag);
-    }
+  frm.addEventListener('submit',async e=>{
+    e.preventDefault(); e.stopPropagation();
+    if(!frm.checkValidity()){ frm.classList.add('was-validated'); return; }
+    const payload={[PK]:$id.value||undefined,department_name:$name.value.trim()};
+    try{ await ensureLogin(); await apiUpsert(TBL,payload,AUTH.token); mdl?.hide(); loadAll(); }
+    catch(err){ setStatus('បរាជ័យ: '+err.message,false); }
+  });
 
-    function escapeHtml(s){
-      return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    }
-
-    function fillDepartmentsSelect(){
-      const opts = ['<option value="">— ជ្រើសរើស —</option>'];
-      for (const d of CACHE.departments){
-        opts.push(`<option value="${d[PK_DEP]}">${escapeHtml(d.department_name || d.name || d[PK_DEP])}</option>`);
-      }
-      $dep.innerHTML = opts.join('');
-    }
-
-    function openModal(data){
-      $id.value = data?.[PK_IND] || '';
-      $name.value = data?.indicator_name || '';
-      $type.value = data?.indicator_type || '';
-      $dep.value = data?.department_id ?? '';
-      frm.classList.remove('was-validated');
-      if (!mdl) mdl = new bootstrap.Modal(mdlEl);
-      mdl.show();
-    }
-
-    function getRowById(id){
-      return (CACHE.indicators||[]).find(r => String(r[PK_IND]) === String(id));
-    }
-
-    function removeById(id){
-      const arr = CACHE.indicators||[];
-      const next = arr.filter(r => String(r[PK_IND]) !== String(id));
-      return next;
-    }
-
-    // ---------- Events ----------
-    btnAdd?.addEventListener('click', () => openModal(null));
-
-    tbody.addEventListener('click', async (ev) => {
-      const btn = ev.target.closest('button[data-act]');
-      if (!btn) return;
-      const act = btn.dataset.act;
-      const id = btn.dataset.id;
-
-      if (act === 'edit'){
-        const row = getRowById(id);
-        if (!row) return;
-        openModal(row);
-      }
-      if (act === 'remove'){
-        const row = getRowById(id);
-        if (!row) return;
-        if (!confirm('តើអ្នកពិតជាចង់លុបទិន្នន័យនេះមែនទេ?')) return;
-        try{
-          setStatus('កំពុងលុប…');
-          // Implement delete as "replace_all" minus this row, or mark as _deleted (choose one).
-          // Here we do replace_all client-side snapshot for simplicity.
-          const kept = removeById(id);
-          await apiPost({route:'table', op:'replace_all', name:TBL_INDICATORS}, {name:TBL_INDICATORS, rows: kept});
-          // refresh local cache + UI
-          const ref = await fetchTable(TBL_INDICATORS);
-          CACHE.indicators = ref.data || [];
-          renderTable();
-          setStatus('លុបរួចរាល់');
-        }catch(err){
-          console.error(err);
-          setStatus('លុបបរាជ័យ: ' + err.message, false);
-        }
-      }
-    });
-
-    frm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      // simple Bootstrap validation
-      if (!frm.checkValidity()){
-        frm.classList.add('was-validated');
-        return;
-      }
-      const isNew = !$id.value;
-      const payload = {
-        [PK_IND]: isNew ? newId('ind') : $id.value,
-        indicator_name: $name.value.trim(),
-        indicator_type: $type.value.trim(),
-        department_id: toInt($dep.value || '')
-      };
-
-      try{
-        setStatus(isNew ? 'កំពុងបន្ថែម…' : 'កំពុងរក្សាទុក…');
-        await bulkUpsert(TBL_INDICATORS, [payload], PK_IND);
-        const ref = await fetchTable(TBL_INDICATORS);
-        CACHE.indicators = ref.data || [];
-        renderTable();
-        setStatus('រក្សាទុករួចរាល់');
-        mdl?.hide();
-      }catch(err){
-        console.error(err);
-        setStatus('រក្សាទុកបរាជ័យ: ' + err.message, false);
-      }
-    });
-
-    // ---------- Init ----------
-    async function initIndicators(){
-      try{
-        setStatus('កំពុងផ្ទុកទិន្នន័យ…');
-        // skeleton rows while loading (optional)
-        tbody.innerHTML = `<tr><td colspan="5"><div class="skel"></div></td></tr>
-                           <tr><td colspan="5"><div class="skel"></div></td></tr>`;
-
-        const [depRes, indRes] = await Promise.all([
-          fetchTable(TBL_DEPARTMENTS),
-          fetchTable(TBL_INDICATORS)
-        ]);
-
-        CACHE.departments = depRes?.data || [];
-        CACHE.indicators  = indRes?.data || [];
-        CACHE.depById = Object.fromEntries((CACHE.departments||[]).map(d => [String(d[PK_DEP]), d.department_name || d.name || d[PK_DEP]]));
-
-        fillDepartmentsSelect();
-        renderTable();
-        setStatus(`បានផ្ទុកសរុប – នាយកដ្ឋាន: ${CACHE.departments.length} • សូចនាករ: ${CACHE.indicators.length}`);
-      }catch(err){
-        console.error(err);
-        tbody.innerHTML = `<tr><td colspan="5" class="text-danger text-center py-4">បរាជ័យក្នុងការផ្ទុកទិន្នន័យ</td></tr>`;
-        setStatus('បរាជ័យក្នុងការផ្ទុកទិន្នន័យ: ' + err.message, false);
-      }
-    }
-
-    // kick off
-    document.addEventListener('DOMContentLoaded', initIndicators);
-  })();
+  document.addEventListener('DOMContentLoaded',loadAll);
 </script>
