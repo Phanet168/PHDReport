@@ -1,136 +1,205 @@
-<div class="settings-page">
-  <div class="container-page">
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>គ្រប់គ្រងការិយាល័យ | PHD Report</title>
 
-    <div class="page-head">
-      <div class="d-flex align-items-center gap-2">
-        <h1 class="kh-head h4 m-0">នាយកដ្ឋាន</h1>
-        <nav aria-label="breadcrumb" class="small">
-          <ol class="breadcrumb m-0">
-            <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
-            <li class="breadcrumb-item">Settings</li>
-            <li class="breadcrumb-item active">Departments</li>
-          </ol>
-        </nav>
+  <!-- Fonts & Theme -->
+  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@400;600&display=swap" rel="stylesheet"/>
+  <link href="../../../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet"/>
+  <link href="../../../dist-assets/css/plugins/perfect-scrollbar.min.css" rel="stylesheet"/>
+
+  <style>
+    :root{ --kh:"Noto Sans Khmer", system-ui; --kh-head:"Khmer Moul","Noto Sans Khmer"; }
+    body{ font-family:var(--kh) }
+    .kh-head{ font-family:var(--kh-head) }
+    .badge-id{ font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body class="text-start">
+
+<div class="main-content-wrap d-flex flex-column">
+  <div class="main-header d-flex justify-content-between align-items-center">
+    <h4 class="kh-head m-0">ការិយាល័យ</h4>
+    <a id="btnLogin" class="btn btn-outline-primary btn-sm" href="../../../login.html">ចូលប្រើប្រាស់</a>
+  </div>
+  <div class="separator-breadcrumb border-top"></div>
+
+  <div class="card m-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <button id="btnAdd" class="btn btn-primary btn-sm"><i class="i-Add"></i> បន្ថែមការិយាល័យ</button>
+        <span class="text-muted small"><span id="countTxt">0</span> ធាតុ</span>
       </div>
-      <div class="separator-breadcrumb border-top"></div>
-    </div>
 
-    <div class="page-body">
-      <div class="card shadow-sm centered-card">
-        <div class="card-body">
+      <div id="alertBox" class="alert d-none"></div>
 
-          <div class="d-flex justify-content-between mb-3">
-            <h4 class="card-title kh-head m-0">បញ្ជីនាយកដ្ឋាន</h4>
-            <button id="btnAdd" class="btn btn-primary btn-sm"><i class="i-Add"></i> បន្ថែម</button>
-          </div>
-
-          <div class="table-responsive">
-            <table id="tblDepts" class="table table-striped table-hover align-middle mb-0">
-              <thead>
-              <tr>
-                <th style="width:90px">ID</th>
-                <th>ឈ្មោះនាយកដ្ឋាន</th>
-                <th style="width:160px">សកម្មភាព</th>
-              </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-
-          <div class="small text-muted mt-2" id="statusLine"></div>
-        </div>
+      <div class="table-responsive">
+        <table class="table table-striped table-hover" id="tblDepts">
+          <thead>
+          <tr>
+            <th style="width:100px">ID</th>
+            <th>ឈ្មោះការិយាល័យ</th>
+            <th style="width:140px">សកម្មភាព</th>
+          </tr>
+          </thead>
+          <tbody id="tbody">
+          <tr><td colspan="3" class="text-center text-muted">កំពុងទាញទិន្នន័យ…</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
-
   </div>
 </div>
 
 <!-- Modal -->
-<div class="modal fade" id="mdlDept" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="depModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form class="modal-content" id="frmDept" novalidate>
-      <div class="modal-header">
-        <h5 class="modal-title kh-head">ព័ត៌មាននាយកដ្ឋាន</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="department_id" />
-        <div class="mb-3">
-          <label for="department_name" class="form-label">ឈ្មោះនាយកដ្ឋាន <span class="text-danger">*</span></label>
-          <input id="department_name" class="form-control" required />
-          <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះ</div>
+    <div class="modal-content">
+      <form id="depForm" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title kh-head" id="mdlTitle">បន្ថែមការិយាល័យ</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">បោះបង់</button>
-        <button class="btn btn-primary" type="submit">រក្សាទុក</button>
-      </div>
-    </form>
+        <div class="modal-body">
+          <input type="hidden" id="department_id"/>
+          <div class="mb-3">
+            <label class="form-label">ឈ្មោះការិយាល័យ</label>
+            <input id="department_name" class="form-control" required/>
+            <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះ</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
+          <button id="btnSave" class="btn btn-primary" type="submit">រក្សាទុក</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
+<!-- Vendor -->
+<script src="../../../dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
+<script src="../../../dist-assets/js/plugins/perfect-scrollbar.min.js"></script>
+
+<!-- App -->
 <script type="module">
-  import { apiList, apiUpsert, apiDelete, apiLogin } from '../../../assets/js/config.js';
+  import { getAuth, applyLoginButton, isSuper } from '../../../assets/js/app.auth.js';
+  // ✅ ប្រើ function ត្រឹមត្រូវពី app.menu.js (មាន gasList/gasSave/gasDelete)
+  import { gasList, gasSave, gasDelete } from '../../../assets/js/app.menu.js';
+  // (ជម្រើសផ្សេង៖ ប្រសិនបើចង់នៅ config.js ត្រូវប្រើឈ្មោះ apiList/apiUpsert/apiDelete ហើយកែខាងក្រោមតាមនោះ)
 
-  const TBL = 'departments';
-  const PK = 'department_id';
-  let AUTH = { token:'' };
+  // Auth guard
+  const auth = getAuth();
+  if (!auth) location.replace('../../../login.html');
+  applyLoginButton(document.getElementById('btnLogin'));
 
-  const tbody = document.querySelector('#tblDepts tbody');
-  const statusLine = document.getElementById('statusLine');
-  const btnAdd = document.getElementById('btnAdd');
-  const frm = document.getElementById('frmDept');
-  const $id = document.getElementById('department_id');
-  const $name = document.getElementById('department_name');
-  let mdl;
+  // State
+  let allRows = [];
+  const tbody = document.getElementById('tbody');
+  const modal = new bootstrap.Modal(document.getElementById('depModal'));
 
-  function setStatus(msg, ok=true){ statusLine.textContent=msg; statusLine.classList.toggle('text-danger',!ok); }
-  async function ensureLogin(){ if(AUTH.token) return; const res=await apiLogin('admin','123'); AUTH.token=res.token; }
-
-  function render(rows){
-    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="3" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`; return; }
-    tbody.innerHTML = rows.map(r=>`
-      <tr>
-        <td>${r[PK]}</td>
-        <td>${r.department_name||''}</td>
-        <td>
-          <button class="btn btn-sm btn-outline-primary" data-act="edit" data-id="${r[PK]}">កែប្រែ</button>
-          <button class="btn btn-sm btn-outline-danger" data-act="remove" data-id="${r[PK]}">លុប</button>
-        </td>
-      </tr>`).join('');
+  // Helpers
+  function showAlert(msg, type='success'){
+    const box = document.getElementById('alertBox');
+    box.className = 'alert alert-'+type;
+    box.textContent = msg;
+    box.classList.remove('d-none');
+    setTimeout(()=>box.classList.add('d-none'), 2500);
   }
+  const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
-  async function loadAll(){
-    setStatus('កំពុងផ្ទុក…');
+  // CRUD
+  async function loadTable(){
+    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">កំពុងទាញទិន្នន័យ…</td></tr>`;
     try{
-      const rows = await apiList(TBL);
-      render(rows);
-      setStatus(`បានផ្ទុកសរុប: ${rows.length}`);
-    }catch(err){ console.error(err); setStatus('បរាជ័យ: '+err.message,false); }
+      allRows = await gasList('departments');
+      renderRows(allRows);
+    }catch(err){
+      tbody.innerHTML = `<tr><td colspan="3" class="text-danger">បរាជ័យ: ${esc(err.message||err)}</td></tr>`;
+    }
   }
 
-  btnAdd.addEventListener('click',()=>{ $id.value=''; $name.value=''; if(!mdl) mdl=new bootstrap.Modal(document.getElementById('mdlDept')); mdl.show(); });
-  tbody.addEventListener('click',async ev=>{
-    const btn=ev.target.closest('button[data-act]'); if(!btn) return;
-    const id=btn.dataset.id;
-    if(btn.dataset.act==='edit'){
-      const rows=await apiList(TBL); const row=rows.find(r=>String(r[PK])===String(id));
-      if(row){ $id.value=row[PK]; $name.value=row.department_name; if(!mdl) mdl=new bootstrap.Modal(document.getElementById('mdlDept')); mdl.show(); }
+  function renderRows(rows){
+    document.getElementById('countTxt').textContent = rows.length;
+    if(!rows.length){
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">គ្មានទិន្នន័យ</td></tr>`;
+      return;
     }
-    if(btn.dataset.act==='remove'){
-      if(!confirm('លុបទិន្នន័យនេះ?')) return;
-      try{ await ensureLogin(); await apiDelete(TBL,PK,id,AUTH.token); loadAll(); }
-      catch(err){ setStatus('បរាជ័យ: '+err.message,false); }
-    }
-  });
+    tbody.innerHTML = rows.map(r=>`
+      <tr data-id="${r.department_id}">
+        <td><span class="badge badge-outline-primary badge-id">#${r.department_id}</span></td>
+        <td>${esc(r.department_name||'')}</td>
+        <td>
+          ${isSuper(auth)
+            ? `<button class="btn btn-link btn-sm text-primary btn-edit">កែ</button>
+               <button class="btn btn-link btn-sm text-danger btn-del">លុប</button>`
+            : '—'}
+        </td>
+      </tr>
+    `).join('');
 
-  frm.addEventListener('submit',async e=>{
-    e.preventDefault(); e.stopPropagation();
-    if(!frm.checkValidity()){ frm.classList.add('was-validated'); return; }
-    const payload={[PK]:$id.value||undefined,department_name:$name.value.trim()};
-    try{ await ensureLogin(); await apiUpsert(TBL,payload,AUTH.token); mdl?.hide(); loadAll(); }
-    catch(err){ setStatus('បរាជ័យ: '+err.message,false); }
-  });
+    // bind actions
+    tbody.querySelectorAll('.btn-edit').forEach(btn => btn.onclick = ()=>{
+      const id = btn.closest('tr').dataset.id;
+      const row = allRows.find(x => String(x.department_id) === String(id));
+      openEdit(row);
+    });
+    tbody.querySelectorAll('.btn-del').forEach(btn => btn.onclick = async ()=>{
+      const id = btn.closest('tr').dataset.id;
+      if (!confirm('លុបមែនទេ?')) return;
+      try{
+        await gasDelete('departments','department_id', id);
+        showAlert('លុបរួចរាល់');
+        await loadTable();
+      }catch(err){ showAlert('បរាជ័យ: '+(err.message||err),'danger'); }
+    });
+  }
 
-  document.addEventListener('DOMContentLoaded',loadAll);
+  function openAdd(){
+    document.getElementById('mdlTitle').textContent = 'បន្ថែមការិយាល័យ';
+    document.getElementById('department_id').value = '';
+    document.getElementById('department_name').value = '';
+    document.getElementById('department_name').classList.remove('is-invalid');
+    modal.show();
+  }
+  function openEdit(row){
+    document.getElementById('mdlTitle').textContent = 'កែប្រែការិយាល័យ';
+    document.getElementById('department_id').value = row?.department_id || '';
+    document.getElementById('department_name').value = row?.department_name || '';
+    document.getElementById('department_name').classList.remove('is-invalid');
+    modal.show();
+  }
+
+  // Events
+  document.getElementById('btnAdd').onclick = ()=>{
+    if(!isSuper(auth)) return showAlert('Super only','danger');
+    openAdd();
+  };
+
+  document.getElementById('depForm').onsubmit = async (e)=>{
+    e.preventDefault();
+    if(!isSuper(auth)) return;
+
+    const id   = document.getElementById('department_id').value.trim();
+    const name = document.getElementById('department_name').value.trim();
+    const nameEl = document.getElementById('department_name');
+    nameEl.classList.toggle('is-invalid', !name);
+    if(!name) return;
+
+    try{
+      const payload = { department_name: name };
+      if (id) payload.department_id = Number(id);
+      await gasSave('departments', payload);
+      modal.hide();
+      showAlert('រក្សាទុករួចរាល់');
+      await loadTable();
+    }catch(err){ showAlert('បរាជ័យ: '+(err.message||err), 'danger'); }
+  };
+
+  // Init
+  await loadTable();
 </script>
+</body>
+</html>

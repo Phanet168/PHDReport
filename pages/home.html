@@ -32,28 +32,44 @@
     .chart-card{padding:12px;display:flex;flex-direction:column;min-height:0;border:1px solid #eef0f4;border-radius:14px;box-shadow:0 10px 22px rgba(0,0,0,.05);background:#fff;}
     .chart-box{flex:1 1 auto;min-height:420px;}
     @media (max-width: 992px){.charts-row{grid-template-columns:1fr}.chart-box{min-height:340px}}
+  .navbar-brand {
+  font-family:"Khmer Moul","Noto Sans Khmer",sans-serif;
+  font-size:1.1rem;
+}
+.navbar-brand {
+  font-family: "Khmer Moul","Noto Sans Khmer",sans-serif;
+  font-size: 1.1rem;
+}
+#btnSidebar {
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 4px 8px;
+}
+    #btnToggleSidebar {
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 4px 10px;
+}
+.navbar-brand {
+  margin-bottom: 0;
+  font-family: "Khmer Moul","Noto Sans Khmer",sans-serif;
+  font-size: 1.1rem;
+}
+
+
+
   </style>
 </head>
 <body>
 
-<!-- 🔝 Navbar -->
-<nav class="navbar navbar-light bg-white border-bottom shadow-sm">
-  <div class="container-fluid justify-content-between">
-    <a class="navbar-brand" href="index.html">PHD Report</a>
-    <a id="btnLogin" class="btn btn-sm btn-outline-primary"></a>
-  </div>
-</nav>
+
+
+
+
+
 
 <div class="d-flex" style="min-height:100dvh;">
-  <!-- 📑 Sidebar -->
-  <aside class="sidebar">
-    <h6 class="text-muted mb-2">ការកំណត់</h6>
-    <nav class="nav flex-column">
-      <a class="nav-link" href="pages/settings/departments/index.html">នាយកដ្ឋាន</a>
-      <a class="nav-link" href="pages/settings/units/index.html">ការិយាល័យ</a>
-      <a class="nav-link" href="pages/settings/indicators/index.html">សូចនាករ</a>
-    </nav>
-  </aside>
+
 
   <!-- 📝 Dashboard content -->
   <main class="content">
@@ -95,7 +111,8 @@
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <script type="module">
   import { ensureLoggedIn, applyLoginButton } from './assets/js/app.auth.js';
-  import { apiList } from './assets/js/config.js';
+ import { apiList } from './assets/js/config.js'
+
 
   // Guard page
   ensureLoggedIn();
