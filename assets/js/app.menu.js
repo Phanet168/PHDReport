@@ -11,7 +11,7 @@ const LSK = {
 };
 
 function makeApiUrl(extra = {}) {
-  const u = new URL(GAS_BASE);                 // កុំភ្ជាប់ location.origin
+  const u = new URL(GAS_BASE);
   if (!u.searchParams.has('api')) u.searchParams.set('api', '1');
   for (const [k, v] of Object.entries(extra)) {
     if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, v);
@@ -28,7 +28,7 @@ async function fetchWithRetry(input, init, tries = 3) {
       return r;
     } catch (e) {
       err = e;
-      await new Promise(res => setTimeout(res, 300 * Math.pow(2, i))); // 300ms, 600ms, 1200ms
+      await new Promise(res => setTimeout(res, 300 * Math.pow(2, i)));
     }
   }
   throw err;
@@ -44,58 +44,85 @@ function lsSet(key, val) {
 /* ============================== */
 /* Shared: List / Save / Delete   */
 /* ============================== */
-// --- replace your gasList in assets/js/app.menu.js with this version ---
 export async function gasList(route, params = {}) {
   const token = getAuth()?.token || '';
   const url = makeApiUrl({ route, op: 'list', ...(token ? { token } : {}), ...params });
 
-  console.log('[gasList] GET →', url); // DEBUG
-
+  console.log('[gasList] GET →', url);
   const r = await fetchWithRetry(url, { cache: 'no-store' });
-  const text = await r.text();
+  const txt = await r.text();
   let j;
-  try { j = text ? JSON.parse(text) : {}; }
-  catch (e) { console.error('[gasList] invalid JSON:', text); throw e; }
-
-  console.log('[gasList] raw ←', j);   // DEBUG
+  try { j = txt ? JSON.parse(txt) : {}; }
+  catch (e) { console.error('[gasList] invalid JSON:', txt); throw e; }
 
   if (j && j.ok === false) throw new Error(j.error || 'API error');
 
-  // normalize
   const rows =
     Array.isArray(j?.rows) ? j.rows :
     Array.isArray(j?.data) ? j.data :
-    Array.isArray(j)       ? j :
-    [];
+    Array.isArray(j)       ? j : [];
 
-  console.log('[gasList] rows parsed:', rows.length, rows.slice(0,3)); // DEBUG
+  console.log('[gasList] rows parsed:', rows.length, rows.slice(0,3));
   return rows;
 }
 
+// ---- ID fields (incl. periods) ----
+export const ID_FIELDS = {
+  departments: 'department_id',
+  units:       'unit_id',
+  indicators:  'indicator_id',
+  periods:     'period_id',
+  reports:     'report_id'
+};
 
-export async function gasSave(route, payload = {}) {
-  const token = getAuth()?.token || '';
-  const url = makeApiUrl({ route, op: 'upsert' });
-  const r = await fetchWithRetry(url, {
+// internal POST helper (use text/plain to match GAS implementation you had)
+async function postJson(url, bodyObj){
+  const res = await fetchWithRetry(url.toString(), {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ ...payload, ...(token ? { token } : {}) }),
+    body: JSON.stringify(bodyObj)
   });
-  const j = await r.json();
-  if (j && j.ok === false) throw new Error(j.error || 'API error');
-  return j; // { row }
+  const json = await res.json().catch(()=> ({}));
+  if (json?.ok === false) throw new Error(json?.error || 'API error');
+  return json;
 }
+
+// Upsert with robust fallback to insert/create/add (for first-time rows)
+export async function gasSave(route, payload = {}) {
+  const token = getAuth()?.token || '';
+  const base  = new URL(GAS_BASE);
+  base.searchParams.set('api','1');
+  base.searchParams.set('route', route);
+  if (token) base.searchParams.set('token', token);
+
+  const OPS = ['upsert','insert','save','append','addRow','add']; // ⬅️ គ្មាន 'create'
+
+  let lastErr;
+  for (const op of OPS) {
+    const u = new URL(base);
+    u.searchParams.set('op', op);
+    try {
+      return await postJson(u, { ...payload, ...(token ? { token } : {}) });
+    } catch (e) {
+      const msg = String(e?.message || e);
+      // បន្តទៅ op បន្ទាប់ ប្រសិនបើ op មិនស្គាល់ ឬ upsert មិនរកជួរ
+      if (/unknown op/i.test(msg) || /row not found/i.test(msg)) {
+        lastErr = e;
+        continue;
+      }
+      // error ផ្សេងៗ ចប់នៅទីនេះ
+      lastErr = e;
+      break;
+    }
+  }
+  throw lastErr || new Error('gasSave failed');
+}
+
 
 export async function gasDelete(route, idField, id) {
   const token = getAuth()?.token || '';
-  const url = makeApiUrl({ route, op: 'delete' });
-  const r = await fetchWithRetry(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ [idField]: id, ...(token ? { token } : {}) }),
-  });
-  const j = await r.json();
-  if (j && j.ok === false) throw new Error(j.error || 'API error');
+  const url = makeApiUrl({ route, op: 'delete', ...(token ? { token } : {}) });
+  const j = await postJson(url, { [idField]: id, ...(token ? { token } : {}) });
   return j;
 }
 
@@ -127,7 +154,6 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
   const box = document.getElementById(targetUlId);
   if (!box) return;
 
-  // use cache first (instant)
   const cacheDepts = lsGet(LSK.depts);
   const cacheUnits = lsGet(LSK.units);
   if (cacheDepts.length || cacheUnits.length) {
@@ -136,7 +162,6 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
     box.innerHTML = menuSkeleton(4);
   }
 
-  // live fetch
   const auth = getAuth();
   try {
     let depts = await gasList('departments');
@@ -145,7 +170,6 @@ export async function buildDeptMenu(targetUlId = 'deptMenu') {
     }
     const units = await gasList('units');
 
-    // save cache
     lsSet(LSK.depts, depts);
     lsSet(LSK.units, units);
 
@@ -188,7 +212,7 @@ function renderDeptMenu(box, depts, allUnits) {
         for (const u of units) {
           parts.push(`
             <li class="nav-item">
-              <a href="#/settings/units"> <!-- ផ្លូវ hash ទាន់សម័យ -->
+              <a href="#/settings/units">
                 <i class="nav-icon i-Right"></i>
                 <span class="item-name ps-3">${u.unit_name}</span>
               </a>
@@ -199,7 +223,6 @@ function renderDeptMenu(box, depts, allUnits) {
     }
   }
 
-  // Orphan units (no department)
   const orphan = byDep.get('') || [];
   if (orphan.length) {
     parts.push(`
@@ -277,15 +300,3 @@ export async function initMenus() {
 export function clearMenuCache() {
   try { localStorage.removeItem(LSK.depts); localStorage.removeItem(LSK.units); } catch {}
 }
-
-/* ============================== */
-/* Constants for ID fields        */
-/* ============================== */
-export const ID_FIELDS = {
-  indicators: 'indicator_id',
-  departments: 'department_id',
-  units: 'unit_id',
-  reports: 'report_id',
-  periods: 'period_id',
-};
-

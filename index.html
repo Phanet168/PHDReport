@@ -591,34 +591,97 @@
       tbody.innerHTML=''; tbody.appendChild(frag);
     }
 
-    btnAdd.addEventListener('click', ()=>{ frm.reset(); idEl.value=''; nameEl.value=''; modal?.show(); });
-    tbody.addEventListener('click', async (e)=>{
-      const btn = e.target.closest('button[data-act]'); if(!btn) return;
-      const id  = btn.closest('tr')?.dataset?.id;
-      const row = rows.find(x=>String(x.department_id)===String(id));
-      if (btn.dataset.act==='edit'){ idEl.value=row.department_id; nameEl.value=row.department_name||''; modal?.show(); }
-      if (btn.dataset.act==='del'){
-        if (!confirm('លុបមែនទេ?')) return;
-        try{ await gasDelete('departments', ID_FIELDS.departments, row.department_id);
-             rows = rows.filter(x=>String(x.department_id)!==String(id)); render(rows); }
-        catch(err){ alert(err?.message||err); }
-      }
+btnGen.addEventListener('click', async () => {
+  const SUPER = isSuper(getAuth());
+  if (!SUPER) return alert('ត្រូវការ SUPER');
+
+  const y = Number(selYear.value || new Date().getFullYear());
+  if (!confirm(`បង្កើតរយៈពេលសម្រាប់ឆ្នាំ ${y} ?`)) return;
+
+  // 1) សាកប្រើ endpoint generate (បើមាន)
+  try {
+    const u = new URL(GAS_BASE);
+    u.searchParams.set('api', '1');
+    u.searchParams.set('route', 'period');
+    u.searchParams.set('op', 'generate');
+    u.searchParams.set('year', String(y));
+    const token = getAuth()?.token;
+    if (token) u.searchParams.set('token', token);
+
+    const r = await fetch(u.toString(), { cache: 'no-store' });
+    const j = await r.json().catch(() => ({}));
+
+    // ករណីជោគជ័យ ឬគ្មាន error ជាក់លាក់ → reload
+    if (!j || j.ok !== false) {
+      await load();
+      return alert('បង្កើតរួចរាល់');
+    }
+    // បើគេប្រាប់ថា Unknown op → fallback ទៅ batch insert
+    if (!/unknown op/i.test(String(j.error || ''))) {
+      throw new Error(j.error || 'API error');
+    }
+  } catch (e) {
+    // បន្តទៅ fallback ខាងក្រោម
+    console.warn('[periods] generate endpoint unavailable → fallback insert:', e);
+  }
+
+  // 2) Fallback: បង្កើត dataset ហើយ save ជាដុំៗ (upsert→insert/create)
+  const khMonths = ['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+
+  const want = [];
+  // 12 months
+  for (let m = 1; m <= 12; m++) {
+    want.push({
+      period_id:   `${y}M${String(m).padStart(2,'0')}`,
+      period_name: `${khMonths[m-1]} ${y}`,
+      year:        y,
+      month:       String(m).padStart(2,'0')
     });
-    frm.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const name=nameEl.value.trim(); nameEl.classList.toggle('is-invalid', !name); if(!name) return;
-      const payload = idEl.value ? { department_id:Number(idEl.value), department_name:name }
-                                 : { department_name:name };
-      const btn = document.getElementById('btnSaveDept'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='កំពុងរក្សាទុក…';
-      try{
-        const res = await gasSave('departments', payload);
-        const row = res.row || res;
-        const i = rows.findIndex(x=>String(x.department_id)===String(row.department_id));
-        if (i>=0) rows[i]=row; else rows.push(row);
-        render(rows); modal?.hide();
-      }catch(err){ alert(err?.message||err); }
-      finally{ btn.disabled=false; btn.innerHTML=old; }
-    });
+  }
+  // quarters
+  for (let q = 1; q <= 4; q++) {
+    want.push({ period_id: `${y}Q${q}`, period_name: `Q${q} ${y}`, year: y, month: `Q${q}` });
+  }
+  // halves
+  want.push({ period_id: `${y}H1`, period_name: `H1 ${y}`, year: y, month: 'H1' });
+  want.push({ period_id: `${y}H2`, period_name: `H2 ${y}`, year: y, month: 'H2' });
+
+  // (អាច​បន្ថែម “9 months” បើ backend គាំទ្រ, ឧ. `${y}9M`)
+
+  const have = new Set((ALL || []).map(r => String(r.period_id)));
+  const todo = want.filter(r => !have.has(String(r.period_id)));
+
+  if (!todo.length) {
+    await load();
+    return alert('ឆ្នាំនេះមានគ្រប់រួចហើយ');
+  }
+
+  const old = btnGen.innerHTML;
+  btnGen.disabled = true; btnGen.innerHTML = 'កំពុងបង្កើត…';
+
+  const robustSave = async row => {
+    try { await gasSave('periods', row); }
+    catch (err) {
+      console.error('[periods] save failed:', row, err);
+      throw err;
+    }
+  };
+
+  const results = await Promise.allSettled(todo.map(robustSave));
+  const fails = results.filter(x => x.status === 'rejected');
+
+  await load();
+
+  btnGen.disabled = false; btnGen.innerHTML = old;
+  if (fails.length) {
+    alert(`បានបង្កើតខ្លះៗ ប៉ុន្តែបរាជ័យ ${fails.length} មុខ (ពិនិត្យ Console)`);
+  } else {
+    alert('បង្កើតរួចរាល់');
+  }
+});
+
+
+
   }
 
   /* ======================= Units ======================= */
@@ -712,60 +775,305 @@
     });
   }
 
-  /* ======================= Periods ======================= */
-  async function initPeriods(){
-    const auth = getAuth(); const SUPER = isSuper(auth);
-    const tbody = document.querySelector('#tblPeriods tbody');
-    const btnGen= document.getElementById('btnGenYear');
-    const selYear = document.getElementById('selYear');
-    const status= (m)=>{ const el=document.getElementById('statusPeriods'); if(el) el.textContent=m||''; };
+ /* ======================= Periods view (sortable) ======================= */
 
-    if (!tbody || !btnGen || !selYear) return;
+async function initPeriods(){
+  const SUPER = isSuper(getAuth());
 
-    const yNow = new Date().getFullYear();
-    selYear.innerHTML = Array.from({length:6},(_,i)=>yNow-2+i)
-      .map(y=>`<option value="${y}">${y}</option>`).join('');
-    selYear.value = String(yNow);
+  const table    = document.getElementById('tblPeriods');
+  const tbody    = table?.querySelector('tbody');
+  const ths      = Array.from(table?.querySelectorAll('thead th.th-sort') || []);
+  const selYear  = document.getElementById('selYear');
+  const txtSearch= document.getElementById('txtSearch');
+  const btnGen   = document.getElementById('btnGenYear');
 
-    const skel=()=>{ tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="3" class="skel"></td>`; tbody.appendChild(tr);} };
-    skel();
+  const mdl      = makeModal('mdlPeriod');
+  const frm      = document.getElementById('frmPeriod');
+  const idEl     = document.getElementById('period_id');
+  const nameEl   = document.getElementById('period_name');
 
-    async function load(){
+  const PERIOD_ID_FIELD = (window.ID_FIELDS && ID_FIELDS.periods) || 'period_id';
+  const $status = m => { const el=document.getElementById('statusPeriods'); if(el) el.textContent=m||''; };
+
+  if (!table || !tbody || !selYear || !btnGen || !frm) return;
+  if (!SUPER) btnGen.style.display = 'none';
+
+  // ---------- helpers ----------
+  const mNames = ['មករា','កុម្ភះ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+  const getYear  = pid => ( /^(\d{4})/.exec(String(pid||'')) || [] )[1] || '';
+  const getTag   = pid => ( String(pid||'').match(/(M\d{2}|Q[1-4]|H[12]|N9|Y12)$/) || [] )[1] || '';
+  const pretty   = (pid, fallback='')=>{
+    const y = getYear(pid), tag = getTag(pid);
+    if (/^M\d{2}$/.test(tag)) return `${mNames[+tag.slice(1)-1]} ${y}`;
+    if (/^(Q[1-4]|H[12])$/.test(tag)) return `${tag} ${y}`;
+    if (tag==='N9')  return `៩ខែ ${y}`;
+    if (tag==='Y12') return `១២ខែ ${y}`;
+    return fallback || y;
+  };
+  const seqOf = pid=>{
+    const tag=getTag(pid);
+    if (/^M\d{2}$/.test(tag)) return 100+(+tag.slice(1));
+    if (/^Q[1-4]$/.test(tag)) return 200+(+tag.slice(1));
+    if (/^H[12]$/.test(tag))  return 300+(tag==='H1'?1:2);
+    if (tag==='N9') return 400;
+    if (tag==='Y12')return 500;
+    return 9999;
+  };
+  // normalize any row shapes (object/array, header names Khmer/EN)
+  const norm = r=>{
+    if (Array.isArray(r)) {
+      const [period_id, period_name, year, month] = r;
+      return { period_id, period_name, year, month };
+    }
+    const period_id   = r.period_id ?? r['Period ID'] ?? r.ID ?? r.id;
+    const period_name = r.period_name ?? r['ឈ្មោះ'] ?? r.name ?? r['Name'];
+    const year        = r.year ?? r['Year'];
+    const month       = r.month ?? r['Month'];
+    return { period_id, period_name, year, month };
+  };
+
+  // ---------- state ----------
+  let ALL = [];
+  const nowY = new Date().getFullYear();
+  if (!selYear.options.length){
+    for (let y=nowY-3;y<=nowY+3;y++){
+      const o=document.createElement('option'); o.value=y; o.textContent=y; selYear.appendChild(o);
+    }
+  }
+  selYear.value = selYear.value || String(nowY);
+  let CUR_YEAR  = +selYear.value;
+  let FILTER_Q  = '';
+  let SORT      = { key:'id', dir:'asc' };
+
+  const applySortClasses = ()=>{
+    ths.forEach(th=>{
+      th.classList.remove('active','desc');
+      if (th.dataset.sort===SORT.key){ th.classList.add('active'); if (SORT.dir==='desc') th.classList.add('desc'); }
+    });
+  };
+
+  // skeleton
+  tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML='<td colspan="5" class="skel"></td>'; tbody.appendChild(tr); }
+
+  // ---------- load ----------
+  async function load(){
+    try{
+      $status('កំពុងផ្ទុកទិន្នន័យ…');
+      const raw = await gasList('periods').catch(()=>[]);
+      ALL = raw.map(norm).filter(x=>x.period_id);
+      render();
+      $status(`បានផ្ទុក ${ALL.length} រយៈពេល`);
+    }catch(e){
+      console.error(e);
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
+      $status('បរាជ័យទាញទិន្នន័យ');
+    }
+  }
+  await load(); applySortClasses();
+
+  // ---------- render ----------
+  function render(){
+    const rows = ALL
+      .filter(r => String(r.year || getYear(r.period_id)) === String(CUR_YEAR))
+      .filter(r => FILTER_Q ? ( (r.period_id+' '+(r.period_name||'')+' '+pretty(r.period_id)).toLowerCase().includes(FILTER_Q) ) : true)
+      .sort((a,b)=>{
+        if (SORT.key==='id')   return (SORT.dir==='asc'?1:-1) * a.period_id.localeCompare(b.period_id);
+        if (SORT.key==='name') return (SORT.dir==='asc'?1:-1) * ( (a.period_name||pretty(a.period_id)).toLowerCase().localeCompare((b.period_name||pretty(b.period_id)).toLowerCase()) );
+        if (SORT.key==='year') return (SORT.dir==='asc'?1:-1) * ((+a.year||+getYear(a.period_id)) - (+b.year||+getYear(b.period_id)));
+        if (SORT.key==='seq')  return (SORT.dir==='asc'?1:-1) * (seqOf(a.period_id) - seqOf(b.period_id));
+        return 0;
+      });
+
+    if (!rows.length){
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    for (const r of rows){
+      const yy  = r.year || getYear(r.period_id);
+      const tag = getTag(r.period_id);
+      const mon = /^M\d{2}$/.test(tag) ? tag.slice(1) : '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.period_id}</td>
+        <td>${r.period_name || pretty(r.period_id)}</td>
+        <td style="width:120px">${yy}</td>
+        <td style="width:120px">${mon}</td>
+        <td class="td-actions" style="width:180px">
+          <div class="actions-right">
+            ${SUPER
+              ? `<button class="btn btn-sm btn-warning" data-act="edit" data-id="${r.period_id}">កែ</button>
+                 <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${r.period_id}">លុប</button>`
+              : `<span class="text-muted">—</span>`}
+          </div>
+        </td>`;
+      frag.appendChild(tr);
+    }
+    tbody.innerHTML=''; tbody.appendChild(frag);
+  }
+
+  // ---------- sort / search / year ----------
+  ths.forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const k = th.dataset.sort;
+      if (SORT.key===k) SORT.dir = (SORT.dir==='asc' ? 'desc' : 'asc');
+      else { SORT.key=k; SORT.dir='asc'; }
+      applySortClasses(); render();
+    });
+  });
+  txtSearch?.addEventListener('input', e=>{ FILTER_Q = String(e.target.value||'').trim().toLowerCase(); render(); });
+  const onYear = ()=>{ CUR_YEAR = +selYear.value || nowY; render(); };
+  selYear.addEventListener('change', onYear);
+  selYear.addEventListener('input',  onYear);
+
+  // ---------- row actions ----------
+  tbody.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-act]'); if(!btn) return;
+    const id  = btn.dataset.id;
+    const row = ALL.find(x=>String(x.period_id)===String(id)); if(!row) return;
+
+    if (btn.dataset.act==='edit'){
+      idEl.value = row.period_id;
+      nameEl.value = row.period_name || pretty(row.period_id);
+      nameEl.classList.remove('is-invalid');
+      mdl?.show();
+    }
+
+    if (btn.dataset.act==='del'){
+      if (!confirm(`លុប Period: ${id} ?`)) return;
       try{
-        const rows = await gasList('periods');
-        if (!rows.length){ tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`; status('គ្មានទិន្នន័យ'); return; }
-        const frag = document.createDocumentFragment();
-        for (const r of rows){
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td style="width:140px">${r.period_id}</td>
-            <td>${r.period_name||''}</td>
-            <td style="width:160px">${r.year||''}</td>`;
-          frag.appendChild(tr);
-        }
-        tbody.innerHTML=''; tbody.appendChild(frag);
-        status(`បានផ្ទុក ${rows.length} រយៈពេល`);
-      }catch(e){
-        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
-        status('បរាជ័យទាញទិន្នន័យ');
+        await gasDelete('periods', PERIOD_ID_FIELD, id);
+        ALL = ALL.filter(x=>String(x.period_id)!==String(id));
+        render(); $status('លុបរួចរាល់');
+      }catch(err){ alert('បរាជ័យលុប: ' + (err?.message||err)); }
+    }
+  });
+
+  // ---------- save rename ----------
+  frm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const pid  = idEl.value;
+    const name = (nameEl.value||'').trim();
+    nameEl.classList.toggle('is-invalid', !name);
+    if (!name) return;
+
+    const btn = document.getElementById('btnSavePeriod');
+    const old = btn.innerHTML; btn.disabled=true; btn.innerHTML='កំពុងរក្សាទុក…';
+    try{
+      const saved = await gasSave('periods', { period_id: pid, period_name: name });
+      const i = ALL.findIndex(x=>String(x.period_id)===String(pid));
+      if (i>=0) ALL[i] = { ...ALL[i], ...(saved.row||saved) };
+      render(); mdl?.hide(); $status('រក្សាទុករួចរាល់');
+    }catch(err){ alert('បរាជ័យរក្សាទុក: ' + (err?.message||err)); }
+    finally{ btn.disabled=false; btn.innerHTML=old; }
+  });
+
+  // ---------- generate year (send id+name+year+month) ----------
+  function buildWanted(y){
+    const rows=[];
+    // 12 months
+    for (let m=1;m<=12;m++){
+      const mm  = String(m).padStart(2,'0');
+      const pid = `${y}M${mm}`;
+      rows.push({ period_id:pid, period_name:`${mNames[m-1]} ${y}`, year:y, month:mm });
+    }
+    // Q1..Q4
+    for (let q=1;q<=4;q++){
+      const pid = `${y}Q${q}`;
+      rows.push({ period_id:pid, period_name:`Q${q} ${y}`, year:y, month:`Q${q}` });
+    }
+    // H1/H2
+    rows.push({ period_id:`${y}H1`, period_name:`H1 ${y}`, year:y, month:'H1' });
+    rows.push({ period_id:`${y}H2`, period_name:`H2 ${y}`, year:y, month:'H2' });
+    // 9-month & 12-month
+    rows.push({ period_id:`${y}N9`,  period_name:`៩ខែ ${y}`,  year:y, month:'N9'  });
+    rows.push({ period_id:`${y}Y12`, period_name:`១២ខែ ${y}`, year:y, month:'Y12' });
+    return rows;
+  }
+
+ btnGen.addEventListener('click', async ()=>{
+  if (!SUPER) return alert('ត្រូវការ SUPER');
+
+  const y = Number(selYear.value || new Date().getFullYear());
+  if (!confirm(`បង្កើតរយៈពេលសម្រាប់ឆ្នាំ ${y} ?`)) return;
+
+  const old = btnGen.innerHTML;
+  btnGen.disabled = true;
+  btnGen.innerHTML = 'កំពុងបង្កើត…';
+
+  try {
+    // 1) សាក bulk API: route=period&op=generate&year=YYYY
+    const GAS_BASE = (window.GAS_BASE || (await import('../../../assets/js/config.js')).GAS_BASE);
+    const token    = (await import('../../../assets/js/app.auth.js')).getAuth()?.token || '';
+    const bulkOk = await (async () => {
+      try {
+        const u = new URL(GAS_BASE);
+        u.searchParams.set('api','1');
+        u.searchParams.set('route','period');   // ⚠️ singular 'period' សម្រាប់ generate
+        u.searchParams.set('op','generate');
+        u.searchParams.set('year', String(y));
+        if (token) u.searchParams.set('token', token);
+
+        const r = await fetch(u.toString(), { cache:'no-store' });
+        const j = await r.json().catch(()=> ({}));
+        if (j && j.ok === false) throw new Error(j.error || 'API error');
+        return true; // success
+      } catch (e) {
+        // មិនគាំទ្រ bulk → fallback
+        const msg = String(e?.message || e);
+        if (/unknown op|unknown route|not found|404/i.test(msg)) return false;
+        // ករណីផ្សេងៗ តែបើ JSON មិនត្រឡប់សញ្ញាស្ថានៈ → fallback ផងដែរ
+        return false;
+      }
+    })();
+
+    // 2) បើ bulk មិនមាន → build rows ហើយ save ជាចំណុះៗ
+    if (!bulkOk) {
+      const KH_MONTHS = ['មករា','កុម្ភះ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+      const want = [];
+      for (let m=1; m<=12; m++){
+        const mm = String(m).padStart(2,'0');
+        want.push({ period_id:`${y}M${mm}`, period_name:`${KH_MONTHS[m-1]} ${y}`, year:y, month:mm });
+      }
+      for (let q=1; q<=4; q++) want.push({ period_id:`${y}Q${q}`, period_name:`Q${q} ${y}`, year:y, month:`Q${q}` });
+      want.push({ period_id:`${y}H1`,  period_name:`H1 ${y}`,  year:y, month:'H1' });
+      want.push({ period_id:`${y}H2`,  period_name:`H2 ${y}`,  year:y, month:'H2' });
+      want.push({ period_id:`${y}N9`,  period_name:`៩ខែ ${y}`,  year:y, month:'N9' });
+      want.push({ period_id:`${y}Y12`, period_name:`១២ខែ ${y}`, year:y, month:'Y12' });
+
+      const have = new Set(ALL.map(r => String(r.period_id)));
+      const todo = want.filter(r => !have.has(String(r.period_id)));
+      if (!todo.length) { alert('ឆ្នាំនេះមានគ្រប់រួចហើយ'); btnGen.disabled=false; btnGen.innerHTML=old; return; }
+
+      const CHUNK = 5; // កុំបុក quota
+      for (let i = 0; i < todo.length; i += CHUNK) {
+        await Promise.allSettled(
+          todo.slice(i, i+CHUNK).map(row => gasSave('periods', row)) // ⬅️ អនុញ្ញាត fallback នៅក្នុង gasSave()
+        );
       }
     }
-    await load();
 
-    btnGen.addEventListener('click', async ()=>{
-      if (!SUPER){ alert('ត្រូវការ SUPER'); return; }
-      const y = Number(selYear.value || new Date().getFullYear());
-      try{
-        await AppLoader.wrap(fetch(`${location.origin}${location.pathname.replace(/\/[^\/]*$/,'/')}`), ''); // noop: keep loader snappy
-        const url = new URL(window.GAS_BASE || (await import('./assets/js/config.js')).GAS_BASE);
-        url.searchParams.set('api','1'); url.searchParams.set('route','period'); url.searchParams.set('op','generate'); url.searchParams.set('year',y);
-        const token = getAuth()?.token||''; if (token) url.searchParams.set('token', token);
-        const r = await fetch(url.toString(), { cache:'no-store' }); const j = await r.json();
-        if (j && j.ok === false) throw new Error(j.error||'API error');
-        await load();
-      }catch(err){ alert('បរាជ័យបង្កើតរយៈពេល: '+(err?.message||err)); }
-    });
+    // reload table & keep year
+    const rows = await gasList('periods').catch(()=>[]);
+    ALL = rows;
+    selYear.value = String(y);
+    CUR_YEAR = y;
+    render();
+    $status('បង្កើតរួចរាល់');
+  } catch (err) {
+    console.error('[periods] generate failed:', err);
+    alert('បរាជ័យបង្កើត: ' + (err?.message || err));
+  } finally {
+    btnGen.disabled = false;
+    btnGen.innerHTML = old;
   }
+});
+
+}
+
+
+
+
 
   /* ---------- Modal helper (BS5/BS4/fallback) ---------- */
   function makeModal(id){

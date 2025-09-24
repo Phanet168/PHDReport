@@ -2,7 +2,6 @@
 <div class="settings-page">
     <div class="container-page">
 
-        <!-- Page head -->
         <div class="page-head">
             <div class="d-flex align-items-center gap-2">
                 <h1 class="kh-head h4 m-0">រយៈពេល (Periods)</h1>
@@ -17,34 +16,33 @@
             <div class="separator-breadcrumb border-top"></div>
         </div>
 
-        <!-- Body -->
         <div class="page-body">
             <div class="card shadow-sm centered-card w-100">
                 <div class="card-body">
 
-                    <!-- Toolbar (Filter in-card; non-overlap) -->
+                    <!-- Toolbar -->
                     <div class="toolbar mb-3">
                         <h4 class="card-title kh-head m-0">បញ្ជីរយៈពេល</h4>
-                        <div class="actions ms-auto d-flex gap-2 align-items-center">
-                            <select id="selYear" class="form-select form-select-sm" style="width:110px"></select>
+                        <div class="actions ms-auto d-flex gap-2">
+                            <select id="selYear" class="form-select form-select-sm" style="width:120px"></select>
                             <button id="btnGenYear" class="btn btn-sm btn-primary">
                                 <i class="i-Add"></i> Generate Year
                             </button>
                         </div>
                     </div>
 
-                    <!-- Table -->
                     <div class="table-responsive">
                         <table id="tblPeriods" class="table table-striped table-hover align-middle mb-0">
                             <thead>
                             <tr>
                                 <th style="width:160px">Period ID</th>
                                 <th>ឈ្មោះ</th>
-                                <th style="width:100px">Year</th>
+                                <th style="width:120px">Year</th>
                                 <th style="width:120px">Month</th>
-                                <th style="width:170px; text-align:right">សកម្មភាព</th>
+                                <th class="text-end" style="width:180px">សកម្មភាព</th>
                             </tr>
                             </thead>
+
                             <tbody>
                             <tr><td colspan="5" class="skel"></td></tr>
                             </tbody>
@@ -59,187 +57,64 @@
     </div>
 </div>
 
+<!-- Modal Edit Period -->
+<div class="modal fade" id="mdlPeriod" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" id="frmPeriod" novalidate>
+            <div class="modal-header">
+                <h5 class="modal-title kh-head">កែព័ត៌មានរយៈពេល</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="period_id">
+                <div class="mb-3">
+                    <label class="form-label">ឈ្មោះ<span class="text-danger">*</span></label>
+                    <input id="period_name" class="form-control" required>
+                    <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះ</div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Year</label>
+                        <input id="period_year" class="form-control" disabled>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Month/Q/H</label>
+                        <input id="period_month" class="form-control" disabled>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
+                <button id="btnSavePeriod" class="btn btn-primary" type="submit">រក្សាទុក</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
 <style>
     .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
     .container-page{width:100%; max-width:1280px; margin:0 auto; padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
     .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
     .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
     .centered-card{max-width:1200px; border:1px solid #eef0f4; border-radius:14px;}
-
-    /* Toolbar giống indicators */
     .toolbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
-    .toolbar .actions{min-width:260px;}
-    @media (max-width: 576px){
-      .toolbar .actions{min-width:0; width:100%;}
-      .toolbar .actions > *{flex:1;}
-    }
-
-    /* Skeleton row */
-    .skel{ position:relative; overflow:hidden; background:#f3f4f6; height:44px; }
+    .skel{ position:relative; overflow:hidden; background:#f3f4f6; height:44px; border-radius:6px;}
     .skel::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);
       background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
       animation:shimmer 1.1s infinite }
     @keyframes shimmer{ 100%{ transform:translateX(100%);} }
+    #tblPeriods th:last-child{ text-align:right; }
+    #tblPeriods td.td-actions{ text-align:right; }
+    #tblPeriods td.td-actions .actions-right{ display:flex; justify-content:flex-end; gap:.45rem; }
+    #tblPeriods th:last-child{ text-align:right; }
+    #tblPeriods td.td-actions{ text-align:right; width:180px; }
+    #tblPeriods td.td-actions .actions-right{
+    display:flex; justify-content:flex-end; gap:.45rem;
+}
+.skel{ position:relative; overflow:hidden; background:#f3f4f6; height:44px; }
+.skel::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+  animation:shimmer 1.1s infinite; }
 
-    /* Action column: keep buttons visible */
-    #tblPeriods td.td-actions{ text-align:right; white-space:nowrap; width:170px; }
-    #tblPeriods td.td-actions .btn{ padding:.25rem .5rem; }
 </style>
-
-<script type="module">
-    import { getAuth, isSuper } from '../../../assets/js/app.auth.js';
-    import { gasList, gasSave, gasDelete, ID_FIELDS } from '../../../assets/js/app.menu.js';
-
-    const auth  = getAuth();
-    const SUPER = isSuper(auth);
-    const $ = s => document.querySelector(s);
-    const $status = (m)=>{ const el=$('#statusPeriods'); if(el) el.textContent=m||''; };
-
-    const tbody   = $('#tblPeriods tbody');
-    const selYear = $('#selYear');
-    const btnGen  = $('#btnGenYear');
-
-    let ALL = [];         // periods from API
-    let CUR_YEAR = new Date().getFullYear();
-
-    // skeleton
-    tbody.innerHTML = ''; for (let i=0;i<6;i++){ const tr=document.createElement('tr'); tr.innerHTML='<td colspan="5" class="skel"></td>'; tbody.appendChild(tr); }
-
-    init().catch(err=>{
-      console.error(err);
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">បរាជ័យផ្ទុកទិន្នន័យ</td></tr>';
-      $status('បរាជ័យផ្ទុកទិន្នន័យ');
-    });
-
-    async function init(){
-      // year options
-      const y = new Date().getFullYear();
-      const years = []; for(let d=y-3; d<=y+3; d++) years.push(d);
-      selYear.innerHTML = years.map(v=>`<option value="${v}">${v}</option>`).join('');
-      selYear.value = String(y);
-      CUR_YEAR = y;
-
-      await loadPeriods();
-      wireEvents();
-    }
-
-    function wireEvents(){
-      selYear.addEventListener('change', ()=>{
-        CUR_YEAR = Number(selYear.value || new Date().getFullYear());
-        render();
-      });
-
-      btnGen.addEventListener('click', async ()=>{
-        if (!SUPER){ alert('តែអ្នកប្រើ SUPER ប៉ុណ្ណោះអាច Generate បាន'); return; }
-        const year = Number(selYear.value || new Date().getFullYear());
-        if (!confirm(`បង្កើតរយៈពេលសម្រាប់ឆ្នាំ ${year} ?`)) return;
-
-        const old = btnGen.innerHTML; btnGen.disabled=true; btnGen.innerHTML='កំពុងបង្កើត…';
-        try{
-          const rows = buildYearPeriods(year);
-          // upsert ជា turn-by-turn (ឆាប់ និង សុវត្ថិភាព)
-          await Promise.allSettled(rows.map(row => gasSave('periods', row)));
-          await loadPeriods(); // refresh
-          alert('បង្កើតរួចរាល់');
-        }catch(err){
-          console.error(err);
-          alert('បរាជ័យបង្កើត: ' + (err?.message || err));
-        }finally{
-          btnGen.disabled=false; btnGen.innerHTML=old;
-        }
-      });
-    }
-
-    async function loadPeriods(){
-      $status('កំពុងផ្ទុកទិន្នន័យ…');
-      // ទាញទាំងអស់ ហើយ filter តាមឆ្នាំ (សុវត្ថិភាពបំផុត)
-      const rows = await gasList('periods').catch(()=>[]);
-      ALL = Array.isArray(rows) ? rows : [];
-      render();
-      $status(`បានផ្ទុក ${ALL.length} records (filter year ${CUR_YEAR})`);
-    }
-
-    function render(){
-      const list = ALL
-        .filter(r => String(r.year || extractYear(r.period_id)) === String(CUR_YEAR))
-        .sort((a,b) => (a.period_id||'').localeCompare(b.period_id||''));
-
-      if (!list.length){
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>';
-        return;
-      }
-
-      const frag = document.createDocumentFragment();
-      for (const r of list){
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${r.period_id || ''}</td>
-          <td>${r.period_name || ''}</td>
-          <td>${r.year || extractYear(r.period_id) || ''}</td>
-          <td>${r.month || ''}</td>
-          <td class="td-actions">
-            ${SUPER
-              ? `<button class="btn btn-sm btn-danger" data-act="del" data-id="${r.period_id}">លុប</button>`
-              : `<span class="text-muted">—</span>`}
-          </td>`;
-        frag.appendChild(tr);
-      }
-      tbody.innerHTML = '';
-      tbody.appendChild(frag);
-    }
-
-    // delete delegate
-    tbody.addEventListener('click', async (e)=>{
-      const btn = e.target.closest('button[data-act="del"]'); if(!btn) return;
-      const id  = btn.getAttribute('data-id');
-      if (!id) return;
-      if (!confirm(`លុប Period: ${id} ?`)) return;
-
-      try{
-        await gasDelete('periods', ID_FIELDS.periods || 'period_id', id);
-        ALL = ALL.filter(x => String(x.period_id)!==String(id));
-        render();
-        $status('លុបរួចរាល់');
-      }catch(err){
-        console.error(err);
-        alert('បរាជ័យលុប: ' + (err?.message || err));
-      }
-    });
-
-    /* ---------- Helpers ---------- */
-    function extractYear(pid){
-      const m = /^(\d{4})/.exec(String(pid||'')); return m ? m[1] : '';
-    }
-
-    function buildYearPeriods(year){
-      const mnames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      const rows = [];
-
-      // 12 months
-      for (let m=1; m<=12; m++){
-        const id = `${year}M${String(m).padStart(2,'0')}`;
-        rows.push({
-          period_id: id,
-          period_name: `${mnames[m-1]} ${year}`,
-          year,
-          month: String(m).padStart(2,'0')
-        });
-      }
-
-      // 4 quarters
-      for (let q=1; q<=4; q++){
-        rows.push({
-          period_id: `${year}Q${q}`,
-          period_name: `Q${q} ${year}`,
-          year,
-          month: `Q${q}`
-        });
-      }
-
-      // 2 halves
-      rows.push({ period_id:`${year}H1`, period_name:`H1 ${year}`, year, month:'H1' });
-      rows.push({ period_id:`${year}H2`, period_name:`H2 ${year}`, year, month:'H2' });
-
-      return rows;
-    }
-</script>
