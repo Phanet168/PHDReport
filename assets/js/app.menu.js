@@ -44,18 +44,34 @@ function lsSet(key, val) {
 /* ============================== */
 /* Shared: List / Save / Delete   */
 /* ============================== */
+// --- replace your gasList in assets/js/app.menu.js with this version ---
 export async function gasList(route, params = {}) {
   const token = getAuth()?.token || '';
   const url = makeApiUrl({ route, op: 'list', ...(token ? { token } : {}), ...params });
 
+  console.log('[gasList] GET →', url); // DEBUG
+
   const r = await fetchWithRetry(url, { cache: 'no-store' });
   const text = await r.text();
-  const j = JSON.parse(text || '{}');
+  let j;
+  try { j = text ? JSON.parse(text) : {}; }
+  catch (e) { console.error('[gasList] invalid JSON:', text); throw e; }
+
+  console.log('[gasList] raw ←', j);   // DEBUG
+
   if (j && j.ok === false) throw new Error(j.error || 'API error');
-  if (Array.isArray(j?.rows)) return j.rows;
-  if (Array.isArray(j)) return j;
-  return [];
+
+  // normalize
+  const rows =
+    Array.isArray(j?.rows) ? j.rows :
+    Array.isArray(j?.data) ? j.data :
+    Array.isArray(j)       ? j :
+    [];
+
+  console.log('[gasList] rows parsed:', rows.length, rows.slice(0,3)); // DEBUG
+  return rows;
 }
+
 
 export async function gasSave(route, payload = {}) {
   const token = getAuth()?.token || '';

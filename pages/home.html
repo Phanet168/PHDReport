@@ -14,15 +14,8 @@
   <style>
     body { font-family:"Noto Sans Khmer",system-ui,sans-serif; background:#f5f7fb; }
     .navbar-brand { font-family:"Khmer Moul","Noto Sans Khmer",sans-serif; }
-    .sidebar {
-      width:240px; flex-shrink:0; background:#fff; border-right:1px solid #e5e7eb;
-      display:flex; flex-direction:column; padding:16px;
-    }
-    .sidebar .nav-link { color:#374151; border-radius:8px; padding:.5rem .75rem; }
-    .sidebar .nav-link.active, .sidebar .nav-link:hover { background:#f3f4f6; font-weight:600; }
     .content { flex:1; padding:20px; }
 
-    /* Dashboard styles */
     .dashboard-page{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;}
     .container-page{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;
       width:100%;max-width:1280px;margin:0 auto;padding:12px 16px 8px;}
@@ -32,46 +25,10 @@
     .chart-card{padding:12px;display:flex;flex-direction:column;min-height:0;border:1px solid #eef0f4;border-radius:14px;box-shadow:0 10px 22px rgba(0,0,0,.05);background:#fff;}
     .chart-box{flex:1 1 auto;min-height:420px;}
     @media (max-width: 992px){.charts-row{grid-template-columns:1fr}.chart-box{min-height:340px}}
-  .navbar-brand {
-  font-family:"Khmer Moul","Noto Sans Khmer",sans-serif;
-  font-size:1.1rem;
-}
-.navbar-brand {
-  font-family: "Khmer Moul","Noto Sans Khmer",sans-serif;
-  font-size: 1.1rem;
-}
-#btnSidebar {
-  font-size: 1.2rem;
-  line-height: 1;
-  padding: 4px 8px;
-}
-    #btnToggleSidebar {
-  font-size: 1.25rem;
-  line-height: 1;
-  padding: 4px 10px;
-}
-.navbar-brand {
-  margin-bottom: 0;
-  font-family: "Khmer Moul","Noto Sans Khmer",sans-serif;
-  font-size: 1.1rem;
-}
-
-
-
   </style>
 </head>
 <body>
-
-
-
-
-
-
-
 <div class="d-flex" style="min-height:100dvh;">
-
-
-  <!-- 📝 Dashboard content -->
   <main class="content">
     <div class="dashboard-page">
       <div class="container-page">
@@ -80,8 +37,8 @@
       </div>
 
       <span class="small text-muted" style="margin:0 auto 8px auto;">
-          (Powered by <a href="https://phanet168.github.io/PHDReport" target="_blank" rel="noopener">PHD Report</a>)
-        </span>
+        (Powered by <a href="https://phanet168.github.io/PHDReport" target="_blank" rel="noopener">PHD Report</a>)
+      </span>
 
       <div class="container-page" style="flex:1 1 auto;display:flex;flex-direction:column;min-height:0;">
         <!-- KPI cards -->
@@ -103,23 +60,31 @@
             <div id="chartDept" class="chart-box"></div>
           </div>
         </div>
+
+        <div id="statusLine" class="small text-muted mt-2"></div>
       </div>
     </div>
   </main>
 </div>
 
+<!-- ECharts -->
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+
+<!-- App JS -->
 <script type="module">
-  import { ensureLoggedIn, applyLoginButton } from './assets/js/app.auth.js';
- import { apiList } from './assets/js/config.js'
+  import { ensureLoggedIn } from './assets/js/app.auth.js';
+  // ✅ កែ import: apiList នៅក្នុង app.api.js (ឬប្រើ gasList ពី app.menu.js)
+  import { apiList } from './assets/js/app.api.js';
+  // // ជម្រើសប្ដូរ:
+  // import { gasList as apiList } from './assets/js/app.menu.js';
 
+  ensureLoggedIn('login.html');
 
-  // Guard page
-  ensureLoggedIn();
-  applyLoginButton(document.getElementById('btnLogin'));
+  const $ = (id) => document.getElementById(id);
+  const setStatus = (m) => { const el = $('statusLine'); if (el) el.textContent = m || ''; };
 
-  // Load KPIs
   async function loadDashboard(){
+    setStatus('កំពុងទាញទិន្នន័យ…');
     try {
       const [deps, units, inds, reps] = await Promise.all([
         apiList('departments'),
@@ -127,40 +92,63 @@
         apiList('indicators'),
         apiList('reports')
       ]);
-      document.getElementById('kpiDepts').textContent = deps.length;
-      document.getElementById('kpiUnits').textContent = units.length;
-      document.getElementById('kpiIndicators').textContent = inds.length;
-      document.getElementById('kpiReports').textContent = reps.length;
 
-      // Sample chart rendering
-      const chartMonthly = echarts.init(document.getElementById('chartMonthly'));
-      chartMonthly.setOption({
-        xAxis: { type: 'category', data: ['Jan','Feb','Mar','Apr','May','Jun'] },
-        yAxis: { type: 'value' },
-        series: [{ type:'bar', data:[5,20,36,10,10,20] }]
-      });
+      $('kpiDepts').textContent      = deps.length;
+      $('kpiUnits').textContent      = units.length;
+      $('kpiIndicators').textContent = inds.length;
+      $('kpiReports').textContent    = reps.length;
 
-      const chartDept = echarts.init(document.getElementById('chartDept'));
-      chartDept.setOption({
+      // ----- Charts from real data -----
+      // Monthly count
+      const aggMonth = {};
+      for (const r of reps) {
+        const d = new Date(r.date || r._createdAt || Date.now());
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        aggMonth[key] = (aggMonth[key] || 0) + 1;
+      }
+      const months = Object.keys(aggMonth).sort();
+      const series = months.map(m => aggMonth[m]);
+
+      const c1 = echarts.init($('chartMonthly'));
+      c1.setOption({
         tooltip: {},
-        series: [{ type:'pie', data: deps.map(d=>({name:d.department_name,value:1})) }]
+        xAxis: { type: 'category', data: months },
+        yAxis: { type: 'value' },
+        series: [{ type:'bar', data: series }]
       });
+
+      // By department
+      const nameByDept = Object.fromEntries(deps.map(d => [String(d.department_id), d.department_name]));
+      const aggDept = {};
+      for (const r of reps) {
+        const name = nameByDept[String(r.department_id)] || 'មិនបានកំណត់';
+        aggDept[name] = (aggDept[name] || 0) + 1;
+      }
+      const pieData = Object.entries(aggDept).map(([name, value]) => ({ name, value }));
+
+      const c2 = echarts.init($('chartDept'));
+      c2.setOption({
+        tooltip: { trigger:'item' },
+        series: [{ type:'pie', radius:'70%', data: pieData }]
+      });
+
+      // Resize observer
+      if (window.ResizeObserver){
+        const ro=new ResizeObserver(()=>[c1,c2].forEach(ch=>ch && ch.resize()));
+        ro.observe($('chartMonthly')); ro.observe($('chartDept'));
+      }
+
+      setStatus('រួចរាល់');
     } catch (err) {
       console.error(err);
+      setStatus('បរាជ័យទាញទិន្នន័យ: ' + (err?.message || err));
     }
   }
-  document.addEventListener('DOMContentLoaded', loadDashboard);
 
-  // Resize observer for echarts
-  if(window.ResizeObserver){
-    const ids=['chartMonthly','chartDept'];
-    const ro=new ResizeObserver(()=>ids.forEach(id=>{
-      const el=document.getElementById(id);
-      if(el){ const i=echarts.getInstanceByDom(el); if(i) i.resize(); }
-    }));
-    ids.forEach(id=>{const el=document.getElementById(id); if(el) ro.observe(el);});
-  }
+  document.addEventListener('DOMContentLoaded', loadDashboard);
 </script>
+
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

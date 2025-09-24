@@ -1,10 +1,11 @@
+<!-- pages/settings/units/index.html -->
 <div class="settings-page">
     <div class="container-page">
 
         <!-- Page head -->
         <div class="page-head">
             <div class="d-flex align-items-center gap-2">
-                <h1 class="kh-head h4 m-0">ការិយាល័យ</h1>
+                <h1 class="kh-head h4 m-0">ផ្នែក (Units)</h1>
                 <nav aria-label="breadcrumb" class="small">
                     <ol class="breadcrumb m-0">
                         <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
@@ -18,34 +19,38 @@
 
         <!-- Body -->
         <div class="page-body">
-            <div class="card shadow-sm centered-card">
+            <div class="card shadow-sm centered-card w-100">
                 <div class="card-body">
 
-                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-                        <h4 class="card-title kh-head m-0">បញ្ជីការិយាល័យ</h4>
-                        <div class="d-flex gap-2">
-                            <button id="btnAdd" class="btn btn-primary btn-sm">
-                                <i class="i-Add"></i> បន្ថែម
-                            </button>
+                    <!-- Toolbar -->
+                    <div class="toolbar mb-3">
+                        <h4 class="card-title kh-head m-0">បញ្ជីផ្នែក</h4>
+                        <div class="actions ms-auto">
+                            <div class="input-group input-group-sm">
+                                <input id="txtSearch" class="form-control" placeholder="ស្វែងរក...">
+                                <button id="btnAddUnit" class="btn btn-primary">
+                                    <i class="i-Add"></i> បន្ថែម
+                                </button>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- Table -->
                     <div class="table-responsive">
                         <table id="tblUnits" class="table table-striped table-hover align-middle mb-0">
                             <thead>
                             <tr>
                                 <th style="width:90px">ID</th>
-                                <th>ឈ្មោះការិយាល័យ</th>
-                                <th style="width:260px">នាយកដ្ឋាន</th>
-                                <th style="width:180px">ប្រភេទ</th>
+                                <th>ឈ្មោះផ្នែក</th>
+                                <th style="width:220px">នាយកដ្ឋាន</th>
                                 <th style="width:160px">សកម្មភាព</th>
                             </tr>
                             </thead>
-                            <tbody><!-- initUnits() fills --></tbody>
+                            <tbody><!-- render here --></tbody>
                         </table>
                     </div>
 
-                    <div class="small text-muted mt-2" id="statusLine"></div>
+                    <div id="statusUnits" class="small text-muted mt-2"></div>
                 </div>
             </div>
         </div>
@@ -58,28 +63,28 @@
     <div class="modal-dialog">
         <form class="modal-content" id="frmUnit" novalidate>
             <div class="modal-header">
-                <h5 class="modal-title kh-head">ព័ត៌មានការិយាល័យ</h5>
+                <h5 class="modal-title kh-head">ព័ត៌មានផ្នែក</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="unit_id" />
+
                 <div class="mb-3">
-                    <label for="unit_name" class="form-label">ឈ្មោះការិយាល័យ <span class="text-danger">*</span></label>
+                    <label for="unit_name" class="form-label">ឈ្មោះផ្នែក <span class="text-danger">*</span></label>
                     <input id="unit_name" class="form-control" required />
-                    <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះការិយាល័យ</div>
+                    <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះផ្នែក</div>
                 </div>
+
                 <div class="mb-3">
-                    <label for="department_id" class="form-label">នាយកដ្ឋាន</label>
+                    <label for="department_id" class="form-label">នាយកដ្ឋាន <span class="text-danger">*</span></label>
                     <select id="department_id" class="form-select"></select>
-                </div>
-                <div class="mb-3">
-                    <label for="unit_type" class="form-label">ប្រភេទ</label>
-                    <input id="unit_type" class="form-control" placeholder="ឧ. Technical / Admin / Service" />
+                    <div class="form-text">ត្រូវជ្រើសនាយកដ្ឋានសម្រាប់ផ្នែកនេះ</div>
                 </div>
             </div>
+
             <div class="modal-footer">
                 <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
-                <button class="btn btn-primary" type="submit" id="btnSave">រក្សាទុក</button>
+                <button id="btnSaveUnit" class="btn btn-primary" type="submit">រក្សាទុក</button>
             </div>
         </form>
     </div>
@@ -90,141 +95,223 @@
     .container-page{width:100%; max-width:1280px; margin:0 auto; padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
     .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
     .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
-    .separator-breadcrumb{ margin-top:2px; }
-    .centered-card{ width:100%; max-width:1100px; margin-top:12px; border:1px solid #eef0f4; border-radius:14px; }
-    @media (min-width:1400px){ .centered-card{ max-width:1200px; } }
+    .centered-card{max-width:1200px; border:1px solid #eef0f4; border-radius:14px;}
     .table thead th{ white-space:nowrap; }
+    .skel{ position:relative; overflow:hidden; background:#f3f4f6; height:44px; }
+    .skel::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+      animation:shimmer 1.1s infinite }
+    @keyframes shimmer{ 100%{ transform:translateX(100%);} }
 
-    .actions-stack{ display:flex; flex-direction:column; gap:6px; }
-    #tblUnits td.actions-cell{ vertical-align:middle; white-space:normal; }
-    @media (min-width:576px){ .actions-stack .btn{ width:120px; } }
+    .toolbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+    .toolbar .actions{min-width:260px;}
+    @media (max-width: 576px){
+      .toolbar{gap:8px;}
+      .toolbar .actions{min-width:0; width:100%;}
+      .toolbar .input-group{width:100%;}
+    }
+
+    #tblUnits th:last-child{ text-align:right; }
+    #tblUnits td.td-actions{ text-align:right; width:170px; }
+    #tblUnits td.td-actions .actions-right{ display:flex; justify-content:flex-end; gap:.45rem; }
 </style>
 
 <script type="module">
-    import { apiList, apiUpsert, apiDelete, apiLogin } from '../../../assets/js/config.js';
+    import { getAuth, isSuper } from '../../../assets/js/app.auth.js';
+    import { gasList, gasSave, gasDelete, ID_FIELDS } from '../../../assets/js/app.menu.js';
 
-    const TBL_DEPARTMENTS = 'departments';
-    const TBL_UNITS = 'units';
-    const PK_UNIT = 'unit_id';
-    let AUTH = { token: '' };
-
-    const tbody = document.querySelector('#tblUnits tbody');
-    const statusLine = document.getElementById('statusLine');
-    const btnAdd = document.getElementById('btnAdd');
-
-    const mdlEl = document.getElementById('mdlUnit');
-    const frm = document.getElementById('frmUnit');
-    const $id = document.getElementById('unit_id');
-    const $name = document.getElementById('unit_name');
-    const $dep = document.getElementById('department_id');
-    const $type = document.getElementById('unit_type');
-    let mdl;
-
-    let CACHE = { departments: [], units: [], depById: {} };
-
-    function setStatus(msg, ok = true) {
-      statusLine.textContent = msg || '';
-      statusLine.classList.toggle('text-danger', !ok);
-    }
-    async function ensureLogin() {
-      if (AUTH.token) return;
-      const res = await apiLogin('admin', '123'); // 👉 ប្តូរ credential ពិត
-      AUTH.token = res.token;
-    }
-    function fillDepartmentsSelect() {
-      const opts = ['<option value="">— ជ្រើសរើស —</option>'];
-      for (const d of CACHE.departments) {
-        opts.push(`<option value="${d.department_id}">${d.department_name}</option>`);
+    /* Modal helper */
+    function makeModal(id){
+      const el = document.getElementById(id);
+      if (!el) return null;
+      if (window.bootstrap && bootstrap.Modal){
+        let inst = bootstrap.Modal.getInstance ? bootstrap.Modal.getInstance(el) : null;
+        if (!inst) inst = new bootstrap.Modal(el, {backdrop:true, keyboard:true, focus:true});
+        return { show:()=>inst.show(), hide:()=>inst.hide() };
       }
-      $dep.innerHTML = opts.join('');
+      if (window.jQuery && jQuery.fn?.modal){
+        const $el = jQuery(el);
+        return { show:()=>$el.modal('show'), hide:()=>$el.modal('hide') };
+      }
+      return { show(){ el.style.display='block'; }, hide(){ el.style.display='none'; } };
     }
-    function render() {
-      const rows = CACHE.units;
-      if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+
+    const $status = (m)=> document.getElementById('statusUnits').textContent = m || '';
+
+    const auth  = getAuth();
+    const SUPER = isSuper(auth);
+    const modal = makeModal('mdlUnit');
+
+    const tbl       = document.getElementById('tblUnits');
+    const tbody     = tbl.querySelector('tbody');
+    const btnAdd    = document.getElementById('btnAddUnit');
+    const frm       = document.getElementById('frmUnit');
+    const txtSearch = document.getElementById('txtSearch');
+    const selDept   = document.getElementById('department_id');
+
+    let DEPTS = [];
+    let UNITS = [];
+    let FILTER_Q = '';
+
+    // skeleton
+    tbody.innerHTML = '';
+    for (let i=0;i<4;i++){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="4" class="skel"></td>`;
+      tbody.appendChild(tr);
+    }
+
+    init().catch(err=>{
+      console.error(err);
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger py-4">បរាជ័យផ្ទុកទិន្នន័យ</td></tr>`;
+      $status('បរាជ័យផ្ទុកទិន្នន័យ');
+    });
+
+    async function init(){
+      $status('កំពុងផ្ទុកទិន្នន័យ…');
+      let [depts, units] = await Promise.all([
+        gasList('departments').catch(()=>[]),
+        gasList('units').catch(()=>[]),
+      ]);
+
+      DEPTS = depts || [];
+      UNITS = units || [];
+
+      // Super ប៉ុណ្ណោះទើបអាច បន្ថែម/កែ/លុប
+      if (!SUPER) btnAdd?.classList.add('d-none');
+
+      await fillDeptSelect('');
+      renderTable();
+      $status(`បានផ្ទុក ${UNITS.length} ផ្នែក`);
+    }
+
+    function fillDeptSelect(selected){
+      selDept.innerHTML =
+        `<option value="">— ជ្រើសនាយកដ្ឋាន —</option>` +
+        DEPTS.map(d => `<option value="${d.department_id}">${d.department_name}</option>`).join('');
+      if (selected) selDept.value = selected;
+      selDept.disabled = !SUPER;
+    }
+
+    function deptName(id){
+      const d = DEPTS.find(x => String(x.department_id)===String(id));
+      return d ? d.department_name : '';
+    }
+
+    function canEdit(){ return SUPER; }
+
+    function renderTable(){
+      const rows = UNITS.filter(r=>{
+        if (!FILTER_Q) return true;
+        return JSON.stringify(r).toLowerCase().includes(FILTER_Q);
+      });
+
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
         return;
       }
-      tbody.innerHTML = rows.map(u => `
-        <tr>
-          <td>${u[PK_UNIT]}</td>
-          <td>${u.unit_name||''}</td>
-          <td>${CACHE.depById[String(u.department_id)]||''}</td>
-          <td>${u.unit_type||''}</td>
-          <td class="actions-cell">
-            <div class="actions-stack">
-              <button class="btn btn-sm btn-outline-primary" data-act="edit" data-id="${u[PK_UNIT]}">កែប្រែ</button>
-              <button class="btn btn-sm btn-outline-danger" data-act="remove" data-id="${u[PK_UNIT]}">លុប</button>
+
+      const frag = document.createDocumentFragment();
+      for (const u of rows){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${u.unit_id}</td>
+          <td>${u.unit_name || ''}</td>
+          <td>${deptName(u.department_id)}</td>
+          <td class="td-actions">
+            <div class="actions-right">
+              ${canEdit()
+                ? `<button class="btn btn-sm btn-warning" data-act="edit" data-id="${u.unit_id}">កែ</button>
+                   <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${u.unit_id}">លុប</button>`
+                : `<span class="text-muted">—</span>`}
             </div>
-          </td>
-        </tr>
-      `).join('');
-    }
-    function openModal(row) {
-      $id.value = row?.unit_id || '';
-      $name.value = row?.unit_name || '';
-      $dep.value = row?.department_id || '';
-      $type.value = row?.unit_type || '';
-      frm.classList.remove('was-validated');
-      if (!mdl) mdl = new bootstrap.Modal(mdlEl);
-      mdl.show();
+          </td>`;
+        frag.appendChild(tr);
+      }
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
     }
 
-    // === Events ===
-    btnAdd?.addEventListener('click', () => openModal(null));
-    tbody.addEventListener('click', async ev => {
-      const btn = ev.target.closest('button[data-act]');
+    // Search
+    txtSearch?.addEventListener('input', e=>{
+      FILTER_Q = String(e.target.value||'').trim().toLowerCase();
+      renderTable();
+    });
+
+    // Add
+    btnAdd?.addEventListener('click', ()=>{
+      if (!canEdit()) return;
+      frm.reset();
+      document.getElementById('unit_id').value = '';
+      document.getElementById('unit_name').classList.remove('is-invalid');
+      fillDeptSelect('');
+      modal?.show();
+    });
+
+    // Edit/Delete delegate
+    tbody.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button[data-act]');
       if (!btn) return;
-      const id = btn.dataset.id;
-      if (btn.dataset.act === 'edit') {
-        const row = CACHE.units.find(r => String(r[PK_UNIT]) === String(id));
-        if (row) openModal(row);
+      const id  = btn.getAttribute('data-id');
+      const row = UNITS.find(x=>String(x.unit_id)===String(id));
+      if (!row) return;
+
+      if (btn.dataset.act === 'edit'){
+        if (!canEdit()) return;
+        frm.reset();
+        document.getElementById('unit_id').value   = row.unit_id;
+        document.getElementById('unit_name').value = row.unit_name || '';
+        fillDeptSelect(row.department_id || '');
+        modal?.show();
       }
-      if (btn.dataset.act === 'remove') {
-        if (!confirm('លុបទិន្នន័យនេះ?')) return;
-        try {
-          await ensureLogin();
-          await apiDelete(TBL_UNITS, PK_UNIT, id, AUTH.token);
-          await loadAll();
-        } catch (err) { setStatus('បរាជ័យ: ' + err.message, false); }
+
+      if (btn.dataset.act === 'del'){
+        if (!canEdit()) return;
+        if (!confirm('តើចង់លុបធាតុនេះមែនទេ?')) return;
+        try{
+          await gasDelete('units', ID_FIELDS.units, row.unit_id);
+          UNITS = UNITS.filter(x=>String(x.unit_id)!==String(id));
+          renderTable();
+          $status('លុបរួចរាល់');
+        }catch(err){
+          console.error(err);
+          alert('បរាជ័យលុប: ' + (err?.message || err));
+        }
       }
     });
 
-    frm.addEventListener('submit', async e => {
-      e.preventDefault(); e.stopPropagation();
-      if (!frm.checkValidity()) { frm.classList.add('was-validated'); return; }
-      const isNew = !$id.value;
+    // Save
+    frm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      if (!canEdit()) return;
+
       const payload = {
-        [PK_UNIT]: isNew ? undefined : $id.value,
-        unit_name: $name.value.trim(),
-        department_id: Number($dep.value || ''),
-        unit_type: $type.value.trim()
+        unit_id       : document.getElementById('unit_id').value || null,
+        unit_name     : document.getElementById('unit_name').value.trim(),
+        department_id : selDept.value || '',
       };
-      try {
-        await ensureLogin();
-        await apiUpsert(TBL_UNITS, payload, AUTH.token);
-        mdl?.hide();
-        await loadAll();
-      } catch (err) { setStatus('បរាជ័យ: ' + err.message, false); }
-    });
 
-    // === Init ===
-    async function loadAll() {
-      try {
-        setStatus('កំពុងផ្ទុកទិន្នន័យ…');
-        const [deps, units] = await Promise.all([
-          apiList(TBL_DEPARTMENTS),
-          apiList(TBL_UNITS)
-        ]);
-        CACHE.departments = deps;
-        CACHE.units = units;
-        CACHE.depById = Object.fromEntries(deps.map(d => [String(d.department_id), d.department_name]));
-        fillDepartmentsSelect();
-        render();
-        setStatus(`បានផ្ទុកសរុប – នាយកដ្ឋាន: ${deps.length} • ការិយាល័យ: ${units.length}`);
-      } catch (err) {
+      const nameEl = document.getElementById('unit_name');
+      nameEl.classList.toggle('is-invalid', !payload.unit_name);
+      if (!payload.unit_name) return;
+
+      if (!payload.department_id){ alert('សូមជ្រើសនាយកដ្ឋាន'); return; }
+
+      const btn = document.getElementById('btnSaveUnit');
+      const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'កំពុងរក្សាទុក…';
+      try{
+        const saved = await gasSave('units', payload);
+        const row = saved.row || saved;
+        const i = UNITS.findIndex(x=>String(x.unit_id)===String(row.unit_id));
+        if (i>=0) UNITS[i] = row; else UNITS.push(row);
+        renderTable();
+        modal?.hide();
+        $status('រក្សាទុករួចរាល់');
+      }catch(err){
         console.error(err);
-        setStatus('បរាជ័យក្នុងការផ្ទុកទិន្នន័យ: ' + err.message, false);
+        alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
+      }finally{
+        btn.disabled = false; btn.innerHTML = old;
       }
-    }
-    document.addEventListener('DOMContentLoaded', loadAll);
+    });
 </script>

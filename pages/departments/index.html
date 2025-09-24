@@ -1,117 +1,259 @@
-<!DOCTYPE html>
-<html lang="km">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>គ្រប់គ្រងការិយាល័យ | PHD Report</title>
+<!-- pages/settings/departments/index.html -->
+<div class="settings-page">
+  <div class="container-page">
 
-  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@400;600&display=swap" rel="stylesheet"/>
-  <link href="../../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet"/>
-</head>
-<body>
+    <!-- Page head -->
+    <div class="page-head">
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="kh-head h4 m-0">ការិយាល័យ</h1>
+        <nav aria-label="breadcrumb" class="small">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+            <li class="breadcrumb-item">Settings</li>
+            <li class="breadcrumb-item active" aria-current="page">Departments</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="separator-breadcrumb border-top"></div>
+    </div>
 
-<div class="main-content-wrap p-3">
-  <h4 class="kh-head">គ្រប់គ្រងការិយាល័យ</h4>
-  <button id="btnAdd" class="btn btn-primary btn-sm mb-2">+ បន្ថែម</button>
-  <div id="alertBox" class="alert d-none"></div>
-  <table class="table table-striped">
-    <thead><tr><th>ID</th><th>ឈ្មោះ</th><th>សកម្មភាព</th></tr></thead>
-    <tbody id="tbody"><tr><td colspan="3">កំពុងទាញ...</td></tr></tbody>
-  </table>
+    <!-- Body -->
+    <div class="page-body">
+      <div class="card shadow-sm centered-card w-100">
+        <div class="card-body">
+
+          <!-- Toolbar -->
+          <div class="toolbar mb-3">
+            <h4 class="card-title kh-head m-0">បញ្ជីការិយាល័យ</h4>
+            <div class="actions ms-auto">
+              <div class="input-group input-group-sm">
+                <input id="txtSearch" class="form-control" placeholder="ស្វែងរក...">
+                <button id="btnAdd" class="btn btn-primary">
+                  <i class="i-Add"></i> បន្ថែម
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table id="tblDepartments" class="table table-striped table-hover align-middle mb-0">
+              <thead>
+              <tr>
+                <th style="width:90px">ID</th>
+                <th>ឈ្មោះការិយាល័យ</th>
+                <th style="width:160px" class="text-end">សកម្មភាព</th>
+              </tr>
+              </thead>
+              <tbody><!-- render here --></tbody>
+            </table>
+          </div>
+
+          <div class="small text-muted mt-2" id="statusLine"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
-<!-- Modal -->
-<div class="modal fade" id="depModal" tabindex="-1">
+<!-- Modal Add/Edit -->
+<div class="modal fade" id="mdlDepartment" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form class="modal-content" id="depForm">
+    <form class="modal-content" id="frmDepartment" novalidate>
       <div class="modal-header">
-        <h5 class="modal-title kh-head" id="mdlTitle">បន្ថែម</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <h5 class="modal-title kh-head">ព័ត៌មានការិយាល័យ</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
       </div>
       <div class="modal-body">
-        <input type="hidden" id="department_id"/>
-        <label class="form-label">ឈ្មោះ</label>
-        <input id="department_name" class="form-control" required/>
+        <input type="hidden" id="department_id" />
+        <div class="mb-3">
+          <label for="department_name" class="form-label">ឈ្មោះការិយាល័យ <span class="text-danger">*</span></label>
+          <input id="department_name" class="form-control" required />
+          <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះការិយាល័យ</div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
-        <button class="btn btn-primary" type="submit">រក្សាទុក</button>
+        <button class="btn btn-primary" type="submit" id="btnSave">រក្សាទុក</button>
       </div>
     </form>
   </div>
 </div>
 
-<script src="../../dist-assets/js/plugins/bootstrap.bundle.min.js"></script>
+<style>
+  .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+  .container-page{width:100%; max-width:1280px; margin:0 auto; padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
+  .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
+  .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
+  .centered-card{max-width:1000px; border:1px solid #eef0f4; border-radius:14px;}
+  .table thead th{ white-space:nowrap; }
+  .toolbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+  .toolbar .actions{min-width:260px;}
+  @keyframes shimmer{ 100%{ transform:translateX(100%);} }
+  .skel{ position:relative; overflow:hidden; background:#f3f4f6; height:44px; }
+  .skel::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+    animation:shimmer 1.1s infinite }
+  #tblDepartments th:last-child{ text-align:right; }
+  #tblDepartments td.td-actions{ text-align:right; width:160px; }
+</style>
+
 <script type="module">
-  import { GAS_BASE, gasGet, gasPost } from '../../assets/js/config.js';
-  import { getAuth } from '../../assets/js/app.auth.js';
+  // ✅ PATH ត្រឹមត្រូវសម្រាប់ pages/settings/departments/ → assets/js/
+  import { getAuth, isSuper } from '../../../assets/js/app.auth.js';
+  import { gasList, gasSave, gasDelete, ID_FIELDS } from '../../../assets/js/app.menu.js';
 
-  const auth=getAuth(); if(!auth) location.replace('../../login.html');
-  const tbody=document.getElementById('tbody');
-  const mdl=new bootstrap.Modal(document.getElementById('depModal'));
+  console.log('✅ departments page script loaded');
 
-  function showAlert(msg,type='success'){
-    const box=document.getElementById('alertBox');
-    box.className='alert alert-'+type; box.textContent=msg;
-    box.classList.remove('d-none'); setTimeout(()=>box.classList.add('d-none'),2500);
+  const $status = msg => (document.getElementById('statusLine').textContent = msg || '');
+
+  const auth  = getAuth();
+  const SUPER = isSuper(auth);
+  const modal = (()=>{
+    const el = document.getElementById('mdlDepartment');
+    let inst = bootstrap.Modal.getInstance(el);
+    if (!inst) inst = new bootstrap.Modal(el);
+    return { show:()=>inst.show(), hide:()=>inst.hide() };
+  })();
+
+  const tbl      = document.getElementById('tblDepartments');
+  const tbody    = tbl.querySelector('tbody');
+  const frm      = document.getElementById('frmDepartment');
+  const btnAdd   = document.getElementById('btnAdd');
+  const txtSearch= document.getElementById('txtSearch');
+
+  let CACHE = { departments: [] };
+  let FILTER_Q = '';
+
+  // skeleton rows
+  tbody.innerHTML = '';
+  for (let i=0;i<4;i++){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="3" class="skel"></td>`;
+    tbody.appendChild(tr);
   }
 
-  async function loadTable(){
-    tbody.innerHTML='<tr><td colspan="3">កំពុងទាញ...</td></tr>';
-    try{
-      const res=await gasGet({route:'departments',op:'list',token:auth.token});
-      console.log('📥 list',res);
-      const rows=res.rows||[];
-      if(!rows.length){ tbody.innerHTML='<tr><td colspan="3">គ្មានទិន្នន័យ</td></tr>'; return; }
-      tbody.innerHTML=rows.map(r=>`
-        <tr data-id="${r.department_id}">
-          <td>${r.department_id}</td>
-          <td>${r.department_name}</td>
-          <td>
-            <button class="btn btn-sm btn-link text-primary btn-edit">កែ</button>
-            <button class="btn btn-sm btn-link text-danger btn-del">លុប</button>
-          </td>
-        </tr>`).join('');
-      tbody.querySelectorAll('.btn-edit').forEach(b=>b.onclick=()=>openEdit(b.closest('tr').dataset.id,rows));
-      tbody.querySelectorAll('.btn-del').forEach(b=>b.onclick=()=>doDelete(b.closest('tr').dataset.id));
-    }catch(e){ tbody.innerHTML='<tr><td colspan="3" class="text-danger">'+e.message+'</td></tr>'; }
+  // Init
+  init().catch(err=>{
+    console.error(err);
+    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger py-4">បរាជ័យផ្ទុកទិន្នន័យ</td></tr>`;
+    $status('បរាជ័យផ្ទុកទិន្នន័យ');
+  });
+
+  async function init(){
+    $status('កំពុងផ្ទុកទិន្នន័យ…');
+
+    // 🔎 ទាញទិន្នន័យ (gasList នឹង normalize {rows:[…]})
+    let depts = await gasList('departments');
+
+    // scope (បើមិនមែន super)
+    if (!SUPER && auth?.department_id){
+      const depId = String(auth.department_id);
+      depts = depts.filter(d => String(d.department_id) === depId);
+    }
+
+    CACHE.departments = depts;
+    console.log('👉 departments length:', depts.length, depts);
+    renderTable();
+    $status(`បានផ្ទុក ${depts.length} ការិយាល័យ`);
   }
 
-  function openEdit(id,rows){
-    const r=rows.find(x=>String(x.department_id)===String(id));
-    document.getElementById('mdlTitle').textContent='កែប្រែ';
-    document.getElementById('department_id').value=r.department_id;
-    document.getElementById('department_name').value=r.department_name;
-    mdl.show();
-  }
-  function openAdd(){
-    document.getElementById('mdlTitle').textContent='បន្ថែម';
-    document.getElementById('department_id').value='';
-    document.getElementById('department_name').value='';
-    mdl.show();
-  }
-  async function doDelete(id){
-    if(!confirm('លុបមែនទេ?')) return;
-    try{
-      await gasPost({route:'departments',op:'delete',token:auth.token},{department_id:id});
-      showAlert('លុបរួចរាល់'); loadTable();
-    }catch(e){ showAlert(e.message,'danger'); }
+  function renderTable(){
+    const rows = CACHE.departments.filter(r=>{
+      if (!FILTER_Q) return true;
+      return JSON.stringify(r).toLowerCase().includes(FILTER_Q);
+    });
+
+    if (!rows.length){
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    for(const d of rows){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${d.department_id}</td>
+        <td>${d.department_name || ''}</td>
+        <td class="td-actions">
+          <button class="btn btn-sm btn-warning" data-act="edit" data-id="${d.department_id}">កែ</button>
+          <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${d.department_id}">លុប</button>
+        </td>`;
+      frag.appendChild(tr);
+    }
+    tbody.innerHTML = '';
+    tbody.appendChild(frag);
   }
 
-  document.getElementById('btnAdd').onclick=openAdd;
-  document.getElementById('depForm').onsubmit=async e=>{
+  // Search
+  txtSearch?.addEventListener('input', e=>{
+    FILTER_Q = String(e.target.value||'').trim().toLowerCase();
+    renderTable();
+  });
+
+  // Add
+  btnAdd.addEventListener('click', ()=>{
+    frm.reset();
+    document.getElementById('department_id').value = '';
+    modal.show();
+  });
+
+  // Edit/Delete delegate
+  tbody.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const id  = btn.getAttribute('data-id');
+    const row = CACHE.departments.find(x=>String(x.department_id)===String(id));
+    if (!row) return;
+
+    if (btn.dataset.act === 'edit'){
+      frm.reset();
+      document.getElementById('department_id').value   = row.department_id;
+      document.getElementById('department_name').value = row.department_name || '';
+      modal.show();
+    }
+
+    if (btn.dataset.act === 'del'){
+      if (!confirm('តើចង់លុបធាតុនេះមែនទេ?')) return;
+      try{
+        await gasDelete('departments', ID_FIELDS.departments, row.department_id);
+        CACHE.departments = CACHE.departments.filter(x=>String(x.department_id)!==String(id));
+        renderTable();
+        $status('លុបរួចរាល់');
+      }catch(err){
+        console.error(err);
+        alert('បរាជ័យលុប: ' + (err?.message || err));
+      }
+    }
+  });
+
+  // Save
+  frm.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const id=document.getElementById('department_id').value;
-    const name=document.getElementById('department_name').value.trim();
-    if(!name) return;
-    const payload={department_name:name}; if(id) payload.department_id=Number(id);
-    try{
-      await gasPost({route:'departments',op:'upsert',token:auth.token},payload);
-      mdl.hide(); showAlert('រក្សាទុករួចរាល់'); loadTable();
-    }catch(e){ showAlert(e.message,'danger'); }
-  };
+    const payload = {
+      department_id   : document.getElementById('department_id').value || null,
+      department_name : document.getElementById('department_name').value.trim()
+    };
+    if (!payload.department_name){
+      const el = document.getElementById('department_name');
+      el.classList.add('is-invalid'); el.focus(); return;
+    } else document.getElementById('department_name').classList.remove('is-invalid');
 
-  loadTable();
+    const btn = document.getElementById('btnSave');
+    const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'កំពុងរក្សាទុក…';
+    try{
+      const saved = await gasSave('departments', payload);
+      const row = saved.row || saved;
+      const i = CACHE.departments.findIndex(x=>String(x.department_id)===String(row.department_id));
+      if (i>=0) CACHE.departments[i]=row; else CACHE.departments.push(row);
+      renderTable();
+      modal.hide();
+      $status('រក្សាទុករួចរាល់');
+    }catch(err){
+      console.error(err);
+      alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
+    }finally{
+      btn.disabled = false; btn.innerHTML = old;
+    }
+  });
 </script>
-</body>
-</html>
