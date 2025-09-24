@@ -286,4 +286,6 @@ export const ID_FIELDS = {
   departments: 'department_id',
   units: 'unit_id',
   reports: 'report_id',
+  periods: 'period_id',
 };
+
