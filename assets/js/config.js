@@ -1,7 +1,7 @@
 // === Base URL of your deployed Apps Script Web App (must end with /exec) ===
 // 👉 ប្តូរ URL ខាងក្រោមជាមួយ URL ពិតរបស់បង (ចុងបញ្ចប់ជា /exec)
 export const GAS_BASE =
-  'https://script.google.com/macros/s/AKfycbwQXnt94_gGbJd3iZXk8hb-3xbA6oGwXuEcx4xqzu7GBYK9yVTfT_hZOSTBmvz8E_l-tg/exec';
+  'https://script.google.com/macros/s/AKfycbyJ66uzM1KttC5e4R6gjZr6l8gnG3xM0CsCIS6Sqh7bXctQHuSn1ynUUQqrt2JhxwLdVg/exec';
 
 import { getAuth } from './app.auth.js';   // <<< សំខាន់: ដើម្បីយក token
 

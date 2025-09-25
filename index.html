@@ -235,6 +235,9 @@
   import { ensureLoggedIn, applyLoginButton, getAuth, isSuper } from './assets/js/app.auth.js';
   import { buildDeptMenu, buildSettingsMenu, gasList, gasSave, gasDelete, ID_FIELDS } from './assets/js/app.menu.js';
 
+  applyLoginButton();
+  ensureLoggedIn('login.html');
+
   /* ---------- Simple loader ---------- */
   const AppLoader = (() => {
     let n = 0;
@@ -294,6 +297,9 @@
     'settings/departments': { view:'pages/settings/departments/index.html',  init:initDepartments },
     'settings/units':       { view:'pages/settings/units/index.html',        init:initUnits },
     'settings/periods':     { view:'pages/settings/periods/index.html',      init:initPeriods },
+    'settings/users':       { view:'pages/settings/users/index.html',         init:initUsers },
+    'data-entry':           { view:'pages/data-entry/index.html',             init:initDataEntry },
+
   };
 
   async function render(path){
@@ -381,308 +387,989 @@
     }
   }
 
-  /* ======================= Indicators ======================= */
-  async function initIndicators(){
-    const auth = getAuth();
-    const SUPER = isSuper(auth);
-
-    const table  = document.getElementById('tblIndicators');
-    const tbody  = table?.querySelector('tbody');
-    const btnAdd = document.getElementById('btnAdd');
-    const frm    = document.getElementById('frmIndicator');
-    const selDept= document.getElementById('department_id');
-    const selUnit= document.getElementById('unit_id');
-    const btnSave= document.getElementById('btnSave');
-    const modal  = makeModal('mdlIndicator');
-
-    if (!table || !tbody || !btnAdd || !frm || !selDept || !selUnit || !btnSave) return;
-
-    let CACHE = { departments: [], indicators: [], unitsByDep:new Map() };
-    let unitsLoading = false, unitsReqSeq = 0;
-    const setStatus = (m)=>{ const el = document.getElementById('statusLine'); if (el) el.textContent = m||''; };
-    const deptName = id => (CACHE.departments.find(d => String(d.department_id)===String(id))?.department_name || '');
-
-    const skel = ()=>{ tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="6" class="skel"></td>`; tbody.appendChild(tr);} };
-    skel();
-
-    try{
-      let [depts, inds] = await Promise.all([ gasList('departments'), gasList('indicators') ]);
-      if (!SUPER && auth?.department_id){
-        const depId = String(auth.department_id);
-        depts = depts.filter(d => String(d.department_id)===depId);
-        inds  = inds.filter(r => String(r.department_id)===depId);
-        try { CACHE.unitsByDep.set(depId, await gasList('units', { department_id: depId })); } catch {}
-      }
-      CACHE.departments = depts; CACHE.indicators = inds;
-
-      await fillDeptSelect(SUPER ? '' : auth?.department_id);
-      await fillUnitSelect(SUPER ? selDept.value : auth?.department_id, SUPER ? '' : auth?.unit_id);
-
-      renderTable();
-      setStatus(`បានផ្ទុក ${inds.length} សូចនាករ`);
-    }catch(e){
-      console.error(e);
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">បរាជ័យផ្ទុកទិន្នន័យ</td></tr>`;
-      setStatus('បរាជ័យផ្ទុកទិន្នន័យ');
-    }
-
-    async function fillDeptSelect(selected){
-      selDept.innerHTML = `<option value="">— ជ្រើសការិយាល័យ —</option>` +
-        CACHE.departments.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
-      if (selected) selDept.value = selected;
-      selDept.disabled = !SUPER;
-    }
-    function setUnitsLoading(on){
-      unitsLoading = !!on; btnSave.disabled = unitsLoading;
-      selUnit.closest('.col-md-6')?.classList.toggle('select-loading', unitsLoading);
-    }
-    async function fillUnitSelect(depId, selected){
-      selUnit.innerHTML = `<option value="">— ជ្រើសផ្នែក —</option>`;
-      if (!depId){ selUnit.disabled = true; return; }
-      setUnitsLoading(true); selUnit.disabled = true; selUnit.innerHTML = `<option>កំពុងទាញ…</option>`;
-      const mySeq = ++unitsReqSeq;
-      try{
-        let units = CACHE.unitsByDep.get(String(depId));
-        if (!units){ units = await gasList('units', { department_id: depId }); CACHE.unitsByDep.set(String(depId), units); }
-        if (mySeq !== unitsReqSeq) return;
-        selUnit.innerHTML = `<option value="">— ជ្រើសផ្នែក —</option>` + (units||[]).map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
-        if (selected) selUnit.value = selected;
-        selUnit.disabled = !SUPER;
-      }catch(e){
-        console.error(e);
-        if (mySeq !== unitsReqSeq) return;
-        selUnit.innerHTML = `<option value="">បរាជ័យទាញ — សាកម្ដងទៀត</option>`;
-        selUnit.disabled = false;
-      }finally{
-        if (mySeq === unitsReqSeq) setUnitsLoading(false);
-      }
-    }
-
-    function canEditRow(ind){ return SUPER || String(ind.department_id)===String(auth?.department_id); }
-
-    function renderTable(){
-      if (!CACHE.indicators.length){
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
-        return;
-      }
-      const frag = document.createDocumentFragment();
-      for (const ind of CACHE.indicators){
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td style="width:90px">${ind.indicator_id}</td>
-          <td>${ind.indicator_name||''}</td>
-          <td style="width:160px">${ind.indicator_type||''}</td>
-          <td style="width:220px">${deptName(ind.department_id)}</td>
-          <td style="width:220px"></td>
-          <td class="text-end" style="width:160px">
-            ${canEditRow(ind)
-              ? `<button class="btn btn-sm btn-warning me-1" data-act="edit" data-id="${ind.indicator_id}">កែ</button>
-                 <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${ind.indicator_id}">លុប</button>`
-              : `<span class="text-muted">—</span>`}
-          </td>`;
-        frag.appendChild(tr);
-      }
-      tbody.innerHTML = ''; tbody.appendChild(frag);
-    }
-
-    selDept.addEventListener('change', e=> fillUnitSelect(e.target.value,''));
-    btnAdd.addEventListener('click', async ()=>{
-      frm.reset(); document.getElementById('indicator_id').value = '';
-      if (SUPER){ selDept.disabled=false; await fillUnitSelect(selDept.value,''); }
-      else{
-        selDept.value = auth?.department_id || ''; selDept.disabled = true;
-        await fillUnitSelect(auth?.department_id, auth?.unit_id); selUnit.disabled = true;
-      }
-      modal?.show();
-    });
-    tbody.addEventListener('click', async (e)=>{
-      const btn = e.target.closest('button[data-act]'); if (!btn) return;
-      const id  = btn.getAttribute('data-id');
-      const row = CACHE.indicators.find(x=>String(x.indicator_id)===String(id)); if (!row) return;
-
-      if (btn.dataset.act==='edit'){
-        frm.reset();
-        document.getElementById('indicator_id').value   = row.indicator_id;
-        document.getElementById('indicator_name').value = row.indicator_name || '';
-        document.getElementById('indicator_type').value = row.indicator_type || '';
-        selDept.value = row.department_id || '';
-        if (!SUPER) selDept.disabled = true;
-        await fillUnitSelect(row.department_id, row.unit_id || '');
-        if (!SUPER) selUnit.disabled = true;
-        modal?.show();
-      }
-      if (btn.dataset.act==='del'){
-        if (!confirm('លុបមែនទេ?')) return;
-        try{
-          await gasDelete('indicators', ID_FIELDS.indicators, row.indicator_id);
-          CACHE.indicators = CACHE.indicators.filter(x=>String(x.indicator_id)!==String(id));
-          renderTable();
-        }catch(err){ alert('បរាជ័យលុប: ' + (err?.message || err)); }
-      }
-    });
-    frm.addEventListener('submit', async (e)=>{
-      e.preventDefault(); if (unitsLoading) return;
-      const payload = {
-        indicator_id   : document.getElementById('indicator_id').value || null,
-        indicator_name : document.getElementById('indicator_name').value.trim(),
-        indicator_type : document.getElementById('indicator_type').value.trim(),
-        department_id  : SUPER ? selDept.value : (auth?.department_id || ''),
-        unit_id        : SUPER ? selUnit.value : (auth?.unit_id || '')
-      };
-      const nameEl = document.getElementById('indicator_name');
-      nameEl.classList.toggle('is-invalid', !payload.indicator_name);
-      if (!payload.indicator_name) return;
-
-      const btn = document.getElementById('btnSave');
-      const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'កំពុងរក្សាទុក…';
-      try{
-        const saved = await gasSave('indicators', payload);
-        const row = saved.row || saved;
-        const i = CACHE.indicators.findIndex(x=>String(x.indicator_id)===String(row.indicator_id));
-        if (i>=0) CACHE.indicators[i]=row; else CACHE.indicators.push(row);
-        renderTable(); modal?.hide();
-      }catch(err){ alert('បរាជ័យរក្សាទុក: ' + (err?.message || err)); }
-      finally{ btn.disabled = false; btn.innerHTML = old; }
-    });
-  }
-
-  /* ======================= Departments ======================= */
-  async function initDepartments(){
-    const auth = getAuth(); const SUPER = isSuper(auth);
-    const tbody = document.querySelector('#tblDepts tbody');
-    const btnAdd= document.getElementById('btnAddDept');
-    const frm   = document.getElementById('frmDept');
-    const modal = makeModal('mdlDept');
-    const idEl  = document.getElementById('department_id');
-    const nameEl= document.getElementById('department_name');
-    const status= (m)=>{ const el=document.getElementById('statusDept'); if(el) el.textContent=m||''; };
-
-    if (!tbody || !btnAdd || !frm || !idEl || !nameEl) return;
-
-    const skel = ()=>{ tbody.innerHTML=''; for(let i=0;i<3;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="3" class="skel"></td>`; tbody.appendChild(tr);} };
-    skel();
-    let rows = [];
-    try{
-      rows = await gasList('departments');
-      render(rows); status(`បានផ្ទុក ${rows.length} នាយកដ្ឋាន`);
-    }catch(e){
-      tbody.innerHTML = `<tr><td colspan="3" class="text-danger text-center py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
-      status('បរាជ័យទាញទិន្នន័យ');
-    }
-
-    function render(list){
-      if (!list.length){ tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`; return; }
-      const frag = document.createDocumentFragment();
-      for (const r of list){
-        const tr = document.createElement('tr');
-        tr.dataset.id = r.department_id;
-        tr.innerHTML = `
-          <td style="width:100px"><span class="badge text-bg-light border">#${r.department_id}</span></td>
-          <td>${r.department_name||''}</td>
-          <td class="text-end" style="width:160px">
-            ${SUPER
-              ? `<button class="btn btn-sm btn-warning me-1" data-act="edit">កែ</button>
-                 <button class="btn btn-sm btn-danger"  data-act="del">លុប</button>`
-              : `<span class="text-muted">—</span>`
-            }
-          </td>`;
-        frag.appendChild(tr);
-      }
-      tbody.innerHTML=''; tbody.appendChild(frag);
-    }
-
-btnGen.addEventListener('click', async () => {
-  const SUPER = isSuper(getAuth());
-  if (!SUPER) return alert('ត្រូវការ SUPER');
-
-  const y = Number(selYear.value || new Date().getFullYear());
-  if (!confirm(`បង្កើតរយៈពេលសម្រាប់ឆ្នាំ ${y} ?`)) return;
-
-  // 1) សាកប្រើ endpoint generate (បើមាន)
+ // ======================= Data Entry (Indicators + Issues) =======================
+async function initDataEntry(){
+  // ----- deps from your app -----
+  const { getAuth, isSuper } = await import('./assets/js/app.auth.js');
+  const { gasList, gasSave, gasDelete, ID_FIELDS } = await import('./assets/js/app.menu.js');
+  // optional: API helper for report upsert (ប្រសិនបើមាន)
+  let upsertReport = async (p)=> gasSave('reports', p);
   try {
-    const u = new URL(GAS_BASE);
-    u.searchParams.set('api', '1');
-    u.searchParams.set('route', 'period');
-    u.searchParams.set('op', 'generate');
-    u.searchParams.set('year', String(y));
-    const token = getAuth()?.token;
-    if (token) u.searchParams.set('token', token);
+    upsertReport = (await import('./assets/js/app.api.js')).upsertReport || upsertReport;
+  } catch { /* fallback to gasSave */ }
 
-    const r = await fetch(u.toString(), { cache: 'no-store' });
-    const j = await r.json().catch(() => ({}));
-
-    // ករណីជោគជ័យ ឬគ្មាន error ជាក់លាក់ → reload
-    if (!j || j.ok !== false) {
-      await load();
-      return alert('បង្កើតរួចរាល់');
-    }
-    // បើគេប្រាប់ថា Unknown op → fallback ទៅ batch insert
-    if (!/unknown op/i.test(String(j.error || ''))) {
-      throw new Error(j.error || 'API error');
-    }
-  } catch (e) {
-    // បន្តទៅ fallback ខាងក្រោម
-    console.warn('[periods] generate endpoint unavailable → fallback insert:', e);
-  }
-
-  // 2) Fallback: បង្កើត dataset ហើយ save ជាដុំៗ (upsert→insert/create)
-  const khMonths = ['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
-
-  const want = [];
-  // 12 months
-  for (let m = 1; m <= 12; m++) {
-    want.push({
-      period_id:   `${y}M${String(m).padStart(2,'0')}`,
-      period_name: `${khMonths[m-1]} ${y}`,
-      year:        y,
-      month:       String(m).padStart(2,'0')
-    });
-  }
-  // quarters
-  for (let q = 1; q <= 4; q++) {
-    want.push({ period_id: `${y}Q${q}`, period_name: `Q${q} ${y}`, year: y, month: `Q${q}` });
-  }
-  // halves
-  want.push({ period_id: `${y}H1`, period_name: `H1 ${y}`, year: y, month: 'H1' });
-  want.push({ period_id: `${y}H2`, period_name: `H2 ${y}`, year: y, month: 'H2' });
-
-  // (អាច​បន្ថែម “9 months” បើ backend គាំទ្រ, ឧ. `${y}9M`)
-
-  const have = new Set((ALL || []).map(r => String(r.period_id)));
-  const todo = want.filter(r => !have.has(String(r.period_id)));
-
-  if (!todo.length) {
-    await load();
-    return alert('ឆ្នាំនេះមានគ្រប់រួចហើយ');
-  }
-
-  const old = btnGen.innerHTML;
-  btnGen.disabled = true; btnGen.innerHTML = 'កំពុងបង្កើត…';
-
-  const robustSave = async row => {
-    try { await gasSave('periods', row); }
-    catch (err) {
-      console.error('[periods] save failed:', row, err);
-      throw err;
-    }
+  // ----- tiny utils -----
+  const $  = (s,root=document)=>root.querySelector(s);
+  const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
+  const setStatus = (id, msg)=>{ const el=document.getElementById(id); if(el) el.textContent=msg||''; };
+  const prettyPeriod = pid=>{
+    const mNames = ['មករា','កុម្ភះ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+    const y   = (String(pid||'').match(/^(\d{4})/)||[])[1]||'';
+    const tag = (String(pid||'').match(/(M\d{2}|Q[1-4]|H[12]|N9|Y12)$/)||[])[1]||'';
+    if(/^M\d{2}$/.test(tag)) return `${mNames[+tag.slice(1)-1]} ${y}`;
+    if(/^Q[1-4]$/.test(tag)) return `${tag} ${y}`;
+    if(/^H[12]$/.test(tag))  return `${tag} ${y}`;
+    if(tag==='N9')  return `៩ខែ ${y}`;
+    if(tag==='Y12') return `១២ខែ ${y}`;
+    return pid||'';
   };
 
-  const results = await Promise.allSettled(todo.map(robustSave));
-  const fails = results.filter(x => x.status === 'rejected');
+  // ----- auth/role -----
+  const auth  = getAuth();
+  const SUPER = isSuper(auth);
 
-  await load();
+  // ================= INDICATORS (Reports) =================
+  const elPeriodI = $('#ind_period');
+  const elDeptI   = $('#ind_department');
+  const elUnitI   = $('#ind_unit');
+  const elInd     = $('#ind_indicator');
+  const elVal     = $('#ind_value');
+  const elNote    = $('#ind_note');
+  const repIdEl   = $('#report_id');
+  const tblRep    = $('#tblReports tbody');
+  const qReports  = $('#qReports');
+  const btnSaveReport = $('#btnSaveReport');
 
-  btnGen.disabled = false; btnGen.innerHTML = old;
-  if (fails.length) {
-    alert(`បានបង្កើតខ្លះៗ ប៉ុន្តែបរាជ័យ ${fails.length} មុខ (ពិនិត្យ Console)`);
-  } else {
-    alert('បង្កើតរួចរាល់');
+  // ================= ISSUES =================
+  const elPeriodS = $('#iss_period');
+  const elDeptS   = $('#iss_department');
+  const elUnitS   = $('#iss_unit');
+  const elIndS    = $('#iss_indicator');
+  const issIdEl   = $('#issue_id');
+  const issTitle  = $('#iss_title');
+  const issSeverity = $('#iss_severity');
+  const issDesc   = $('#iss_desc');
+  const tblIss    = $('#tblIssues tbody');
+  const qIssues   = $('#qIssues');
+  const btnSaveIssue = $('#btnSaveIssue');
+
+  // guard (when user opens another tab)
+  if (!elPeriodI || !elDeptI || !elUnitI || !elInd || !tblRep || !elPeriodS || !elDeptS || !elUnitS || !tblIss) {
+    setStatus('statusEntry','components not found'); return;
   }
-});
 
+  // ----- state -----
+  let PERIODS=[], DEPTS=[], UNITS=[], INDS=[];
+  let REPORTS=[], ISSUES=[];
 
+  const deptName=id=>DEPTS.find(d=>String(d.department_id)===String(id))?.department_name||'';
+  const unitName=id=>UNITS.find(u=>String(u.unit_id)===String(id))?.unit_name||'';
+  const indName =id=>INDS.find(i=>String(i.indicator_id)===String(id))?.indicator_name||'';
 
+  // skeletons
+  tblRep.innerHTML = '<tr><td colspan="6" class="skel"></td></tr><tr><td colspan="6" class="skel"></td></tr>';
+  tblIss.innerHTML = '<tr><td colspan="6" class="skel"></td></tr><tr><td colspan="6" class="skel"></td></tr>';
+
+  // ----- load masters -----
+  try{
+    const [periods, depts, units, inds] = await Promise.all([
+      gasList('periods').catch(()=>[]),
+      gasList('departments').catch(()=>[]),
+      gasList('units').catch(()=>[]),
+      gasList('indicators').catch(()=>[]),
+    ]);
+
+    PERIODS = periods.sort((a,b)=>String(a.period_id).localeCompare(String(b.period_id)));
+    DEPTS   = SUPER? depts  : depts.filter(d=>String(d.department_id)===String(auth?.department_id));
+    UNITS   = SUPER? units  : units.filter(u=>String(u.department_id)===String(auth?.department_id));
+    INDS    = SUPER? inds   : inds.filter(i=>{
+      if (String(i.department_id)!==String(auth?.department_id)) return false;
+      return auth?.unit_id ? String(i.unit_id)===String(auth.unit_id) : true;
+    });
+
+    // fill periods
+    const optPeriods = PERIODS.map(p=>`<option value="${p.period_id}">${prettyPeriod(p.period_id)}</option>`).join('');
+    elPeriodI.innerHTML = optPeriods; elPeriodS.innerHTML = optPeriods;
+
+    // fill departments
+    const optDepts = `<option value="">— ការិយាល័យ —</option>` + DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+    elDeptI.innerHTML = optDepts; elDeptS.innerHTML = optDepts;
+    if (!SUPER){
+      elDeptI.value = elDeptS.value = auth?.department_id||'';
+      elDeptI.disabled = elDeptS.disabled = true;
+    }
+
+    // fill units based on dep
+    const fillUnits = (sel, depId)=>{
+      const list = UNITS.filter(u=>String(u.department_id)===String(depId));
+      sel.innerHTML = `<option value="">— ផ្នែក —</option>` + list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+      if (!SUPER){ sel.value = auth?.unit_id||''; sel.disabled = true; }
+    };
+    const dep0 = SUPER ? (elDeptI.value || DEPTS[0]?.department_id) : (auth?.department_id || '');
+    if (dep0){ fillUnits(elUnitI, dep0); fillUnits(elUnitS, dep0); }
+
+    // indicators (depends on dep/unit)
+    const refillIndicators = ()=>{
+      const dep = elDeptI.value || (SUPER? '' : auth?.department_id);
+      const uni = elUnitI.value || (SUPER? '' : auth?.unit_id);
+      const list = INDS.filter(i => (!dep || String(i.department_id)===String(dep)) && (!uni || String(i.unit_id)===String(uni)));
+      elInd.innerHTML  = list.length ? list.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('')
+                                     : `<option value="">— គ្មានសូចនាករ —</option>`;
+      elIndS.innerHTML = `<option value="">— (ស្រេចចិត្ត) —</option>` + list.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
+    };
+    refillIndicators();
+
+    // load latest rows
+    REPORTS = (await gasList('reports').catch(()=>[])).slice(-50).reverse();
+    ISSUES  = (await gasList('issues').catch(()=>[])).slice(-50).reverse();
+
+    renderReports(); renderIssues();
+    setStatus('statusEntry','បានផ្ទុកទិន្នន័យ');
+  }catch(e){
+    console.error('[data-entry] load', e);
+    setStatus('statusEntry','បរាជ័យផ្ទុកទិន្នន័យ');
   }
+
+  // ----- linkage -----
+  elDeptI.addEventListener('change', ()=>{
+    const dep = elDeptI.value;
+    const list = UNITS.filter(u=>String(u.department_id)===String(dep));
+    elUnitI.innerHTML = `<option value="">— ផ្នែក —</option>` + list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+    if (!SUPER){ elUnitI.value = auth?.unit_id||''; elUnitI.disabled = true; }
+    // indicators
+    const inds = INDS.filter(i => !dep || String(i.department_id)===String(dep));
+    elInd.innerHTML  = inds.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
+    elIndS.innerHTML = `<option value="">— (ស្រេចចិត្ត) —</option>` + inds.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
+  });
+  elUnitI.addEventListener('change', ()=>{
+    const dep = elDeptI.value, uni = elUnitI.value;
+    const inds = INDS.filter(i => (!dep || String(i.department_id)===String(dep)) && (!uni || String(i.unit_id)===String(uni)));
+    elInd.innerHTML  = inds.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
+    elIndS.innerHTML = `<option value="">— (ស្រេចចិត្ត) —</option>` + inds.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
+  });
+  elDeptS.addEventListener('change', ()=>{
+    const dep = elDeptS.value;
+    const list = UNITS.filter(u=>String(u.department_id)===String(dep));
+    elUnitS.innerHTML = `<option value="">— ផ្នែក —</option>` + list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+    if (!SUPER){ elUnitS.value = auth?.unit_id||''; elUnitS.disabled = true; }
+  });
+
+  // =================== Reports form ===================
+  $('#btnResetReport')?.addEventListener('click', ()=>{ repIdEl.value=''; elVal.value=''; elNote.value=''; });
+
+  $('#frmReport')?.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const value = (elVal.value||'').trim();
+    elVal.classList.toggle('is-invalid', !value);
+    if (!value) return;
+
+    const payload = {
+      report_id    : repIdEl.value || null,
+      period_id    : elPeriodI.value,
+      indicator_id : elInd.value,
+      department_id: SUPER ? elDeptI.value : (auth?.department_id||''),
+      unit_id      : SUPER ? elUnitI.value : (auth?.unit_id||''),
+      value        : Number(value),
+      note         : elNote.value||'',
+    };
+
+    const old=btnSaveReport.innerHTML; btnSaveReport.disabled=true; btnSaveReport.innerHTML='កំពុងរក្សាទុក…';
+    try{
+      const res = await upsertReport(payload);
+      const row = res.row || res;
+      const i = REPORTS.findIndex(r=>String(r.report_id)===String(row.report_id));
+      if (i>=0) REPORTS[i]=row; else REPORTS.unshift(row);
+      renderReports();
+      repIdEl.value=''; elVal.value=''; elNote.value='';
+      setStatus('statusReports','រក្សាទុករួចរាល់');
+    }catch(err){
+      alert('បរាជ័យរក្សាទុក: ' + (err?.message||err));
+    }finally{
+      btnSaveReport.disabled=false; btnSaveReport.innerHTML=old;
+    }
+  });
+
+  function renderReports(){
+    const q = String(qReports?.value||'').trim().toLowerCase();
+    const rows = REPORTS.filter(r=>{
+      const hay = `${r.report_id} ${r.period_id} ${prettyPeriod(r.period_id)} ${indName(r.indicator_id)||''} ${r.value||''} ${r.note||''}`.toLowerCase();
+      return !q || hay.includes(q);
+    });
+    if (!rows.length){ tblRep.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`; return; }
+    const frag = document.createDocumentFragment();
+    for (const r of rows){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="badge text-bg-light border">#${r.report_id||''}</span></td>
+        <td>${prettyPeriod(r.period_id)}</td>
+        <td>${indName(r.indicator_id)||r.indicator_id}</td>
+        <td>${r.value ?? ''}</td>
+        <td>${r.note||''}</td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-warning me-1" data-act="edit" data-id="${r.report_id}">កែ</button>
+          <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${r.report_id}">លុប</button>
+        </td>`;
+      frag.appendChild(tr);
+    }
+    tblRep.innerHTML=''; tblRep.appendChild(frag);
+  }
+  qReports?.addEventListener('input', renderReports);
+
+  tblRep.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-act]'); if (!btn) return;
+    const id  = btn.dataset.id;
+    const row = REPORTS.find(r=>String(r.report_id)===String(id));
+    if (!row) return;
+
+    if (btn.dataset.act==='edit'){
+      repIdEl.value = row.report_id||'';
+      elPeriodI.value = row.period_id || elPeriodI.value;
+      elDeptI.value   = row.department_id || elDeptI.value; elDeptI.dispatchEvent(new Event('change'));
+      elUnitI.value   = row.unit_id || elUnitI.value;       elUnitI.dispatchEvent(new Event('change'));
+      elInd.value     = row.indicator_id || elInd.value;
+      elVal.value     = row.value || '';
+      elNote.value    = row.note  || '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    if (btn.dataset.act==='del'){
+      if (!confirm('លុបរបាយការណ៍នេះមែនទេ?')) return;
+      try{
+        if (ID_FIELDS?.reports) await gasDelete('reports', ID_FIELDS.reports, row.report_id);
+        else await gasSave('reports', { report_id: row.report_id, _delete: true }); // fallback
+        REPORTS = REPORTS.filter(x=>String(x.report_id)!==String(id));
+        renderReports(); setStatus('statusReports','លុបរួចរាល់');
+      }catch(err){ alert(err?.message||err); }
+    }
+  });
+
+  // =================== Issues form ===================
+  $('#btnResetIssue')?.addEventListener('click', ()=>{ issIdEl.value=''; issTitle.value=''; issSeverity.value=''; issDesc.value=''; });
+
+  $('#frmIssue')?.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const title=(issTitle.value||'').trim();
+    issTitle.classList.toggle('is-invalid', !title);
+    if (!title) return;
+
+    const payload = {
+      issue_id     : issIdEl.value || null,
+      title        : title,
+      description  : issDesc.value || '',
+      severity     : issSeverity.value || '',
+      period_id    : elPeriodS.value,
+      indicator_id : elIndS.value || '',
+      department_id: SUPER ? elDeptS.value : (auth?.department_id||''),
+      unit_id      : SUPER ? elUnitS.value : (auth?.unit_id||''),
+      status       : 'open'
+    };
+
+    const old = btnSaveIssue.innerHTML; btnSaveIssue.disabled=true; btnSaveIssue.innerHTML='កំពុងរក្សាទុក…';
+    try{
+      const res = await gasSave('issues', payload);
+      const row = res.row || res;
+      const i = ISSUES.findIndex(x=>String(x.issue_id)===String(row.issue_id));
+      if (i>=0) ISSUES[i]=row; else ISSUES.unshift(row);
+      renderIssues(); $('#btnResetIssue')?.click();
+      setStatus('statusIssues','រក្សាទុករួចរាល់');
+    }catch(err){
+      alert('បរាជ័យរក្សាទុក: ' + (err?.message||err));
+    }finally{
+      btnSaveIssue.disabled=false; btnSaveIssue.innerHTML=old;
+    }
+  });
+
+  function renderIssues(){
+    const q = String(qIssues?.value||'').trim().toLowerCase();
+    const rows = ISSUES.filter(r=>{
+      const hay = `${r.issue_id} ${r.title||''} ${r.severity||''} ${r.period_id||''} ${indName(r.indicator_id)||''}`.toLowerCase();
+      return !q || hay.includes(q);
+    });
+    if (!rows.length){ tblIss.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`; return; }
+    const frag = document.createDocumentFragment();
+    for (const r of rows){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="badge text-bg-light border">#${r.issue_id||''}</span></td>
+        <td>${r.title || ''}</td>
+        <td>${(r.severity||'').toUpperCase()}</td>
+        <td>${prettyPeriod(r.period_id)}</td>
+        <td>${indName(r.indicator_id)||''}</td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-warning me-1" data-act="edit" data-id="${r.issue_id}">កែ</button>
+          <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${r.issue_id}">លុប</button>
+        </td>`;
+      frag.appendChild(tr);
+    }
+    tblIss.innerHTML=''; tblIss.appendChild(frag);
+  }
+  qIssues?.addEventListener('input', renderIssues);
+
+  tblIss.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-act]'); if(!btn) return;
+    const id  = btn.dataset.id;
+    const row = ISSUES.find(r=>String(r.issue_id)===String(id));
+    if (!row) return;
+
+    if (btn.dataset.act==='edit'){
+      issIdEl.value = row.issue_id || '';
+      elPeriodS.value = row.period_id || elPeriodS.value;
+      elDeptS.value   = row.department_id || elDeptS.value; elDeptS.dispatchEvent(new Event('change'));
+      elUnitS.value   = row.unit_id || elUnitS.value;
+      elIndS.value    = row.indicator_id || '';
+      issTitle.value  = row.title || '';
+      issSeverity.value = row.severity || '';
+      issDesc.value   = row.description || '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    if (btn.dataset.act==='del'){
+      if (!confirm('លុបបញ្ហានេះមែនទេ?')) return;
+      try{
+        if (ID_FIELDS?.issues) await gasDelete('issues', ID_FIELDS.issues, row.issue_id);
+        else await gasSave('issues', { issue_id: row.issue_id, _delete: true });
+        ISSUES = ISSUES.filter(x=>String(x.issue_id)!==String(id));
+        renderIssues(); setStatus('statusIssues','លុបរួចរាល់');
+      }catch(err){ alert(err?.message||err); }
+    }
+  });
+}
+
+
+ /* ======================= Indicators ======================= */
+async function initIndicators(){
+  const auth   = getAuth();
+  const SUPER  = isSuper(auth);
+
+  const table   = document.getElementById('tblIndicators');
+  const tbody   = table?.querySelector('tbody');
+  const btnAdd  = document.getElementById('btnAdd');
+  const frm     = document.getElementById('frmIndicator');
+  const selDept = document.getElementById('department_id');
+  const selUnit = document.getElementById('unit_id');
+  const selOwner= document.getElementById('owner_id'); // optional owner select
+  const btnSave = document.getElementById('btnSave');
+  const modal   = makeModal('mdlIndicator');
+
+  if (!table || !tbody || !btnAdd || !frm || !selDept || !selUnit || !btnSave) return;
+
+  let CACHE = { departments:[], unitsAll:[], usersAll:[], indicators:[], unitsByDep:new Map() };
+  let MAPS  = { deptName:{}, unitName:{}, userName:{} };
+
+  const setStatus = m=>{ const el=document.getElementById('statusLine'); if(el) el.textContent=m||''; };
+  const skel=()=>{ tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="6" class="skel"></td>`; tbody.appendChild(tr);} };
+  skel();
+
+  try{
+    let [depts, inds] = await Promise.all([
+      gasList('departments'),
+      gasList('indicators')
+    ]);
+
+    if (!SUPER && auth?.department_id){
+      const depId=String(auth.department_id);
+      depts = depts.filter(d=>String(d.department_id)===depId);
+      inds  = inds.filter(r=>String(r.department_id)===depId);
+    }
+
+    let unitsAll = SUPER ? await gasList('units')
+                         : await gasList('units',{department_id:auth?.department_id||''});
+
+    let usersAll=[];
+    if (selOwner){
+      if (SUPER) usersAll = await gasList('users');
+      else usersAll=[{user_id:auth?.user_id,user_name:auth?.user_name,full_name:auth?.full_name}];
+    }
+
+    CACHE.departments=depts;
+    CACHE.unitsAll=unitsAll||[];
+    CACHE.usersAll=usersAll||[];
+    CACHE.indicators=inds;
+
+    MAPS.deptName = Object.fromEntries(CACHE.departments.map(d=>[String(d.department_id),d.department_name]));
+    MAPS.unitName = Object.fromEntries(CACHE.unitsAll.map(u=>[String(u.unit_id),u.unit_name]));
+    MAPS.userName = Object.fromEntries(CACHE.usersAll.map(u=>[String(u.user_id),(u.full_name||u.user_name||('User#'+u.user_id))]));
+
+    await fillDeptSelect(SUPER?'':auth?.department_id);
+    await fillUnitSelect(SUPER?selDept.value:auth?.department_id, SUPER?'':auth?.unit_id);
+
+    if (selOwner){
+      if (SUPER){
+        selOwner.innerHTML=`<option value="">— ជ្រើសម្ចាស់ —</option>`+
+          CACHE.usersAll.map(u=>`<option value="${u.user_id}">${MAPS.userName[String(u.user_id)]}</option>`).join('');
+        selOwner.disabled=false;
+      } else {
+        selOwner.innerHTML=`<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`;
+        selOwner.disabled=true;
+      }
+    }
+
+    // SUPER auto-align dep/unit when owner changes
+    const usersById=Object.fromEntries((CACHE.usersAll||[]).map(u=>[String(u.user_id),u]));
+    selOwner?.addEventListener('change',async()=>{
+      if(!SUPER) return;
+      const u=usersById[String(selOwner.value||'')];
+      if(!u) return;
+      selDept.value=u.department_id||'';
+      selDept.disabled=false;
+      await fillUnitSelect(u.department_id,u.unit_id||'');
+      selUnit.disabled=false;
+      setStatus(`Aligned to ${u.full_name||u.user_name}`);
+    });
+
+    renderTable();
+    setStatus(`បានផ្ទុក ${inds.length} សូចនាករ`);
+  }catch(e){
+    console.error(e);
+    tbody.innerHTML=`<tr><td colspan="6" class="text-center text-danger py-4">បរាជ័យផ្ទុកទិន្នន័យ</td></tr>`;
+    setStatus('បរាជ័យផ្ទុកទិន្នន័យ');
+  }
+
+  async function fillDeptSelect(selected){
+    selDept.innerHTML=`<option value="">— ជ្រើសការិយាល័យ —</option>`+
+      CACHE.departments.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+    if(selected) selDept.value=selected;
+    selDept.disabled=!SUPER;
+  }
+  async function fillUnitSelect(depId,selected){
+    selUnit.innerHTML=`<option value="">— ជ្រើសផ្នែក —</option>`;
+    if(!depId){ selUnit.disabled=true; return; }
+    let units=CACHE.unitsByDep.get(String(depId));
+    if(!units){
+      const fromAll=CACHE.unitsAll.filter(u=>String(u.department_id)===String(depId));
+      units=fromAll.length?fromAll:await gasList('units',{department_id:depId});
+      CACHE.unitsByDep.set(String(depId),units);
+      for(const u of units) MAPS.unitName[String(u.unit_id)]=u.unit_name;
+    }
+    selUnit.innerHTML=`<option value="">— ជ្រើសផ្នែក —</option>`+(units||[]).map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+    if(selected) selUnit.value=selected;
+    selUnit.disabled=!SUPER;
+  }
+
+  function canEditRow(ind){
+    if(SUPER) return true;
+    return String(ind.department_id)===String(auth?.department_id||'')
+        && String(ind.unit_id||'')===String(auth?.unit_id||'')
+        && String(ind.owner_id||'')===String(auth?.user_id||'');
+  }
+
+ function renderTable(){
+  if(!CACHE.indicators.length){
+    tbody.innerHTML=`<tr><td colspan="7" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+    return;
+  }
+  const frag=document.createDocumentFragment();
+  for(const ind of CACHE.indicators){
+    const depN   = MAPS.deptName[String(ind.department_id)]||'';
+    const unitN  = MAPS.unitName[String(ind.unit_id)]||'';
+    const ownerN = MAPS.userName[String(ind.owner_id)]||'';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${ind.indicator_id}</td>
+      <td>${ind.indicator_name||''}</td>
+      <td>${ind.indicator_type||''}</td>
+      <td>${depN}</td>
+      <td>${unitN}</td>
+      <td>${ownerN||''}</td>
+      <td class="text-end">
+        ${canEditRow(ind)
+          ? `<button class="btn btn-sm btn-warning me-1" data-act="edit" data-id="${ind.indicator_id}">កែ</button>
+             <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${ind.indicator_id}">លុប</button>`
+          : `<span class="text-muted">—</span>`}
+      </td>`;
+    frag.appendChild(tr);
+  }
+  tbody.innerHTML='';
+  tbody.appendChild(frag);
+}
+
+
+  selDept.addEventListener('change',e=>fillUnitSelect(e.target.value,''));
+  btnAdd.addEventListener('click',async()=>{
+    frm.reset(); document.getElementById('indicator_id').value='';
+    if(SUPER){
+      selDept.disabled=false; await fillUnitSelect(selDept.value,'');
+      if(selOwner){ selOwner.disabled=false; selOwner.value=''; }
+    }else{
+      selDept.value=auth?.department_id||''; selDept.disabled=true;
+      await fillUnitSelect(auth?.department_id,auth?.unit_id); selUnit.disabled=true;
+      if(selOwner){
+        selOwner.innerHTML=`<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`;
+        selOwner.disabled=true;
+      }
+    }
+    modal?.show();
+  });
+
+  tbody.addEventListener('click',async e=>{
+    const btn=e.target.closest('button[data-act]'); if(!btn) return;
+    const id=btn.getAttribute('data-id');
+    const row=CACHE.indicators.find(x=>String(x.indicator_id)===String(id));
+    if(!row) return;
+
+    if(btn.dataset.act==='edit'){
+      if(!canEditRow(row) && !SUPER) return alert('Permission denied');
+      frm.reset();
+      document.getElementById('indicator_id').value=row.indicator_id;
+      document.getElementById('indicator_name').value=row.indicator_name||'';
+      document.getElementById('indicator_type').value=row.indicator_type||'';
+      selDept.value=row.department_id||''; if(!SUPER) selDept.disabled=true;
+      await fillUnitSelect(row.department_id,row.unit_id||''); if(!SUPER) selUnit.disabled=true;
+      if(selOwner){
+        if(SUPER){ selOwner.value=row.owner_id||''; selOwner.disabled=false; }
+        else{ selOwner.innerHTML=`<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`; selOwner.disabled=true; }
+      }
+      modal?.show();
+    }
+
+    if(btn.dataset.act==='del'){
+      if(!canEditRow(row) && !SUPER) return alert('Permission denied');
+      if(!confirm('លុបមែនទេ?')) return;
+      try{
+        await gasDelete('indicators',ID_FIELDS.indicators,row.indicator_id);
+        CACHE.indicators=CACHE.indicators.filter(x=>String(x.indicator_id)!==String(id));
+        renderTable();
+      }catch(err){ alert('បរាជ័យលុប: '+(err?.message||err)); }
+    }
+  });
+
+  frm.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const payload={
+      indicator_id  : document.getElementById('indicator_id').value||null,
+      indicator_name: document.getElementById('indicator_name').value.trim(),
+      indicator_type: document.getElementById('indicator_type').value.trim(),
+      department_id : SUPER?selDept.value:(auth?.department_id||''),
+      unit_id       : SUPER?selUnit.value:(auth?.unit_id||'')
+    };
+    if(selOwner) payload.owner_id=SUPER?(selOwner.value||''):(auth?.user_id||'');
+
+    const nameEl=document.getElementById('indicator_name');
+    nameEl.classList.toggle('is-invalid',!payload.indicator_name);
+    if(!payload.indicator_name) return;
+
+    const old=btnSave.innerHTML; btnSave.disabled=true; btnSave.innerHTML='កំពុងរក្សាទុក…';
+    try{
+      const saved=await gasSave('indicators',payload);
+      const row=saved.row||saved;
+      const i=CACHE.indicators.findIndex(x=>String(x.indicator_id)===String(row.indicator_id));
+      if(i>=0) CACHE.indicators[i]=row; else CACHE.indicators.push(row);
+      renderTable(); modal?.hide();
+      setStatus('រក្សាទុករួចរាល់');
+    }catch(err){ alert('បរាជ័យរក្សាទុក: '+(err?.message||err)); }
+    finally{ btnSave.disabled=false; btnSave.innerHTML=old; }
+  });
+}
+
+
+
+/* ======================= Users ======================= */
+async function initUsers(){
+  const auth  = getAuth();
+  const SUPER = isSuper(auth);
+
+  // ---- DOM ----
+  const tbl      = document.getElementById('tblUsers');
+  const tbody    = tbl?.querySelector('tbody');
+  const btnAdd   = document.getElementById('btnAddUser');
+  const frm      = document.getElementById('frmUser');
+  const modal    = makeModal('mdlUser');
+
+  const idEl     = document.getElementById('user_id');
+  const nameEl   = document.getElementById('user_name');
+  const fullEl   = document.getElementById('full_name');
+  const roleEl   = document.getElementById('user_type');
+  const passEl   = document.getElementById('user_pass');
+  const selDept  = document.getElementById('department_id');
+  const selUnit  = document.getElementById('unit_id');
+  const btnSave  = document.getElementById('btnSaveUser');
+  const txtQ     = document.getElementById('txtSearchUsers'); // (មាន/មិនមានក៏បាន)
+  const $status  = (m)=>{ const el=document.getElementById('statusUsers'); if(el) el.textContent=m||''; };
+
+  if (!tbl || !tbody || !btnAdd || !frm || !idEl || !nameEl || !roleEl || !selDept || !selUnit || !btnSave) return;
+
+  // ---- Skeleton ----
+  (function skel(){ tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="6" class="skel"></td>`; tbody.appendChild(tr);} })();
+
+  // ---- State ----
+  let ROWS = [];      // users
+  let DEPTS = [];     // departments
+  let UNITS = [];     // units
+  let FILTER_Q = '';  // search
+  let SORT = { key:'user_id', dir:1 }; // 1=asc, -1=desc
+
+  const deptName=(id)=> DEPTS.find(d=>String(d.department_id)===String(id))?.department_name || '';
+  const unitName=(id)=> UNITS.find(u=>String(u.unit_id)===String(id))?.unit_name || '';
+
+  const badgeRole = (r)=>{
+    const v = String(r||'').toLowerCase();
+    const cls = v==='super' || v==='superuser' ? 'bg-primary'
+              : v==='admin'                    ? 'bg-warning text-dark'
+              : v.includes('data')             ? 'bg-success'
+              : 'bg-secondary';
+    const txt = v==='superuser' ? 'super' : v;
+    return `<span class="badge ${cls} text-uppercase">${txt||'viewer'}</span>`;
+  };
+
+  // ---- Load ----
+  try{
+    [ROWS, DEPTS, UNITS] = await Promise.all([
+      gasList('users'),
+      gasList('departments'),
+      gasList('units'),
+    ]);
+    render(); $status(`បានផ្ទុក ${ROWS.length} អ្នកប្រើប្រាស់`);
+  }catch(e){
+    console.error(e);
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
+    $status('បរាជ័យទាញទិន្នន័យ');
+  }
+
+  // ---- Select fill ----
+  function fillDeptSelect(selected){
+    selDept.innerHTML = `<option value="">— ជ្រើសការិយាល័យ —</option>`+
+      DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+    if (selected) selDept.value = selected;
+    selDept.disabled = !SUPER;
+  }
+  function fillUnitSelect(depId, selected){
+    selUnit.innerHTML = `<option value="">— ជ្រើសផ្នែក —</option>`;
+    if (!depId){ selUnit.disabled = true; return; }
+    const list = UNITS.filter(u=>String(u.department_id)===String(depId));
+    selUnit.innerHTML = `<option value="">— ជ្រើសផ្នែក —</option>`+
+      list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+    if (selected) selUnit.value = selected;
+    selUnit.disabled = !SUPER;
+  }
+
+  // ---- Render table (filter + sort) ----
+  function render(){
+    let list = ROWS.slice();
+
+    // filter
+    if (FILTER_Q){
+      const q = FILTER_Q;
+      list = list.filter(r=>{
+        const hay = `${r.user_id} ${r.user_name||''} ${r.full_name||''} ${r.user_type||''} ${deptName(r.department_id)} ${unitName(r.unit_id)}`.toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    // sort (localeNumeric)
+    list.sort((a,b)=>{
+      const key = SORT.key;
+      const av = (a[key] ?? '').toString();
+      const bv = (b[key] ?? '').toString();
+      return av.localeCompare(bv, undefined, { numeric:true, sensitivity:'base' }) * SORT.dir;
+    });
+
+    if (!list.length){
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    for (const r of list){
+      const tr = document.createElement('tr');
+      tr.dataset.id = r.user_id;
+      tr.innerHTML = `
+        <td style="width:80px"><span class="badge text-bg-light border">#${r.user_id}</span></td>
+        <td>${r.user_name || ''}</td>
+        <td>${r.full_name || ''}</td>
+        <td style="width:140px">${badgeRole(r.user_type)}</td>
+        <td>${deptName(r.department_id)}${r.unit_id?` / ${unitName(r.unit_id)}`:''}</td>
+        <td class="text-end" style="width:160px">
+          ${SUPER
+            ? `<button class="btn btn-sm btn-warning me-1" data-act="edit"><i class="bi bi-pencil-square"></i> កែ</button>
+               <button class="btn btn-sm btn-danger"  data-act="del"><i class="bi bi-trash"></i> លុប</button>`
+            : `<span class="text-muted">—</span>`}
+        </td>`;
+      frag.appendChild(tr);
+    }
+    tbody.innerHTML = '';
+    tbody.appendChild(frag);
+
+    // update sort header classes (if you add th.th-sort with data-sort)
+    tbl.querySelectorAll('th.th-sort').forEach(th=>{
+      th.classList.remove('asc','desc');
+      if (th.dataset.sort === SORT.key) th.classList.add(SORT.dir===1?'asc':'desc');
+    });
+  }
+
+  // ---- Search (optional input id="txtSearchUsers") ----
+  txtQ?.addEventListener('input', e=>{
+    FILTER_Q = String(e.target.value||'').trim().toLowerCase();
+    render();
+  });
+
+  // ---- Sort by header (add class="th-sort" data-sort="field") ----
+  tbl.querySelectorAll('th.th-sort').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const key = th.dataset.sort;
+      if (!key) return;
+      if (SORT.key === key) SORT.dir *= -1; else { SORT.key=key; SORT.dir=1; }
+      render();
+    });
+  });
+
+  // ---- Add ----
+  btnAdd.addEventListener('click', ()=>{
+    if (!SUPER) return alert('ត្រូវការ SUPER');
+    frm.reset();
+    idEl.value = '';
+    roleEl.value = 'viewer';
+    fillDeptSelect('');
+    fillUnitSelect('', '');
+    nameEl.classList.remove('is-invalid');
+    roleEl.classList.remove('is-invalid');
+    modal?.show();
+  });
+
+  // ---- Row actions ----
+  tbody.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-act]'); if (!btn) return;
+    if (!SUPER) return alert('ត្រូវការ SUPER');
+
+    const id  = btn.closest('tr')?.dataset?.id;
+    const row = ROWS.find(x=>String(x.user_id)===String(id));
+    if (!row) return;
+
+    if (btn.dataset.act==='edit'){
+      frm.reset();
+      idEl.value   = row.user_id;
+      nameEl.value = row.user_name || '';
+      fullEl.value = row.full_name || '';
+      roleEl.value = (row.user_type || 'viewer').toLowerCase();
+      passEl.value = '';
+      fillDeptSelect(row.department_id || '');
+      fillUnitSelect(row.department_id || '', row.unit_id || '');
+      nameEl.classList.remove('is-invalid');
+      roleEl.classList.remove('is-invalid');
+      modal?.show();
+    }
+
+    if (btn.dataset.act==='del'){
+      if (!confirm('លុបអ្នកប្រើប្រាស់នេះមែនទេ?')) return;
+      try{
+        await gasDelete('users', ID_FIELDS.users, row.user_id);
+        ROWS = ROWS.filter(x=>String(x.user_id)!==String(id));
+        render(); $status('លុបរួចរាល់');
+      }catch(err){ alert('បរាជ័យលុប: '+(err?.message||err)); }
+    }
+  });
+
+  // ---- Save ----
+  frm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if (!SUPER) return alert('ត្រូវការ SUPER');
+
+    const payload = {
+      user_id      : idEl.value || null,
+      user_name    : (nameEl.value||'').trim(),
+      full_name    : (fullEl.value||'').trim(),
+      user_type    : (roleEl.value||'viewer'),
+      department_id: selDept.value || '',
+      unit_id      : selUnit.value || '',
+    };
+    const pw = (passEl.value||'').trim();
+    if (pw) payload.user_pass = pw; // កែពាក្យសម្ងាត់តែក្នុងករណីបញ្ចូល
+
+    nameEl.classList.toggle('is-invalid', !payload.user_name);
+    roleEl.classList.toggle('is-invalid', !payload.user_type);
+    if (!payload.user_name || !payload.user_type) return;
+
+    const old = btnSave.innerHTML; btnSave.disabled = true; btnSave.innerHTML = 'កំពុងរក្សាទុក…';
+    try{
+      const saved = await gasSave('users', payload);
+      const row   = saved.row || saved;
+      const i     = ROWS.findIndex(x=>String(x.user_id)===String(row.user_id));
+      if (i>=0) ROWS[i] = row; else ROWS.push(row);
+      render(); modal?.hide(); $status('រក្សាទុករួចរាល់');
+    }catch(err){
+      alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
+    }finally{
+      btnSave.disabled = false; btnSave.innerHTML = old;
+    }
+  });
+
+  // ---- Dep → Unit linkage ----
+  selDept.addEventListener('change', ()=> fillUnitSelect(selDept.value,''));
+}
+
+
+
+
+
+
+  /* ======================= Departments ======================= */
+async function initDepartments(){
+  const auth  = getAuth();
+  const SUPER = isSuper(auth);
+
+  // DOM
+  const tbl     = document.getElementById('tblDepts');
+  const tbody   = tbl?.querySelector('tbody');
+  const btnAdd  = document.getElementById('btnAddDept');
+  const frm     = document.getElementById('frmDept');
+  const modal   = makeModal('mdlDept');
+  const idEl    = document.getElementById('department_id');
+  const nameEl  = document.getElementById('department_name');
+  const txtQ    = document.getElementById('txtSearchDept');
+  const $status = (m)=>{ const el=document.getElementById('statusDept'); if(el) el.textContent=m||''; };
+
+  if (!tbl || !tbody || !btnAdd || !frm || !idEl || !nameEl) return;
+
+  // Skeleton
+  (function skel(){ tbody.innerHTML=''; for(let i=0;i<3;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="3" class="skel"></td>`; tbody.appendChild(tr);} })();
+
+  // State
+  let ROWS = [];
+  let FILTER_Q = '';
+  let SORT = { key:'department_id', dir:1 }; // 1=asc, -1=desc
+
+  // Load
+  try{
+    ROWS = await gasList('departments');
+    render();
+    $status(`បានផ្ទុក ${ROWS.length} នាយកដ្ឋាន`);
+  }catch(e){
+    console.error(e);
+    tbody.innerHTML = `<tr><td colspan="3" class="text-danger text-center py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
+    $status('បរាជ័យទាញទិន្នន័យ');
+  }
+
+  // Render
+  function render(){
+    let list = ROWS.slice();
+
+    // filter
+    if (FILTER_Q){
+      const q = FILTER_Q;
+      list = list.filter(r =>
+        String(r.department_id).toLowerCase().includes(q) ||
+        String(r.department_name||'').toLowerCase().includes(q)
+      );
+    }
+
+    // sort (numeric aware)
+    const k = SORT.key;
+    list.sort((a,b)=>{
+      const av = (a[k] ?? '').toString();
+      const bv = (b[k] ?? '').toString();
+      return av.localeCompare(bv, undefined, {numeric:true, sensitivity:'base'}) * SORT.dir;
+    });
+
+    if (!list.length){
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    for (const r of list){
+      const tr = document.createElement('tr');
+      tr.dataset.id = r.department_id;
+      tr.innerHTML = `
+        <td style="width:110px"><span class="badge text-bg-light border">#${r.department_id}</span></td>
+        <td>${r.department_name || ''}</td>
+        <td class="td-actions text-end" style="width:160px">
+          <div class="actions-right">
+            ${SUPER
+              ? `<button class="btn btn-sm btn-warning" data-act="edit">កែ</button>
+                 <button class="btn btn-sm btn-danger"  data-act="del">លុប</button>`
+              : `<span class="text-muted">—</span>`}
+          </div>
+        </td>`;
+      frag.appendChild(tr);
+    }
+    tbody.innerHTML = '';
+    tbody.appendChild(frag);
+
+    // update sort indicators
+    tbl.querySelectorAll('th.th-sort').forEach(th=>{
+      th.classList.remove('asc','desc');
+      if (th.dataset.sort === SORT.key) th.classList.add(SORT.dir===1?'asc':'desc');
+    });
+  }
+
+  // Search (filter)
+  txtQ?.addEventListener('input', e=>{
+    FILTER_Q = String(e.target.value||'').trim().toLowerCase();
+    render();
+  });
+
+  // Sort by header (ensure your <th> has class "th-sort" and data-sort="field")
+  tbl.querySelectorAll('th.th-sort').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const key = th.dataset.sort;
+      if (!key) return;
+      if (SORT.key === key) SORT.dir *= -1; else { SORT.key = key; SORT.dir = 1; }
+      render();
+    });
+  });
+
+  // Add
+  btnAdd.addEventListener('click', ()=>{
+    if (!SUPER) return alert('ត្រូវការ SUPER');
+    frm.reset();
+    idEl.value   = '';
+    nameEl.value = '';
+    nameEl.classList.remove('is-invalid');
+    modal?.show();
+  });
+
+  // Row actions
+  tbody.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    if (!SUPER) return alert('ត្រូវការ SUPER');
+
+    const id  = btn.closest('tr')?.dataset?.id;
+    const row = ROWS.find(x=>String(x.department_id)===String(id));
+    if (!row) return;
+
+    if (btn.dataset.act === 'edit'){
+      idEl.value   = row.department_id;
+      nameEl.value = row.department_name || '';
+      nameEl.classList.remove('is-invalid');
+      modal?.show();
+    }
+
+    if (btn.dataset.act === 'del'){
+      if (!confirm('តើចង់លុបធាតុនេះមែនទេ?')) return;
+      try{
+        await gasDelete('departments', ID_FIELDS.departments, row.department_id);
+        ROWS = ROWS.filter(x=>String(x.department_id)!==String(id));
+        render(); $status('លុបរួចរាល់');
+      }catch(err){
+        console.error(err);
+        alert('បរាជ័យលុប: ' + (err?.message || err));
+      }
+    }
+  });
+
+  // Save
+  frm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if (!SUPER) return alert('ត្រូវការ SUPER');
+
+    const name = (nameEl.value||'').trim();
+    nameEl.classList.toggle('is-invalid', !name);
+    if (!name) return;
+
+    const payload = idEl.value
+      ? { department_id: Number(idEl.value), department_name: name }
+      : { department_name: name };
+
+    const btn = document.getElementById('btnSaveDept');
+    const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'កំពុងរក្សាទុក…';
+    try{
+      const res = await gasSave('departments', payload);
+      const row = res.row || res;
+      const i = ROWS.findIndex(x=>String(x.department_id)===String(row.department_id));
+      if (i>=0) ROWS[i]=row; else ROWS.push(row);
+      render(); modal?.hide(); $status('រក្សាទុករួចរាល់');
+    }catch(err){
+      console.error(err);
+      alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
+    }finally{
+      btn.disabled = false; btn.innerHTML = old;
+    }
+  });
+}
+
+
+
+
 
   /* ======================= Units ======================= */
   async function initUnits(){

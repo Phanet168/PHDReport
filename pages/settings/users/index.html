@@ -1,0 +1,378 @@
+<!-- pages/settings/users/index.html -->
+<div class="settings-page">
+    <div class="container-page">
+
+        <!-- Page head -->
+        <div class="page-head">
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="kh-head h4 m-0">អ្នកប្រើប្រាស់</h1>
+                <nav aria-label="breadcrumb" class="small">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+                        <li class="breadcrumb-item">Settings</li>
+                        <li class="breadcrumb-item active" aria-current="page">Users</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="separator-breadcrumb border-top"></div>
+        </div>
+
+        <!-- Body -->
+        <div class="page-body">
+            <div class="card shadow-sm centered-card w-100">
+                <div class="card-body">
+
+                    <!-- Toolbar -->
+                    <div class="toolbar mb-3">
+                        <h4 class="card-title kh-head m-0">បញ្ជីអ្នកប្រើប្រាស់</h4>
+                        <div class="actions ms-auto">
+                            <div class="input-group input-group-sm">
+                                <input id="txtSearchUsers" class="form-control" placeholder="ស្វែងរក...">
+                                <button id="btnAddUser" class="btn btn-primary">
+                                    <i class="i-Add"></i> បន្ថែម
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-responsive">
+                        <table id="tblUsers" class="table table-striped table-hover align-middle mb-0">
+                            <thead>
+                            <tr>
+                                <th class="th-sort" data-sort="user_id"   style="width:90px">ID</th>
+                                <th class="th-sort" data-sort="user_name">ឈ្មោះអ្នកប្រើ</th>
+                                <th class="th-sort" data-sort="full_name">ឈ្មោះពេញ</th>
+                                <th class="th-sort" data-sort="user_type" style="width:140px">តួនាទី</th>
+                                <th>ទីកន្លែងធ្វើការ</th>
+                                <th style="width:160px" class="text-end">សកម្មភាព</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr><td colspan="6" class="skel"></td></tr>
+                            <tr><td colspan="6" class="skel"></td></tr>
+                            <tr><td colspan="6" class="skel"></td></tr>
+                            <tr><td colspan="6" class="skel"></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="small text-muted mt-2" id="statusUsers"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal Add/Edit -->
+<div class="modal fade" id="mdlUser" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" id="frmUser" novalidate>
+            <div class="modal-header">
+                <h5 class="modal-title kh-head">ព័ត៌មានអ្នកប្រើប្រាស់</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="user_id" />
+
+                <div class="mb-3">
+                    <label class="form-label">ឈ្មោះអ្នកប្រើ <span class="text-danger">*</span></label>
+                    <input id="user_name" class="form-control" required />
+                    <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះអ្នកប្រើ</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">ឈ្មោះពេញ</label>
+                    <input id="full_name" class="form-control" />
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">តួនាទី (Role) <span class="text-danger">*</span></label>
+                        <select id="user_type" class="form-select" required>
+                            <option value="viewer">viewer</option>
+                            <option value="dataentry">dataentry</option>
+                            <option value="admin">admin</option>
+                            <option value="super">super</option>
+                        </select>
+                        <div class="invalid-feedback">សូមជ្រើសតួនាទី</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">ពាក្យសម្ងាត់ (បើកែ)</label>
+                        <input id="user_pass" type="password" class="form-control" placeholder="ដាក់តែពេលចង់កែ" />
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label">ការិយាល័យ</label>
+                        <select id="department_id" class="form-select"></select>
+                        <div class="form-text">មិនមែន SUPER ចាក់សោរ​ត្រឹមការិយាល័យខ្លួន</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">ផ្នែក</label>
+                        <select id="unit_id" class="form-select">
+                            <option value="">— ជ្រើសផ្នែក —</option>
+                        </select>
+                        <div class="form-text">មិនមែន SUPER ចាក់សោរផ្នែកខ្លួន</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
+                <button class="btn btn-primary" type="submit" id="btnSaveUser">រក្សាទុក</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+    .container-page{width:100%; max-width:1280px; margin:0 auto; padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
+    .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
+    .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
+    .centered-card{max-width:1200px; border:1px solid #eef0f4; border-radius:14px;}
+    .table thead th{ white-space:nowrap; cursor:pointer; }
+    .table thead th.asc::after{ content:" ▲"; font-size:.8em; color:#6c757d; }
+    .table thead th.desc::after{ content:" ▼"; font-size:.8em; color:#6c757d; }
+
+    .skel{ position:relative; overflow:hidden; background:#f3f4f6; height:44px; }
+    .skel::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+      animation:shimmer 1.1s infinite }
+    @keyframes shimmer{ 100%{ transform:translateX(100%);} }
+
+    .toolbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+    .toolbar .actions{min-width:260px;}
+    @media (max-width: 576px){
+      .toolbar .actions{min-width:0; width:100%;}
+      .toolbar .input-group{width:100%;}
+    }
+
+    #tblUsers th:last-child{ text-align:right; }
+    #tblUsers td:last-child{ text-align:right; }
+</style>
+
+<script type="module">
+    import { getAuth, isSuper } from '../../../assets/js/app.auth.js';
+    import { gasList, gasSave, gasDelete, ID_FIELDS } from '../../../assets/js/app.menu.js';
+
+    function makeModal(id){
+      const el = document.getElementById(id); if (!el) return null;
+      if (window.bootstrap?.Modal){
+        let inst = bootstrap.Modal.getInstance ? bootstrap.Modal.getInstance(el) : null;
+        if (!inst) inst = new bootstrap.Modal(el, {backdrop:true, keyboard:true, focus:true});
+        return { show:()=>inst.show(), hide:()=>inst.hide() };
+      }
+      return { show(){ el.style.display='block'; }, hide(){ el.style.display='none'; } };
+    }
+
+    /* ======================= Users ======================= */
+    async function initUsers(){
+      const auth  = getAuth();
+      const SUPER = isSuper(auth);
+
+      const tbl     = document.getElementById('tblUsers');
+      const tbody   = tbl?.querySelector('tbody');
+      const btnAdd  = document.getElementById('btnAddUser');
+      const frm     = document.getElementById('frmUser');
+      const modal   = makeModal('mdlUser');
+
+      const idEl    = document.getElementById('user_id');
+      const nameEl  = document.getElementById('user_name');
+      const fullEl  = document.getElementById('full_name');
+      const roleEl  = document.getElementById('user_type');
+      const passEl  = document.getElementById('user_pass');
+      const selDept = document.getElementById('department_id');
+      const selUnit = document.getElementById('unit_id');
+      const btnSave = document.getElementById('btnSaveUser');
+      const txtQ    = document.getElementById('txtSearchUsers');
+      const $status = (m)=>{ const el=document.getElementById('statusUsers'); if(el) el.textContent=m||''; };
+
+      if (!tbl || !tbody || !btnAdd || !frm) return;
+
+      // skeleton
+      tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML='<td colspan="6" class="skel"></td>'; tbody.appendChild(tr); }
+
+      // state
+      let ROWS=[], DEPTS=[], UNITS=[];
+      let FILTER_Q = '';
+      let SORT = { key:'user_id', dir:1 };
+
+      const deptName=id=>DEPTS.find(d=>String(d.department_id)===String(id))?.department_name||'';
+      const unitName=id=>UNITS.find(u=>String(u.unit_id)===String(id))?.unit_name||'';
+      const badgeRole = (r)=>{
+        const v = String(r||'').toLowerCase();
+        const cls = v==='super' ? 'bg-primary'
+                  : v==='admin' ? 'bg-warning text-dark'
+                  : v.includes('data') ? 'bg-success'
+                  : 'bg-secondary';
+        return `<span class="badge ${cls} text-uppercase">${v||'viewer'}</span>`;
+      };
+
+      // load
+      try{
+        [ROWS, DEPTS, UNITS] = await Promise.all([
+          gasList('users'),
+          gasList('departments'),
+          gasList('units')
+        ]);
+        render(); $status(`បានផ្ទុក ${ROWS.length} អ្នកប្រើប្រាស់`);
+      }catch(e){
+        console.error(e);
+        tbody.innerHTML='<tr><td colspan="6" class="text-center text-danger py-4">បរាជ័យទាញទិន្នន័យ</td></tr>';
+        $status('បរាជ័យទាញទិន្នន័យ');
+      }
+
+      // selects
+      function fillDeptSelect(selected){
+        selDept.innerHTML = '<option value="">— ជ្រើសការិយាល័យ —</option>'+DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+        if(selected) selDept.value=selected;
+        selDept.disabled = !SUPER;
+      }
+      function fillUnitSelect(depId, selected){
+        selUnit.innerHTML = '<option value="">— ជ្រើសផ្នែក —</option>';
+        if(!depId){ selUnit.disabled=true; return; }
+        const list = UNITS.filter(u=>String(u.department_id)===String(depId));
+        selUnit.innerHTML += list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+        if(selected) selUnit.value=selected;
+        selUnit.disabled = !SUPER;
+      }
+
+      // render
+      function render(){
+        let list = ROWS.slice();
+
+        if (FILTER_Q){
+          const q = FILTER_Q;
+          list = list.filter(r=>{
+            const hay = `${r.user_id} ${r.user_name||''} ${r.full_name||''} ${r.user_type||''} ${deptName(r.department_id)} ${unitName(r.unit_id)}`.toLowerCase();
+            return hay.includes(q);
+          });
+        }
+
+        list.sort((a,b)=>{
+          const av = (a[SORT.key] ?? '').toString();
+          const bv = (b[SORT.key] ?? '').toString();
+          return av.localeCompare(bv, undefined, {numeric:true, sensitivity:'base'}) * SORT.dir;
+        });
+
+        if (!list.length){
+          tbody.innerHTML='<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>';
+          return;
+        }
+
+        const frag=document.createDocumentFragment();
+        for(const r of list){
+          const tr=document.createElement('tr');
+          tr.dataset.id=r.user_id;
+          tr.innerHTML=`
+            <td><span class="badge text-bg-light border">#${r.user_id}</span></td>
+            <td>${r.user_name||''}</td>
+            <td>${r.full_name||''}</td>
+            <td>${badgeRole(r.user_type)}</td>
+            <td>${deptName(r.department_id)}${r.unit_id?` / ${unitName(r.unit_id)}`:''}</td>
+            <td class="text-end">
+              ${SUPER
+                ? `<button class="btn btn-sm btn-warning me-1" data-act="edit">កែ</button>
+                   <button class="btn btn-sm btn-danger"  data-act="del">លុប</button>`
+                : `<span class="text-muted">—</span>`}
+            </td>`;
+          frag.appendChild(tr);
+        }
+        tbody.innerHTML=''; tbody.appendChild(frag);
+
+        // header sort state
+        tbl.querySelectorAll('th.th-sort').forEach(th=>{
+          th.classList.remove('asc','desc');
+          if (th.dataset.sort===SORT.key) th.classList.add(SORT.dir===1?'asc':'desc');
+        });
+      }
+
+      // events
+      txtQ?.addEventListener('input', e=>{ FILTER_Q=String(e.target.value||'').trim().toLowerCase(); render(); });
+      tbl.querySelectorAll('th.th-sort').forEach(th=>{
+        th.addEventListener('click', ()=>{
+          const k=th.dataset.sort; if(!k) return;
+          if (SORT.key===k) SORT.dir*=-1; else { SORT.key=k; SORT.dir=1; }
+          render();
+        });
+      });
+
+      btnAdd.addEventListener('click', ()=>{
+        if(!SUPER) return alert('ត្រូវការ SUPER');
+        frm.reset(); idEl.value='';
+        roleEl.value='viewer';
+        fillDeptSelect(''); fillUnitSelect('', '');
+        nameEl.classList.remove('is-invalid'); roleEl.classList.remove('is-invalid');
+        modal?.show();
+      });
+
+      tbody.addEventListener('click', async e=>{
+        const btn=e.target.closest('button[data-act]'); if(!btn) return;
+        if(!SUPER) return alert('ត្រូវការ SUPER');
+
+        const id=btn.closest('tr')?.dataset?.id;
+        const row=ROWS.find(x=>String(x.user_id)===String(id));
+        if(!row) return;
+
+        if(btn.dataset.act==='edit'){
+          frm.reset();
+          idEl.value=row.user_id;
+          nameEl.value=row.user_name||'';
+          fullEl.value=row.full_name||'';
+          roleEl.value=(row.user_type||'viewer').toLowerCase();
+          passEl.value='';
+          fillDeptSelect(row.department_id||'');
+          fillUnitSelect(row.department_id||'', row.unit_id||'');
+          modal?.show();
+        }
+
+        if(btn.dataset.act==='del'){
+          if(!confirm('លុបអ្នកប្រើប្រាស់នេះមែនទេ?')) return;
+          try{
+            await gasDelete('users', ID_FIELDS.users, row.user_id);
+            ROWS = ROWS.filter(x=>String(x.user_id)!==String(id));
+            render(); $status('លុបរួចរាល់');
+          }catch(err){ alert('បរាជ័យលុប: '+(err?.message||err)); }
+        }
+      });
+
+      frm.addEventListener('submit', async e=>{
+        e.preventDefault();
+        if(!SUPER) return alert('ត្រូវការ SUPER');
+
+        const payload={
+          user_id      : idEl.value||null,
+          user_name    : (nameEl.value||'').trim(),
+          full_name    : (fullEl.value||'').trim(),
+          user_type    : (roleEl.value||'viewer'),
+          department_id: selDept.value||'',
+          unit_id      : selUnit.value||'',
+        };
+        const pw=(passEl.value||'').trim(); if(pw) payload.user_pass=pw;
+
+        nameEl.classList.toggle('is-invalid', !payload.user_name);
+        roleEl.classList.toggle('is-invalid', !payload.user_type);
+        if(!payload.user_name || !payload.user_type) return;
+
+        const old=btnSave.innerHTML; btnSave.disabled=true; btnSave.innerHTML='កំពុងរក្សាទុក…';
+        try{
+          const saved=await gasSave('users',payload);
+          const row=saved.row||saved;
+          const i=ROWS.findIndex(x=>String(x.user_id)===String(row.user_id));
+          if(i>=0) ROWS[i]=row; else ROWS.push(row);
+          render(); modal?.hide(); $status('រក្សាទុករួចរាល់');
+        }catch(err){ alert('បរាជ័យរក្សាទុក: '+(err?.message||err)); }
+        finally{ btnSave.disabled=false; btnSave.innerHTML=old; }
+      });
+
+      // linkage department → unit
+      selDept.addEventListener('change',()=>fillUnitSelect(selDept.value,''));
+    }
+
+    // boot
+    initUsers();
+</script>
