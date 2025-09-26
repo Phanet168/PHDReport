@@ -7,6 +7,7 @@ import { getAuth }   from './app.auth.js';
 /* Config / Debug                                            */
 /* --------------------------------------------------------- */
 const DEFAULT_TIMEOUT_MS = 15000; // 15s
+
 export const ApiDebug = {
   enabled: false,              // turn true if you want noisy logs
   last: null,                  // { url, status, text, json }
@@ -30,9 +31,9 @@ function makeApiUrl(params = {}, { withAuthToken = true } = {}) {
     }
   }
 
-  // token in query (server also accepts in body; query is fine, too)
+  // token in query (server may also accept in body)
   if (withAuthToken) {
-    const tok = getAuth()?.token;
+    const tok = getAuth?.()?.token;
     if (tok && !u.searchParams.has('token')) u.searchParams.set('token', tok);
   }
 
@@ -61,12 +62,14 @@ async function getJsonUrl(params = {}, extra = {}) {
   ApiDebug.last = { url, status: res.status, text };
 
   if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${text || '(no body)'}`);
+
   let json;
   try { json = text ? JSON.parse(text) : {}; }
   catch { throw new Error('Invalid JSON: ' + text); }
 
   ApiDebug.last.json = json;
   if (json && json.ok === false) throw new Error(json.error || 'API error');
+
   log('GET OK:', url, json);
   return json;
 }
@@ -74,13 +77,13 @@ async function getJsonUrl(params = {}, extra = {}) {
 async function postJsonUrl(params = {}, bodyObj = {}, extra = {}) {
   const url = makeApiUrl(params, extra);
 
-  // put token in body too (backend will accept either)
-  const token = getAuth()?.token || '';
+  // put token in body too (backend may accept either)
+  const token = getAuth?.()?.token || '';
   const body  = token && !('token' in bodyObj) ? { ...bodyObj, token } : bodyObj;
 
   const res = await fetchWithTimeout(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoid CORS preflight
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoid CORS preflight for GAS
     body: JSON.stringify(body || {}),
   });
   const text = await res.text();
@@ -88,12 +91,14 @@ async function postJsonUrl(params = {}, bodyObj = {}, extra = {}) {
   ApiDebug.last = { url, status: res.status, text };
 
   if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${text || '(no body)'}`);
+
   let json;
   try { json = text ? JSON.parse(text) : {}; }
   catch { throw new Error('Invalid JSON: ' + text); }
 
   ApiDebug.last.json = json;
   if (json && json.ok === false) throw new Error(json.error || 'API error');
+
   log('POST OK:', url, json);
   return json;
 }
@@ -120,7 +125,7 @@ export async function apiLogin(username, password) {
 /* LIST HELPERS (master data + reports)                      */
 /*  Notes:
     - departments/units/periods are READ-any (token optional)
-    - indicators/reports are scoped → token required          */
+    - indicators/reports may be scoped → token required       */
 /* --------------------------------------------------------- */
 export async function listDepartments(params = {}) {
   const j = await getJsonUrl({ route: 'departments', op: 'list', ...params });
@@ -151,7 +156,7 @@ export async function apiList(table, extraParams = {}) {
   return toRows(j);
 }
 export async function apiUpsert(table, row) {
-  // returns {row: {...}} or {...}; caller can pick .row || returned
+  // returns {row: {...}} or any server format; caller can use .row || the whole response
   return postJsonUrl({ route: table, op: 'upsert' }, row);
 }
 export async function apiDelete(table, idField, idValue) {
@@ -164,7 +169,7 @@ export const gasSave   = apiUpsert;
 export const gasDelete = apiDelete;
 
 /* --------------------------------------------------------- */
-/* Reports-specific CRUD                                     */
+/* Reports-specific CRUD (examples)                          */
 /* --------------------------------------------------------- */
 export async function upsertReport(payload = {}) {
   return postJsonUrl({ route: 'reports', op: 'upsert' }, payload);
@@ -205,7 +210,6 @@ export function exportCsv(filename, rows) {
   a.remove();
 }
 
-/* Quick connectivity check (optional) */
 export async function ping() {
   try {
     const j = await getJsonUrl({ route: 'settings', op: 'get' }, { withAuthToken: false });

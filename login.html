@@ -19,106 +19,101 @@
   </style>
 </head>
 <body>
-  <main class="login-wrap">
-    <section class="login-box">
-      <div class="logo-wrap">
-        <img src="./dist-assets/images/logo-text.png" alt="PHD Report Logo">
+<main class="login-wrap">
+  <section class="login-box">
+    <div class="logo-wrap">
+      <img src="./dist-assets/images/logo-text.png" alt="PHD Report Logo">
+    </div>
+    <h4 class="app-title">ចូលប្រព័ន្ធគ្រប់គ្រងរបាយការណ៍</h4>
+    <div class="sub">សូមបញ្ចូលឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់</div>
+
+    <form id="frmLogin" novalidate>
+      <div class="mb-3">
+        <label for="username" class="form-label">ឈ្មោះអ្នកប្រើ</label>
+        <input id="username" class="form-control" required autocomplete="username" autofocus />
+        <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះអ្នកប្រើ</div>
       </div>
-      <h4 class="app-title">ចូលប្រព័ន្ធគ្រប់គ្រងរបាយការណ៍</h4>
-      <div class="sub">សូមបញ្ចូលឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់</div>
 
-      <form id="frmLogin" novalidate>
-        <div class="mb-3">
-          <label for="username" class="form-label">ឈ្មោះអ្នកប្រើ</label>
-          <input id="username" class="form-control" required autocomplete="username" autofocus />
-          <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះអ្នកប្រើ</div>
+      <div class="mb-2">
+        <label for="password" class="form-label">ពាក្យសម្ងាត់</label>
+        <div class="input-group">
+          <input type="password" id="password" class="form-control" required autocomplete="current-password" />
+          <button class="btn btn-outline-secondary" type="button" id="btnTogglePw">មើល</button>
         </div>
+        <div class="invalid-feedback">សូមបញ្ចូលពាក្យសម្ងាត់</div>
+      </div>
 
-        <div class="mb-2">
-          <label for="password" class="form-label">ពាក្យសម្ងាត់</label>
-          <div class="input-group">
-            <input type="password" id="password" class="form-control" required autocomplete="current-password" />
-            <button class="btn btn-outline-secondary" type="button" id="btnTogglePw">មើល</button>
-          </div>
-          <div class="invalid-feedback">សូមបញ្ចូលពាក្យសម្ងាត់</div>
-        </div>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="form-text">ត្រូវបានការពារ​ដោយសុវត្ថិភាព</div>
+      </div>
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="form-text">ត្រូវបានការពារ​ដោយសុវត្ថិភាព</div>
-        </div>
+      <button class="btn btn-primary w-100" id="btnLogin" type="submit">
+        <span id="btnTxt">ចូល</span>
+        <span id="btnSpin" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+      </button>
 
-        <button class="btn btn-primary w-100" id="btnLogin" type="submit">
-          <span id="btnTxt">ចូល</span>
-          <span id="btnSpin" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
-        </button>
+      <div id="msg" class="small mt-3 text-danger" role="alert" style="min-height:1.25rem;"></div>
+    </form>
+  </section>
+</main>
 
-        <div id="msg" class="small mt-3 text-danger" role="alert" style="min-height:1.25rem;"></div>
-      </form>
-    </section>
-  </main>
+<script type="module">
+  // 👉 ប្រើ JSONP login (គ្មាន CORS)
+  import { loginJsonp, getAuth } from './assets/js/app.auth.js';
 
-  <script type="module">
-    import { gasPost } from './assets/js/config.js';
-    import { setAuth, getAuth } from './assets/js/app.auth.js';
+  // Already logged in? go back to return/index
+  (function skipIfLoggedIn(){
+    const a = getAuth();
+    if (a && a.token) {
+      const ret = new URLSearchParams(location.search).get('return') || 'index.html';
+      location.replace(ret);
+    }
+  })();
 
-    // If already logged in (has valid token), go back to return/index to avoid seeing login again
-    (function skipIfLoggedIn(){
-      const a = getAuth();
-      if (a && a.token) {
-        const ret = new URLSearchParams(location.search).get('return') || 'index.html';
-        location.replace(ret);
-      }
-    })();
+  const frm = document.getElementById('frmLogin');
+  const btn = document.getElementById('btnLogin');
+  const msg = document.getElementById('msg');
+  const btnTxt = document.getElementById('btnTxt');
+  const btnSpin = document.getElementById('btnSpin');
 
-    const frm = document.getElementById('frmLogin');
-    const btn = document.getElementById('btnLogin');
-    const msg = document.getElementById('msg');
-    const btnTxt = document.getElementById('btnTxt');
-    const btnSpin = document.getElementById('btnSpin');
+  document.getElementById('btnTogglePw').addEventListener('click', () => {
+    const pw = document.getElementById('password');
+    pw.type = pw.type === 'password' ? 'text' : 'password';
+  });
 
-    document.getElementById('btnTogglePw').addEventListener('click', () => {
-      const pw = document.getElementById('password');
-      pw.type = pw.type === 'password' ? 'text' : 'password';
-    });
+  function setBusy(b){ btn.disabled = b; btnSpin.classList.toggle('d-none', !b); btnTxt.textContent = b ? 'កំពុងចូល...' : 'ចូល'; }
+  function showError(t){ msg.textContent = t || ''; }
+  function clearInvalid(){ this.classList.remove('is-invalid'); }
+  document.getElementById('username').addEventListener('input', clearInvalid);
+  document.getElementById('password').addEventListener('input', clearInvalid);
 
-    function setBusy(b){ btn.disabled = b; btnSpin.classList.toggle('d-none', !b); btnTxt.textContent = b ? 'កំពុងចូល...' : 'ចូល'; }
-    function showError(t){ msg.textContent = t || ''; }
-    function clearInvalid(){ this.classList.remove('is-invalid'); }
-    document.getElementById('username').addEventListener('input', clearInvalid);
-    document.getElementById('password').addEventListener('input', clearInvalid);
+  frm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showError('');
 
-    frm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      showError('');
+    const u = document.getElementById('username');
+    const p = document.getElementById('password');
+    let ok = true;
+    if (!u.value.trim()) { u.classList.add('is-invalid'); u.focus(); ok = false; }
+    if (!p.value) { p.classList.add('is-invalid'); if (ok) p.focus(); ok = false; }
+    if (!ok) return;
 
-      const u = document.getElementById('username');
-      const p = document.getElementById('password');
-      let ok = true;
-      if (!u.value.trim()) { u.classList.add('is-invalid'); u.focus(); ok = false; }
-      if (!p.value) { p.classList.add('is-invalid'); if (ok) p.focus(); ok = false; }
-      if (!ok) return;
+    setBusy(true);
+    try {
+      // ✅ JSONP login — server ត្រូវឆ្លើយជា callback(...)
+      await loginJsonp(u.value.trim(), p.value);
 
-      setBusy(true);
-      try {
-        // call GAS: route=auth, op=login
-        const res = await gasPost({ route:'auth', op:'login' }, { username: u.value.trim(), password: p.value });
-        // expected: { token, exp, role, user_id, user_name, department_id, ... }
-        if (!res || !res.token) throw new Error(res?.error || 'ការឆ្លើយតបមិនត្រឹមត្រូវ');
-
-        setAuth(res); // store under 'phd_auth'
-
-        // redirect back to where we came from (or index.html)
-        const ret = new URLSearchParams(location.search).get('return') || 'index.html';
-        location.replace(ret);
-      } catch (err) {
-        let m = String(err?.message || err || '');
-        if (m.includes('Permission') || m.includes('denied')) m = 'មិនអាចចូលប្រើបាន៖ សិទ្ធិមិនគ្រប់គ្រាន់';
-        if (m.toLowerCase().includes('fetch') || m.includes('CORS')) m = 'មិនអាចតភ្ជាប់ទៅម៉ាស៊ីនមេ (សូមពិនិត្យ GAS_BASE និង Deployment)';
-        showError(m);
-      } finally {
-        setBusy(false);
-      }
-    });
-  </script>
+      const ret = new URLSearchParams(location.search).get('return') || 'index.html';
+      location.replace(ret);
+    } catch (err) {
+      let m = String(err?.message || err || '');
+      if (/Missing credentials/i.test(m)) m = 'សូមបំពេញឈ្មោះ និង ពាក្យសម្ងាត់';
+      if (m.toLowerCase().includes('jsonp')) m = 'មិនអាចតភ្ជាប់ទៅម៉ាស៊ីនមេ (JSONP បរាជ័យ) — ពិនិត្យ GAS_BASE និង Deployment';
+      showError(m);
+    } finally {
+      setBusy(false);
+    }
+  });
+</script>
 </body>
 </html>

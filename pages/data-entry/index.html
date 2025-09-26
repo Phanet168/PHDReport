@@ -1,15 +1,16 @@
 <!-- pages/data-entry/index.html -->
-<div class="dataentry-page">
+<div class="settings-page">
     <div class="container-page">
+
         <!-- Page head -->
         <div class="page-head">
             <div class="d-flex align-items-center gap-2">
-                <h1 class="kh-head h4 m-0">បញ្ចូលទិន្នន័យ</h1>
+                <h1 class="kh-head h4 m-0">បញ្ចូលទិន្នន័យរបាយការណ៍</h1>
                 <nav aria-label="breadcrumb" class="small">
                     <ol class="breadcrumb m-0">
                         <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
                         <li class="breadcrumb-item">Data</li>
-                        <li class="breadcrumb-item active" aria-current="page">Entry</li>
+                        <li class="breadcrumb-item active" aria-current="page">Data Entry</li>
                     </ol>
                 </nav>
             </div>
@@ -21,506 +22,498 @@
             <div class="card shadow-sm centered-card w-100">
                 <div class="card-body">
 
-                    <!-- Tabs -->
-                    <ul class="nav nav-tabs" id="entryTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="tab-ind-tab" data-bs-toggle="tab" data-bs-target="#tab-ind" type="button" role="tab">សូចនាករ (Reports)</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="tab-iss-tab" data-bs-toggle="tab" data-bs-target="#tab-iss" type="button" role="tab">បញ្ហា (Issues)</button>
-                        </li>
-                    </ul>
+                    <!-- Toolbar -->
+                    <div class="toolbar mb-3">
+                        <h4 class="card-title kh-head m-0">បញ្ជីសូចនាករ</h4>
 
-                    <div class="tab-content pt-3">
-                        <!-- ================= Indicators ================= -->
-                        <div class="tab-pane fade show active" id="tab-ind" role="tabpanel">
-                            <!-- Filters -->
-                            <div class="row g-3 align-items-end mb-3">
-                                <div class="col-sm-3">
-                                    <label class="form-label">រយៈពេល (Period)</label>
-                                    <select id="ind_period" class="form-select"></select>
+                        <div class="actions ms-auto">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-12 col-sm-auto">
+                                    <input id="inpSearch" class="form-control form-control-sm" placeholder="ស្វែងរក…">
                                 </div>
-                                <div class="col-sm-3">
-                                    <label class="form-label">ការិយាល័យ</label>
-                                    <select id="ind_department" class="form-select"></select>
-                                </div>
-                                <div class="col-sm-3">
-                                    <label class="form-label">ផ្នែក</label>
-                                    <select id="ind_unit" class="form-select"></select>
-                                </div>
-                                <div class="col-sm-3">
-                                    <label class="form-label">សូចនាករ</label>
-                                    <select id="ind_indicator" class="form-select"></select>
-                                </div>
-                            </div>
 
-                            <!-- Entry form -->
-                            <form id="frmReport" class="row g-3">
-                                <input type="hidden" id="report_id" />
-                                <div class="col-sm-4">
-                                    <label class="form-label">តម្លៃ (Value) <span class="text-danger">*</span></label>
-                                    <input id="ind_value" type="number" step="any" class="form-control" required />
-                                    <div class="invalid-feedback">សូមបញ្ចូលតម្លៃ</div>
+                                <!-- Year + Period -->
+                                <div class="col-6 col-sm-auto">
+                                    <select id="selYear" class="form-select form-select-sm" aria-label="Year"></select>
                                 </div>
-                                <div class="col-sm-8">
-                                    <label class="form-label">កំណត់ចំណាំ</label>
-                                    <input id="ind_note" class="form-control" placeholder="ចំណាំបន្ថែម…" />
+                                <div class="col-12 col-sm-auto">
+                                    <select id="selPeriod" class="form-select form-select-sm" aria-label="Period"></select>
                                 </div>
-                                <div class="col-12 d-flex gap-2">
-                                    <button id="btnSaveReport" class="btn btn-primary" type="submit">រក្សាទុក</button>
-                                    <button id="btnResetReport" class="btn btn-outline-secondary" type="button">សម្អាត</button>
-                                </div>
-                            </form>
 
-                            <div class="separator-breadcrumb border-top my-3"></div>
-
-                            <!-- Recent entries -->
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <h5 class="kh-head m-0">ធាតុថ្មីៗ</h5>
-                                <span id="statusReports" class="small text-muted"></span>
-                                <div class="ms-auto input-group input-group-sm" style="max-width:260px">
-                                    <input id="qReports" class="form-control" placeholder="ស្វែងរក…">
-                                </div>
-                            </div>
-
-                            <div class="table-responsive">
-                                <table id="tblReports" class="table table-striped table-hover align-middle mb-0">
-                                    <thead>
-                                    <tr>
-                                        <th style="width:90px">ID</th>
-                                        <th>Period</th>
-                                        <th>Indicator</th>
-                                        <th>Value</th>
-                                        <th>Note</th>
-                                        <th style="width:160px" class="text-end">សកម្មភាព</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr><td colspan="6" class="skel"></td></tr>
-                                    <tr><td colspan="6" class="skel"></td></tr>
-                                    <tr><td colspan="6" class="skel"></td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- ================= Issues ================= -->
-                        <div class="tab-pane fade" id="tab-iss" role="tabpanel">
-                            <!-- Filters -->
-                            <div class="row g-3 align-items-end mb-3">
-                                <div class="col-sm-3">
-                                    <label class="form-label">រយៈពេល</label>
-                                    <select id="iss_period" class="form-select"></select>
-                                </div>
-                                <div class="col-sm-3">
-                                    <label class="form-label">ការិយាល័យ</label>
-                                    <select id="iss_department" class="form-select"></select>
-                                </div>
-                                <div class="col-sm-3">
-                                    <label class="form-label">ផ្នែក</label>
-                                    <select id="iss_unit" class="form-select"></select>
-                                </div>
-                                <div class="col-sm-3">
-                                    <label class="form-label">ភ្ជាប់សូចនាករ (ស្រេចចិត្ត)</label>
-                                    <select id="iss_indicator" class="form-select"></select>
-                                </div>
-                            </div>
-
-                            <!-- Issue form -->
-                            <form id="frmIssue" class="row g-3">
-                                <input type="hidden" id="issue_id" />
-                                <div class="col-md-6">
-                                    <label class="form-label">ចំណងជើងបញ្ហា <span class="text-danger">*</span></label>
-                                    <input id="iss_title" class="form-control" required />
-                                    <div class="invalid-feedback">សូមបញ្ចូលចំណងជើង</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">កម្រិតធ្ងន់ធ្ងរ</label>
-                                    <select id="iss_severity" class="form-select">
-                                        <option value="">— ជ្រើស —</option>
-                                        <option value="low">ទាប</option>
-                                        <option value="medium">មធ្យម</option>
-                                        <option value="high">ខ្ពស់</option>
+                                <div class="col-6 col-sm-auto">
+                                    <select id="selDept" class="form-select form-select-sm">
+                                        <option value="">ការិយាល័យទាំងអស់</option>
                                     </select>
                                 </div>
-                                <div class="col-12">
-                                    <label class="form-label">ពិពណ៌នា</label>
-                                    <textarea id="iss_desc" class="form-control" rows="3"></textarea>
+                                <div class="col-6 col-sm-auto">
+                                    <select id="selUnit" class="form-select form-select-sm">
+                                        <option value="">ផ្នែកទាំងអស់</option>
+                                    </select>
                                 </div>
-                                <div class="col-12 d-flex gap-2">
-                                    <button id="btnSaveIssue" class="btn btn-primary" type="submit">រក្សាទុក</button>
-                                    <button id="btnResetIssue" class="btn btn-outline-secondary" type="button">សម្អាត</button>
+                                <div class="col-6 col-sm-auto">
+                                    <div class="form-check form-switch small m-0">
+                                        <input class="form-check-input" type="checkbox" id="swOnlyMy">
+                                        <label class="form-check-label" for="swOnlyMy">តែផ្នែកខ្ញុំ</label>
+                                    </div>
                                 </div>
-                            </form>
 
-                            <div class="separator-breadcrumb border-top my-3"></div>
-
-                            <!-- Issues table -->
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <h5 class="kh-head m-0">បញ្ហាថ្មីៗ</h5>
-                                <span id="statusIssues" class="small text-muted"></span>
-                                <div class="ms-auto input-group input-group-sm" style="max-width:260px">
-                                    <input id="qIssues" class="form-control" placeholder="ស្វែងរក…">
+                                <div class="col-12 col-sm-auto d-flex align-items-center gap-2">
+                                    <span id="completeInfo" class="badge text-bg-light">0 / 0</span>
+                                    <div class="form-check small m-0">
+                                        <input class="form-check-input" type="checkbox" id="onlyEmpty">
+                                        <label class="form-check-label" for="onlyEmpty">បង្ហាញតែ “មិនទាន់”</label>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="table-responsive">
-                                <table id="tblIssues" class="table table-striped table-hover align-middle mb-0">
-                                    <thead>
-                                    <tr>
-                                        <th style="width:90px">ID</th>
-                                        <th>Title</th>
-                                        <th>Severity</th>
-                                        <th>Period</th>
-                                        <th>Indicator</th>
-                                        <th style="width:160px" class="text-end">សកម្មភាព</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr><td colspan="6" class="skel"></td></tr>
-                                    <tr><td colspan="6" class="skel"></td></tr>
-                                    </tbody>
-                                </table>
+                                <div class="col-12 col-sm-auto">
+                                    <button id="btnCopyPrev" class="btn btn-outline-secondary btn-sm">យកតម្លៃរយៈពេលមុន</button>
+                                </div>
+                                <div class="col-12 col-sm-auto">
+                                    <button id="btnSaveAll" class="btn btn-primary btn-sm">
+                                        រក្សាទុកទាំងអស់ <span class="badge text-bg-light ms-1" id="dirtyCount">0</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Table -->
+                    <div class="table-responsive">
+                        <table id="tblReports" class="table table-striped align-middle mb-0">
+                            <thead>
+                            <tr>
+                                <th style="width:90px">ID</th>
+                                <th>សូចនាករ</th>
+                                <th style="width:260px">ការិយាល័យ / ផ្នែក</th>
+                                <th style="width:140px">រយៈពេល</th>
+                                <th style="width:160px">តម្លៃ</th>
+                                <th style="width:170px" class="text-end">សកម្មភាព</th>
+                            </tr>
+                            </thead>
+                            <tbody><!-- JS render --></tbody>
+                        </table>
+                    </div>
+
+                    <div class="small text-muted mt-2 d-flex flex-wrap gap-3">
+                        <span id="countInfo">0</span>
+                        <span id="status"></span>
+                        <span id="offlineBadge" class="badge bg-warning text-dark" style="display:none">JSONP mode</span>
+                    </div>
                 </div>
             </div>
-
-            <div class="small text-muted mt-2" id="statusEntry"></div>
         </div>
+
+    </div>
+</div>
+
+<!-- Issue / Action modal -->
+<div class="modal fade" id="mdlIssue" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form class="modal-content" id="frmIssue" novalidate>
+            <div class="modal-header">
+                <h5 class="modal-title kh-head">Issue & Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="f_action_id">
+                <input type="hidden" id="f_indicator_id">
+                <input type="hidden" id="f_unit_id">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">សូចនាករ</label>
+                        <div id="f_indicator_name" class="form-control-plaintext"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">រយៈពេល</label>
+                        <div id="f_period_label" class="form-control-plaintext"></div>
+                    </div>
+
+                    <div class="col-12">
+                        <label for="f_issue_text" class="form-label">Issue</label>
+                        <textarea id="f_issue_text" class="form-control" rows="2" placeholder="ពិពណ៌នាបញ្ហា…"></textarea>
+                    </div>
+
+                    <div class="col-12">
+                        <label for="f_action_text" class="form-label">Action</label>
+                        <textarea id="f_action_text" class="form-control" rows="2" placeholder="ផែនការសកម្មភាព…"></textarea>
+                    </div>
+
+                    <div class="col-md-5">
+                        <label for="f_action_owner" class="form-label">អ្នកទទួលខុសត្រូវ</label>
+                        <input id="f_action_owner" class="form-control" placeholder="ឈ្មោះ/ក្រុម">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="f_action_due" class="form-label">កាលកំណត់</label>
+                        <input id="f_action_due" type="date" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="f_action_status" class="form-label">ស្ថានភាព</label>
+                        <select id="f_action_status" class="form-select">
+                            <option value="">— ជ្រើស —</option>
+                            <option value="planned">គ្រោង</option>
+                            <option value="ongoing">កំពុងដំណើរការ</option>
+                            <option value="done">បានបញ្ចប់</option>
+                            <option value="blocked">មានឧបសគ្គ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="editStatus" class="small text-muted mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
+                <button class="btn btn-primary" type="submit" id="btnSaveIssue">រក្សាទុក</button>
+            </div>
+        </form>
     </div>
 </div>
 
 <style>
-    .dataentry-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+    .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
     .container-page{width:100%; max-width:1280px; margin:0 auto; padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
     .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
     .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
     .centered-card{max-width:1200px; border:1px solid #eef0f4; border-radius:14px;}
-    .skel{ position:relative; overflow:hidden; background:#f3f4f6; height:44px; }
-    .skel::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);
-      background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
-      animation:shimmer 1.1s infinite }
-    @keyframes shimmer{ 100%{ transform:translateX(100%);} }
-    #tblReports th:last-child,#tblIssues th:last-child{ text-align:right; }
+    .table thead th{white-space:nowrap;}
+    .toolbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+    .toolbar .actions{min-width:260px;}
+    @media (max-width:576px){ .toolbar{gap:8px;} .toolbar .actions{min-width:0; width:100%;} }
+    .skel{position:relative; overflow:hidden; background:#f3f4f6; height:44px;}
+    .skel::after{content:""; position:absolute; inset:0; transform:translateX(-100%);
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent); animation:shimmer 1.1s infinite}
+    @keyframes shimmer{100%{transform:translateX(100%);}}
+    #tblReports td.td-actions .actions-right{display:flex; justify-content:flex-end; gap:.45rem;}
+    .inp-val{max-width:160px;}
+    #selYear{min-width:120px} #selPeriod{min-width:220px}
+    tr.row-missing td { background: #fff9e6; }
+    .badge-missing { background:#ffd966; color:#212529; }
+    .badge-done { background:#e7f7e7; color:#0f5132; border:1px solid #b7e4c7; }
 </style>
 
 <script type="module">
-    import { getAuth, isSuper } from '../../assets/js/app.auth.js';
-    import { gasList, gasSave, ID_FIELDS } from '../../assets/js/app.menu.js';
-    import { upsertReport } from '../../assets/js/app.api.js';
+    import { gasList, gasSave } from '../../assets/js/config.js';
+    import { getAuth } from '../../assets/js/app.auth.js';
 
-    /* ---------- Helpers ---------- */
-    const $ = (s,root=document)=>root.querySelector(s);
-    const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
-    const prettyPeriod = pid=>{
-      const mNames = ['មករា','កុម្ភះ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
-      const y = (String(pid||'').match(/^(\d{4})/)||[])[1]||'';
-      const tag = (String(pid||'').match(/(M\d{2}|Q[1-4]|H[12]|N9|Y12)$/)||[])[1]||'';
-      if(/^M\d{2}$/.test(tag)) return `${mNames[+tag.slice(1)-1]} ${y}`;
-      if(/^Q[1-4]$/.test(tag)) return `${tag} ${y}`;
-      if(/^H[12]$/.test(tag))  return `${tag} ${y}`;
-      if(tag==='N9') return `៩ខែ ${y}`;
-      if(tag==='Y12') return `១២ខែ ${y}`;
-      return pid||'';
+    /* ========== Minimal period helper (self-contained) ========== */
+    function buildPeriodSelectors(selYear, selPeriod, onChange){
+      const months = ['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+      const nowY = new Date().getFullYear();
+      // Years ±3
+      if (!selYear.options.length){
+        for (let y=nowY-3;y<=nowY+3;y++){
+          const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===nowY) o.selected=true; selYear.appendChild(o);
+        }
+      }
+      const fillPeriods = (y)=>{
+        const opts=[];
+        for(let m=1;m<=12;m++){ const mm=String(m).padStart(2,'0'); opts.push({v:`${y}M${mm}`, t:`${months[m-1]} ${y}`}); }
+        for(let q=1;q<=4;q++)  opts.push({v:`${y}Q${q}`, t:`ត្រីមាស ${q} • ${y}`});
+        opts.push({v:`${y}H1`, t:`ឆមាស 1 • ${y}`}, {v:`${y}H2`, t:`ឆមាស 2 • ${y}`});
+        opts.push({v:`${y}N9`, t:`៩ខែ • ${y}`}, {v:`${y}Y12`, t:`១២ខែ • ${y}`});
+        selPeriod.innerHTML = opts.map(o=>`<option value="${o.v}">${o.t}</option>`).join('');
+        // default select this month
+        const d=new Date(); const prefer = (y===d.getFullYear()) ? `${y}M${String(d.getMonth()+1).padStart(2,'0')}` : `${y}M01`;
+        selPeriod.value = prefer;
+      };
+      fillPeriods(+selYear.value||nowY);
+      selYear.addEventListener('change',()=>{ fillPeriods(+selYear.value); onChange?.(); });
+      selPeriod.addEventListener('change',()=> onChange?.());
+    }
+
+    // period utils
+    const parsePid = (pid)=>{
+      const y=+String(pid).slice(0,4)||new Date().getFullYear();
+      const tag=String(pid).slice(4);
+      const type = tag.startsWith('M')?'month': tag.startsWith('Q')?'quarter': tag.startsWith('H')?'half': (tag==='N9'?'nine':'year');
+      const month = tag.startsWith('M')? +tag.slice(1) : null;
+      return {year:y, tag, type, month};
     };
-    function makeModal(id){
-      const el = typeof id==='string'? document.getElementById(id): id;
-      if (!el) return null;
-      if (window.bootstrap?.Modal){
-        let inst = bootstrap.Modal.getInstance ? bootstrap.Modal.getInstance(el) : null;
-        if (!inst) inst = new bootstrap.Modal(el, {backdrop:true, keyboard:true, focus:true});
-        return { show:()=>inst.show(), hide:()=>inst.hide() };
-      }
-      return { show(){ el.style.display='block'; }, hide(){ el.style.display='none'; } };
-    }
-    const setStatus = (id, msg)=>{ const el=document.getElementById(id); if(el) el.textContent=msg||''; };
+    const prettyPid = (pid)=>{
+      const khMonths=['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+      const {year, tag, type, month} = parsePid(pid);
+      if (type==='month')   return `${khMonths[month-1]} ${year}`;
+      if (type==='quarter') return `ត្រីមាស ${tag.slice(1)} • ${year}`;
+      if (type==='half')    return `ឆមាស ${tag.slice(1)} • ${year}`;
+      if (tag==='N9')       return `៩ខែ • ${year}`;
+      if (tag==='Y12')      return `១២ខែ • ${year}`;
+      return `ឆ្នាំ ${year}`;
+    };
+    const prevPid = (pid)=>{
+      const p=parsePid(pid);
+      if (p.type==='month'){ let y=p.year,m=p.month-1; if(m<1){y--; m=12;} return `${y}M${String(m).padStart(2,'0')}`; }
+      if (p.type==='quarter'){ let y=p.year,q=+p.tag.slice(1)-1; if(q<1){y--; q=4;} return `${y}Q${q}`; }
+      if (p.type==='half'){ let y=p.year,h=(+p.tag.slice(1)===2)?1:2; if(+p.tag.slice(1)===1){y--; h=2;} return `${y}H${h}`; }
+      if (p.tag==='N9') return `${p.year}H1`;
+      if (p.tag==='Y12') return `${p.year}N9`;
+      return `${p.year-1}Y12`;
+    };
 
-    /* ====================== Init ====================== */
+    /* ========== initDataEntry (full) ========== */
     async function initDataEntry(){
-      const auth  = getAuth();
-      const SUPER = isSuper(auth);
+      // DOM
+      const $ = (s,r=document)=>r.querySelector(s);
+      const selYear=$('#selYear'), selPeriod=$('#selPeriod');
+      const selDept=$('#selDept'), selUnit=$('#selUnit');
+      const inpSearch=$('#inpSearch'), swOnlyMy=$('#swOnlyMy');
+      const onlyEmpty=$('#onlyEmpty'), completeInfo=$('#completeInfo');
+      const tbl=$('#tblReports'), tbody=tbl?.querySelector('tbody');
+      const btnCopy=$('#btnCopyPrev'), btnSaveAll=$('#btnSaveAll');
+      const statusEl=$('#status'), countInfo=$('#countInfo'), dirtyBadge=$('#dirtyCount');
+      const mdlEl=$('#mdlIssue'), frm=$('#frmIssue');
+      const f_aid=$('#f_action_id'), f_iid=$('#f_indicator_id'), f_uid=$('#f_unit_id');
+      const f_iname=$('#f_indicator_name'), f_plbl=$('#f_period_label');
+      const f_issue=$('#f_issue_text'), f_act=$('#f_action_text');
+      const f_owner=$('#f_action_owner'), f_due=$('#f_action_due'), f_stat=$('#f_action_status');
+      const Modal=window.bootstrap?.Modal; const mdl=(Modal&&mdlEl)?new Modal(mdlEl):null;
 
-      // ---------- DOM refs ----------
-      const elPeriodI = $('#ind_period'), elDeptI = $('#ind_department'), elUnitI = $('#ind_unit'), elInd = $('#ind_indicator');
-      const elVal = $('#ind_value'), elNote = $('#ind_note');
-      const tblRep = $('#tblReports tbody');
-      const qReports = $('#qReports');
-      const btnSaveReport = $('#btnSaveReport');
+      const auth = getAuth() || {};
+      const toArr = (x)=> Array.isArray(x) ? x : (x?.rows||x?.content||[]);
+      const setStatus = m=>{ if(statusEl) statusEl.textContent=m||''; };
+      const setDirty  = ()=>{ if(dirtyBadge) dirtyBadge.textContent=String(DIRTY.size); };
+      const curPeriod = ()=>{ const pid=selPeriod?.value||''; const {year,tag,month,type}=parsePid(pid); return {pid,year,monthTag:tag,monthNum:month,type}; };
 
-      const elPeriodS = $('#iss_period'), elDeptS = $('#iss_department'), elUnitS = $('#iss_unit'), elIndS = $('#iss_indicator');
-      const issTitle = $('#iss_title'), issSeverity = $('#iss_severity'), issDesc = $('#iss_desc');
-      const tblIss = $('#tblIssues tbody');
-      const qIssues = $('#qIssues');
-      const btnSaveIssue = $('#btnSaveIssue');
+      let DEPTS=[], UNITS=[], IND=[], VALUES=[], ACTIONS=[];
+      let ROWS=[]; let FILTER_Q=''; let ONLY_MY=false; let SHOW_ONLY_EMPTY=false;
+      const DIRTY=new Map();
 
-      // ---------- State ----------
-      let PERIODS=[], DEPTS=[], UNITS=[], INDS=[], REPORTS=[], ISSUES=[];
-      let unitsByDep=new Map();
-      const deptName=id=>DEPTS.find(d=>String(d.department_id)===String(id))?.department_name||'';
-      const unitName=id=>UNITS.find(u=>String(u.unit_id)===String(id))?.unit_name||'';
-      const indName=id=>INDS.find(i=>String(i.indicator_id)===String(id))?.indicator_name||'';
+      // Build selectors
+      buildPeriodSelectors(selYear, selPeriod, ()=>reloadPeriod());
 
-      // ---------- Load master ----------
-      try{
-        const [periods,depts,units,inds] = await Promise.all([
-          gasList('periods').catch(()=>[]),
-          gasList('departments').catch(()=>[]),
-          gasList('units').catch(()=>[]),
-          gasList('indicators').catch(()=>[])
-        ]);
-        PERIODS=periods.sort((a,b)=>String(a.period_id).localeCompare(String(b.period_id)));
-        DEPTS   = SUPER? depts : depts.filter(d=>String(d.department_id)===String(auth?.department_id));
-        UNITS   = SUPER? units : units.filter(u=>String(u.department_id)===String(auth?.department_id));
-        INDS    = SUPER? inds  : inds.filter(i=>String(i.department_id)===String(auth?.department_id) && (!auth?.unit_id || String(i.unit_id)===String(auth.unit_id)));
+      // Load masters
+      const [deps, units, inds] = await Promise.all([ gasList('departments'), gasList('units'), gasList('indicators') ]);
+      DEPTS=toArr(deps); UNITS=toArr(units); IND=toArr(inds);
 
-        // Fill selects
-        elPeriodI.innerHTML = elPeriodS.innerHTML =
-          PERIODS.map(p=>`<option value="${p.period_id}">${prettyPeriod(p.period_id)}</option>`).join('');
-
-        elDeptI.innerHTML = elDeptS.innerHTML =
-          `<option value="">— ការិយាល័យ —</option>` +
+      // Fill selects
+      function fillDept(){
+        selDept.innerHTML = `<option value="">ការិយាល័យទាំងអស់</option>`+
           DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
-        if (!SUPER){ elDeptI.value = elDeptS.value = auth?.department_id||''; elDeptI.disabled = elDeptS.disabled = true; }
-
-        const fillUnits = (sel, depId)=>{
-          const list = UNITS.filter(u=>String(u.department_id)===String(depId));
-          sel.innerHTML = `<option value="">— ផ្នែក —</option>` + list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
-          if (!SUPER) { sel.value = auth?.unit_id||''; sel.disabled = true; }
-        };
-        const dep0 = SUPER ? elDeptI.value || DEPTS[0]?.department_id : (auth?.department_id || '');
-        if (dep0){ fillUnits(elUnitI,dep0); fillUnits(elUnitS,dep0); }
-
-        const fillIndicators = ()=>{
-          const dep = elDeptI.value || (SUPER? '' : auth?.department_id);
-          const uni = elUnitI.value || (SUPER? '' : auth?.unit_id);
-          const list = INDS.filter(i => (!dep || String(i.department_id)===String(dep)) && (!uni || String(i.unit_id)===String(uni)));
-          elInd.innerHTML = list.length
-            ? list.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('')
-            : `<option value="">— គ្មានសូចនាករ —</option>`;
-          // Same for issue side (optional)
-          elIndS.innerHTML = `<option value="">— (ស្រេចចិត្ត) —</option>` +
-            list.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
-        };
-        fillIndicators();
-
-        // Load latest reports & issues (limit ~50)
-        REPORTS = (await gasList('reports').catch(()=>[])).slice(-50).reverse();
-        ISSUES  = (await gasList('issues').catch(()=>[])).slice(-50).reverse();
-
-        renderReports(); renderIssues();
-        setStatus('statusEntry', 'បានផ្ទុកទិន្នន័យផ្ទុកចូល');
-      }catch(e){
-        console.error(e);
-        setStatus('statusEntry','បរាជ័យផ្ទុកទិន្នន័យ');
       }
+      function fillUnit(depId){
+        const list = depId ? UNITS.filter(u=>String(u.department_id)===String(depId)) : UNITS;
+        selUnit.innerHTML = `<option value="">ផ្នែកទាំងអស់</option>`+
+          list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+      }
+      fillDept(); fillUnit('');
 
-      // ---------- Change handlers ----------
-      elDeptI.addEventListener('change', ()=>{
-        const dep = elDeptI.value;
-        const list = UNITS.filter(u=>String(u.department_id)===String(dep));
-        elUnitI.innerHTML = `<option value="">— ផ្នែក —</option>` + list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
-        if (!SUPER) { elUnitI.value = auth?.unit_id||''; elUnitI.disabled=true; }
-        // filter indicators
-        const inds = INDS.filter(i=>(!dep || String(i.department_id)===String(dep)));
-        elInd.innerHTML = inds.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
-        elIndS.innerHTML = `<option value="">— (ស្រេចចិត្ត) —</option>` + inds.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
-      });
-      elUnitI.addEventListener('change', ()=>{
-        const dep = elDeptI.value, uni = elUnitI.value;
-        const inds = INDS.filter(i=>(!dep || String(i.department_id)===String(dep)) && (!uni || String(i.unit_id)===String(uni)));
-        elInd.innerHTML = inds.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
-        elIndS.innerHTML = `<option value="">— (ស្រេចចិត្ត) —</option>` + inds.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
-      });
-      elDeptS.addEventListener('change', ()=>{
-        const dep = elDeptS.value;
-        const list = UNITS.filter(u=>String(u.department_id)===String(dep));
-        elUnitS.innerHTML = `<option value="">— ផ្នែក —</option>` + list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
-        if (!SUPER) { elUnitS.value = auth?.unit_id||''; elUnitS.disabled=true; }
-      });
-
-      /* ================= Reports form ================= */
-      $('#btnResetReport').addEventListener('click', ()=>{
-        $('#report_id').value=''; elVal.value=''; elNote.value='';
-      });
-
-      $('#frmReport').addEventListener('submit', async (e)=>{
-        e.preventDefault();
-        // validate
-        const value = (elVal.value||'').trim();
-        elVal.classList.toggle('is-invalid', !value);
-        if (!value) return;
-
-        const payload = {
-          report_id    : $('#report_id').value || null,
-          period_id    : elPeriodI.value,
-          indicator_id : elInd.value,
-          department_id: (isSuper()? elDeptI.value : (auth?.department_id || '')),
-          unit_id      : (isSuper()? elUnitI.value : (auth?.unit_id || '')),
-          value        : Number(value),
-          note         : elNote.value||'',
-        };
-
-        const old = btnSaveReport.innerHTML; btnSaveReport.disabled=true; btnSaveReport.innerHTML='កំពុងរក្សាទុក…';
-        try{
-          const res = await upsertReport(payload); // server helper (alias POST reports upsert)
-          const row = res.row || res;
-          // update local list (top)
-          const i = REPORTS.findIndex(r=>String(r.report_id)===String(row.report_id));
-          if (i>=0) REPORTS[i]=row; else REPORTS.unshift(row);
-          renderReports(); $('#report_id').value=''; elVal.value=''; elNote.value='';
-          setStatus('statusReports','រក្សាទុករួចរាល់');
-        }catch(err){
-          alert('បរាជ័យរក្សាទុក: ' + (err?.message||err));
-        }finally{
-          btnSaveReport.disabled=false; btnSaveReport.innerHTML=old;
+      // Render helpers
+      function applyFilters(list){
+        const dep=selDept.value||'', unit=selUnit.value||'';
+        let out=list.slice();
+        if (dep)  out = out.filter(r=>String(r.department_id)===String(dep));
+        if (unit) out = out.filter(r=>String(r.unit_id)===String(unit));
+        if (ONLY_MY){ const uid=auth?.unit_id; if(uid!=null) out=out.filter(r=>String(r.unit_id)===String(uid)); }
+        if (FILTER_Q){
+          const q=FILTER_Q.toLowerCase();
+          out = out.filter(r =>
+            String(r.indicator_id).includes(q) ||
+            (r.indicator_name||'').toLowerCase().includes(q) ||
+            (r.unit_name||'').toLowerCase().includes(q) ||
+            (r.department_name||'').toLowerCase().includes(q)
+          );
         }
-      });
+        if (SHOW_ONLY_EMPTY){
+          out = out.filter(r => r.value==='' || r.value==null || String(r.value).trim()==='');
+        }
+        return out;
+      }
+      function render(){
+        const rowsAll=ROWS.slice();
+        const filledCount = rowsAll.reduce((n,r)=>{
+          const v = (DIRTY.get(`${r.indicator_id}|${r.unit_id}`)?.value ?? r.value);
+          return n + ((v!=='' && v!=null && String(v).trim()!=='') ? 1 : 0);
+        },0);
+        if (completeInfo) completeInfo.textContent = `${filledCount} / ${rowsAll.length}`;
 
-      function renderReports(){
-        const q = String(qReports.value||'').trim().toLowerCase();
-        const rows = REPORTS.filter(r=>{
-          const hay = `${r.report_id} ${r.period_id} ${prettyPeriod(r.period_id)} ${indName(r.indicator_id)||''} ${r.value||''} ${r.note||''}`.toLowerCase();
-          return !q || hay.includes(q);
-        });
-        if (!rows.length){ tblRep.innerHTML=`<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`; return; }
+        const rows = applyFilters(ROWS);
+        if (countInfo) countInfo.textContent=String(rows.length);
+        if (!tbody) return;
+        if (!rows.length){ tbody.innerHTML=`<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`; return; }
+
         const frag=document.createDocumentFragment();
-        for(const r of rows){
+        for (const r of rows){
+          const key = `${r.indicator_id}|${r.unit_id}`;
+          const val = (DIRTY.get(key)?.value ?? r.value ?? '');
+          const missing = (val==='' || val==null || String(val).trim()==='');
           const tr=document.createElement('tr');
-          tr.innerHTML=`
-            <td><span class="badge text-bg-light border">#${r.report_id||''}</span></td>
-            <td>${prettyPeriod(r.period_id)}</td>
-            <td>${indName(r.indicator_id)||r.indicator_id}</td>
-            <td>${r.value ?? ''}</td>
-            <td>${r.note||''}</td>
+          if (missing) tr.classList.add('row-missing');
+          tr.innerHTML = `
+            <td>${r.indicator_id}</td>
+            <td>
+              <div class="fw-semibold">${r.indicator_name||''}</div>
+              <div class="small mt-1">${missing?'<span class="badge badge-missing">មិនទាន់</span>':'<span class="badge badge-done">បានបំពេញ</span>'}</div>
+            </td>
+            <td>${r.department_name||''}${r.unit_name?` / ${r.unit_name}`:''}</td>
+            <td>${prettyPid(`${r.year}${r.month}`)}</td>
+            <td>
+              <input
+                type="number" inputmode="decimal" pattern="^[0-9]+(\\.[0-9]*)?$"
+                step="any" min="0"
+                class="form-control form-control-sm inp-val"
+                data-key="${key}" value="${missing?'':val}" placeholder="0"
+              />
+            </td>
             <td class="text-end">
-              <button class="btn btn-sm btn-warning me-1" data-act="edit" data-id="${r.report_id}">កែ</button>
-              <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${r.report_id}">លុប</button>
+              <button class="btn btn-sm btn-outline-primary" data-act="issue" data-key="${key}">Issue / Action</button>
             </td>`;
           frag.appendChild(tr);
         }
-        tblRep.innerHTML=''; tblRep.appendChild(frag);
+        tbody.innerHTML=''; tbody.appendChild(frag);
       }
-      qReports.addEventListener('input', renderReports);
-      tblRep.addEventListener('click', async (e)=>{
-        const btn=e.target.closest('button[data-act]'); if(!btn) return;
-        const id = btn.dataset.id;
-        const row = REPORTS.find(r=>String(r.report_id)===String(id));
-        if (!row) return;
 
-        if (btn.dataset.act==='edit'){
-          $('#report_id').value=row.report_id||'';
-          elPeriodI.value=row.period_id||elPeriodI.value;
-          elDeptI.value=row.department_id||elDeptI.value; elDeptI.dispatchEvent(new Event('change'));
-          elUnitI.value=row.unit_id||elUnitI.value;       elUnitI.dispatchEvent(new Event('change'));
-          elInd.value = row.indicator_id||elInd.value;
-          elVal.value = row.value || '';
-          elNote.value= row.note  || '';
-          window.scrollTo({top:0, behavior:'smooth'});
-        }
-        if (btn.dataset.act==='del'){
-          if(!confirm('លុបរបាយការណ៍នេះមែនទេ?')) return;
-          try{
-            await gasSave('reports', { report_id: row.report_id, _delete:true }); // backend ត្រូវគាំទ្រ flag ឬប្រើ apiDelete ប្រសិនបើមាន
-            REPORTS = REPORTS.filter(r=>String(r.report_id)!==String(id));
-            renderReports(); setStatus('statusReports','លុបរួចរាល់');
-          }catch(err){ alert(err?.message||err); }
-        }
-      });
+      // Reload by period
+      async function reloadPeriod(){
+        const P=curPeriod();
+        setStatus('កំពុងផ្ទុកទិន្នន័យរយៈពេល…');
+        const [values, actions] = await Promise.all([
+          gasList('reports', { year:P.year, month:P.monthTag }),
+          gasList('actions', { year:P.year, month:P.monthTag }),
+        ]).catch(()=>[[],[]]);
 
-      /* ================= Issues form ================= */
-      $('#btnResetIssue').addEventListener('click', ()=>{
-        $('#issue_id').value=''; issTitle.value=''; issDesc.value=''; issSeverity.value='';
-      });
+        VALUES=toArr(values); ACTIONS=toArr(actions);
+        const depName=Object.fromEntries(DEPTS.map(d=>[String(d.department_id), d.department_name]));
+        const unitName=Object.fromEntries(UNITS.map(u=>[String(u.unit_id), u.unit_name]));
+        const vMap=new Map(VALUES.map(v=>[`${v.indicator_id}|${v.unit_id}`, v]));
+        const aMap=new Map(ACTIONS.map(a=>[`${a.indicator_id}|${a.unit_id}`, a]));
+        const myUnit=String(auth?.unit_id||'');
 
-      $('#frmIssue').addEventListener('submit', async (e)=>{
-        e.preventDefault();
-        const title=(issTitle.value||'').trim();
-        issTitle.classList.toggle('is-invalid', !title);
-        if(!title) return;
-
-        const payload = {
-          issue_id     : $('#issue_id').value || null,
-          title        : title,
-          description  : issDesc.value || '',
-          severity     : issSeverity.value || '',
-          period_id    : elPeriodS.value,
-          indicator_id : elIndS.value || '',
-          department_id: isSuper()? elDeptS.value : (auth?.department_id||''),
-          unit_id      : isSuper()? elUnitS.value : (auth?.unit_id||''),
-          status       : 'open'
-        };
-
-        const old=btnSaveIssue.innerHTML; btnSaveIssue.disabled=true; btnSaveIssue.innerHTML='កំពុងរក្សាទុក…';
-        try{
-          const res = await gasSave('issues', payload); // apiUpsert issues
-          const row = res.row || res;
-          const i = ISSUES.findIndex(x=>String(x.issue_id)===String(row.issue_id));
-          if (i>=0) ISSUES[i]=row; else ISSUES.unshift(row);
-          renderIssues(); $('#issue_id').value=''; issTitle.value=''; issDesc.value=''; issSeverity.value='';
-          setStatus('statusIssues','រក្សាទុករួចរាល់');
-        }catch(err){
-          alert('បរាជ័យរក្សាទុក: '+(err?.message||err));
-        }finally{
-          btnSaveIssue.disabled=false; btnSaveIssue.innerHTML=old;
-        }
-      });
-
-      function renderIssues(){
-        const q = String(qIssues.value||'').trim().toLowerCase();
-        const rows = ISSUES.filter(r=>{
-          const hay = `${r.issue_id} ${r.title||''} ${r.severity||''} ${r.period_id||''} ${indName(r.indicator_id)||''}`.toLowerCase();
-          return !q || hay.includes(q);
+        ROWS = IND.map(ind=>{
+          const key=`${ind.indicator_id}|${ind.unit_id}`;
+          const v=vMap.get(key)||{}, a=aMap.get(key)||{};
+          return {
+            indicator_id:ind.indicator_id,
+            indicator_name:ind.indicator_name,
+            department_id:ind.department_id,
+            department_name:depName[String(ind.department_id)]||'',
+            unit_id:ind.unit_id,
+            unit_name:unitName[String(ind.unit_id)]||'',
+            assigned_to_me:String(ind.unit_id)===myUnit,
+            year:P.year, month:P.monthTag,
+            value:v.value ?? null,
+            report_id:v.report_id || null,
+            action_id:a.action_id || null,
+            issue_text:a.issue_text||'',
+            action_text:a.action_text||'',
+            action_owner:a.action_owner||'',
+            action_due:a.action_due||'',
+            action_status:a.action_status||'',
+          };
         });
-        if (!rows.length){ tblIss.innerHTML=`<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`; return; }
-        const frag=document.createDocumentFragment();
-        for(const r of rows){
-          const tr=document.createElement('tr');
-          tr.innerHTML=`
-            <td><span class="badge text-bg-light border">#${r.issue_id||''}</span></td>
-            <td>${r.title || ''}</td>
-            <td>${(r.severity||'').toUpperCase()}</td>
-            <td>${prettyPeriod(r.period_id)}</td>
-            <td>${indName(r.indicator_id)||''}</td>
-            <td class="text-end">
-              <button class="btn btn-sm btn-warning me-1" data-act="edit" data-id="${r.issue_id}">កែ</button>
-              <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${r.issue_id}">លុប</button>
-            </td>`;
-          frag.appendChild(tr);
-        }
-        tblIss.innerHTML=''; tblIss.appendChild(frag);
-      }
-      qIssues.addEventListener('input', renderIssues);
-      tblIss.addEventListener('click', async (e)=>{
-        const btn=e.target.closest('button[data-act]'); if(!btn) return;
-        const id = btn.dataset.id;
-        const row = ISSUES.find(r=>String(r.issue_id)===String(id));
-        if (!row) return;
 
-        if (btn.dataset.act==='edit'){
-          $('#issue_id').value=row.issue_id||'';
-          elPeriodS.value=row.period_id||elPeriodS.value;
-          elDeptS.value=row.department_id||elDeptS.value; elDeptS.dispatchEvent(new Event('change'));
-          elUnitS.value=row.unit_id||elUnitS.value;
-          elIndS.value = row.indicator_id || '';
-          issTitle.value = row.title || '';
-          issDesc.value  = row.description || '';
-          issSeverity.value = row.severity || '';
-          window.scrollTo({top:0, behavior:'smooth'});
-        }
-        if (btn.dataset.act==='del'){
-          if(!confirm('លុបបញ្ហានេះមែនទេ?')) return;
-          try{
-            await gasSave('issues', { issue_id: row.issue_id, _delete:true }); // ឬប្រើ apiDelete ប្រសិនបើ backend មាន
-            ISSUES = ISSUES.filter(r=>String(r.issue_id)!==String(id));
-            renderIssues(); setStatus('statusIssues','លុបរួចរាល់');
-          }catch(err){ alert(err?.message||err); }
-        }
+        DIRTY.clear(); setDirty(); setStatus(''); render();
+      }
+      await reloadPeriod();
+
+      // Events
+      selDept?.addEventListener('change', ()=>{ fillUnit(selDept.value); render(); });
+      selUnit?.addEventListener('change', ()=>render());
+      inpSearch?.addEventListener('input', e=>{ FILTER_Q=String(e.target.value||'').trim().toLowerCase(); render(); });
+      swOnlyMy?.addEventListener('change', e=>{ ONLY_MY=!!e.target.checked; render(); });
+      onlyEmpty?.addEventListener('change', e=>{ SHOW_ONLY_EMPTY=!!e.target.checked; render(); });
+
+      // Number-only enforcement
+      function cleanDecimal(s){
+        s=String(s||''); s=s.replace(/[^0-9.]/g,'');
+        const i=s.indexOf('.'); if(i!==-1) s=s.slice(0,i+1)+s.slice(i+1).replace(/\./g,'');
+        if (s==='.') s=''; return s;
+      }
+      function markDirtyFromInput(inp){
+        const key=inp.dataset.key; const [indicator_id,unit_id]=key.split('|'); const P=curPeriod();
+        const base=ROWS.find(r=>String(r.indicator_id)===indicator_id && String(r.unit_id)===unit_id) || {};
+        DIRTY.set(key,{ indicator_id:+indicator_id, unit_id:+unit_id, year:P.year, month:P.monthTag, value:inp.value, report_id:base.report_id||null });
+        setDirty();
+      }
+      async function saveOne(key){
+        const row=DIRTY.get(key); if(!row) return;
+        try{
+          const res=await gasSave('reports', row);
+          const saved=res?.row||res||{};
+          const i=ROWS.findIndex(r=>`${r.indicator_id}|${r.unit_id}`===key);
+          if(i>=0){ ROWS[i].value=row.value; ROWS[i].report_id=saved.report_id||ROWS[i].report_id||null; }
+          DIRTY.delete(key); setDirty(); setStatus('បានរក្សាទុក');
+        }catch(err){ console.error(err); setStatus('បរាជ័យរក្សាទុក ('+key+')'); }
+      }
+
+      tbody?.addEventListener('keydown',(e)=>{
+        const inp=e.target.closest('.inp-val'); if(!inp) return;
+        const ctrl=['Backspace','Delete','Tab','Escape','Enter','ArrowLeft','ArrowRight','Home','End'];
+        if (ctrl.includes(e.key)){ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } return; }
+        if (e.key === '.'){ if (inp.value.includes('.')) e.preventDefault(); return; }
+        if (!/^[0-9]$/.test(e.key)) e.preventDefault();
       });
+      tbody?.addEventListener('input',(e)=>{
+        const inp=e.target.closest('.inp-val'); if(!inp) return;
+        const cleaned=cleanDecimal(inp.value); if(inp.value!==cleaned) inp.value=cleaned; markDirtyFromInput(inp);
+      });
+      tbody?.addEventListener('paste',(e)=>{
+        const inp=e.target.closest('.inp-val'); if(!inp) return;
+        e.preventDefault();
+        const t=(e.clipboardData||window.clipboardData).getData('text');
+        const cleaned=cleanDecimal(t);
+        const {selectionStart:s, selectionEnd:t2, value:v}=inp;
+        inp.value=cleanDecimal(v.slice(0,s)+cleaned+v.slice(t2)); markDirtyFromInput(inp);
+      });
+      tbody?.addEventListener('blur',async(e)=>{
+        const inp=e.target.closest('.inp-val'); if(!inp) return;
+        const key=inp.dataset.key; if(!DIRTY.has(key)) return; await saveOne(key);
+      },true);
+
+      btnSaveAll?.addEventListener('click', async ()=>{
+        const keys=Array.from(DIRTY.keys()); if(!keys.length){ setStatus('គ្មានអ្វីត្រូវរក្សាទុក'); return; }
+        setStatus('កំពុងរក្សាទុកទាំងអស់…'); for(const k of keys){ await saveOne(k); } render(); setStatus('រក្សាទុករួចរាល់');
+      });
+
+      btnCopy?.addEventListener('click', async ()=>{
+        const cur=curPeriod(); const prev=prevPid(cur.pid); setStatus('កំពុងយកតម្លៃរយៈពេលមុន…');
+        try{
+          const pp=parsePid(prev);
+          const prevVals=toArr(await gasList('reports',{year:pp.year,month:pp.tag}));
+          const mapPrev=new Map(prevVals.map(r=>[`${r.indicator_id}|${r.unit_id}`, r.value]));
+          let changed=0;
+          for (const r of ROWS){
+            const key=`${r.indicator_id}|${r.unit_id}`;
+            if((r.value==null||r.value==='') && mapPrev.has(key)){
+              DIRTY.set(key,{ indicator_id:r.indicator_id, unit_id:r.unit_id, year:cur.year, month:cur.monthTag, value:mapPrev.get(key), report_id:r.report_id||null });
+              changed++;
+            }
+          }
+          setDirty(); render(); setStatus(`បានបំពេញពីរយៈពេលមុន ${changed} ជួរ (សូមចុច "រក្សាទុកទាំងអស់")`);
+        }catch(err){ console.error(err); setStatus('បរាជ័យយករយៈពេលមុន'); }
+      });
+
+      // Issue/Action
+      tbody?.addEventListener('click',(e)=>{
+        const btn=e.target.closest('button[data-act="issue"]'); if(!btn) return;
+        const key=btn.dataset.key; const row=ROWS.find(r=>`${r.indicator_id}|${r.unit_id}`===key); if(!row) return;
+        const P=curPeriod();
+        f_aid.value=row.action_id||''; f_iid.value=row.indicator_id; f_uid.value=row.unit_id;
+        f_iname.textContent=row.indicator_name||''; f_plbl.textContent=prettyPid(P.pid);
+        f_issue.value=row.issue_text||''; f_act.value=row.action_text||''; f_owner.value=row.action_owner||'';
+        f_due.value=row.action_due||''; f_stat.value=row.action_status||''; document.getElementById('editStatus').textContent='';
+        mdl?.show();
+      });
+      frm?.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const P=curPeriod();
+        const payload={ action_id:f_aid.value||null, indicator_id:+f_iid.value, unit_id:+f_uid.value,
+          year:P.year, month:P.monthTag, issue_text:f_issue.value.trim(), action_text:f_act.value.trim(),
+          action_owner:f_owner.value.trim(), action_due:f_due.value||'', action_status:f_stat.value||'' };
+        const btn=document.getElementById('btnSaveIssue'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='កំពុងរក្សាទុក…';
+        try{
+          const res=await gasSave('actions', payload); const saved=res?.row||res||{};
+          const i=ROWS.findIndex(r=>r.indicator_id===payload.indicator_id && r.unit_id===payload.unit_id);
+          if(i>=0){ ROWS[i]={...ROWS[i], action_id:saved.action_id||ROWS[i].action_id||null,
+            issue_text:payload.issue_text, action_text:payload.action_text, action_owner:payload.action_owner,
+            action_due:payload.action_due, action_status:payload.action_status }; }
+          mdl?.hide(); setStatus('រក្សាទុក Issue/Action រួចរាល់');
+        }catch(err){ console.error(err); document.getElementById('editStatus').textContent='បរាជ័យរក្សាទុក: '+(err?.message||err); }
+        finally{ btn.disabled=false; btn.innerHTML=old; }
+      });
+
+      // Expose for router that calls it
+      return true;
     }
 
-    // boot for this page
-    initDataEntry();
+    // Export to window so router in main index can call it
+    window.initDataEntry = initDataEntry;
 </script>

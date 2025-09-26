@@ -32,17 +32,17 @@
     /* ========= Layout: make footer stick to bottom ========= */
     .app-admin-wrap{ height:100%; }
     .main-content-wrap{
-      min-height:100dvh;          /* full viewport height */
+      min-height:100dvh;
       display:flex;
       flex-direction:column;
     }
-    .app-footer{ margin-top:auto; } /* push footer down */
+    .app-footer{ margin-top:auto; }
 
     /* ========= Header ========= */
     .main-header{
       position:sticky; top:0; z-index:100;
-      backdrop-filter:none;                 /* clearer text */
-      background:#ffffffCC;                 /* subtle translucency */
+      backdrop-filter:none;
+      background:#ffffffCC;
       border-bottom:1px solid #eef0f4;
     }
 
@@ -97,6 +97,9 @@
       70% { transform:scale(1); box-shadow:0 0 0 8px rgba(40,167,69,0); }
       100% { transform:scale(.9); box-shadow:0 0 0 0 rgba(40,167,69,0); }
     }
+
+    /* ---------- Stop Gull's iconsmind font requests (avoid 404) ---------- */
+    @font-face { font-family:'iconsmind'; src: local('x'); }
   </style>
 </head>
 
@@ -116,13 +119,17 @@
         <li class="nav-item active" data-item="dashboard">
           <a class="nav-item-hold" href="#/"><i class="nav-icon i-Bar-Chart"></i><span class="nav-text">ផ្ទាំងគ្រប់គ្រង</span></a><div class="triangle"></div>
         </li>
+
+        <li class="nav-item">
+          <a class="nav-item-hold" href="#/issues"><i class="nav-icon i-Information"></i><span class="nav-text">បញ្ហាប្រឈម</span></a><div class="triangle"></div>
+        </li>
+
         <li class="nav-item" data-item="depts">
           <a class="nav-item-hold" href="#"><i class="nav-icon i-Library"></i><span class="nav-text">ការិយាល័យ</span></a><div class="triangle"></div>
         </li>
         <li class="nav-item" data-item="reports">
           <a class="nav-item-hold" href="#"><i class="nav-icon i-File-Clipboard-File--Text"></i><span class="nav-text">របាយការណ៍</span></a><div class="triangle"></div>
         </li>
-        <!-- មុខឃើញតែ super -->
         <li class="nav-item menu-super-only" data-item="users">
           <a class="nav-item-hold" href="#"><i class="nav-icon i-Administrator"></i><span class="nav-text">អ្នកប្រើប្រាស់</span></a><div class="triangle"></div>
         </li>
@@ -152,7 +159,7 @@
 
       <!-- Depts submenu (dynamic) -->
       <div class="submenu-area" data-parent="depts">
-        <header><h6>ការិយាល័យ</h6><p>ជ្រើសការិយាល័យ/ផ្នែក</p></header>
+        <header><h6>បញ្ចូលទិន្នន័យ</h6><p>តាមផ្នែក</p></header>
         <ul id="deptMenu" class="childNav">
           <li class="nav-item"><span class="item-name skeleton skeleton-text"></span></li>
           <li class="nav-item"><span class="item-name skeleton skeleton-text"></span></li>
@@ -210,8 +217,8 @@
             <span id="clockKh">-- -- ---- --:--:--</span>
           </div>
           <div class="d-flex align-items-center">
-            <img class="logo me-2" src="dist-assets/images/logo.png" alt=""/>
-            <div><p class="m-0">&copy; PHD Report</p><p class="m-0">All rights reserved</p></div>
+            <img class="logo me-2" src="dist-assets/images/logo-text.png" alt=""/>
+            <div><p class="m-0">&copy; PHD Report</p><p class="m-0">លាង ផានិត្យ</p><p class="m-0">០៩៧២០៩៧៨៨៨</p></div>
           </div>
         </div>
       </div>
@@ -232,11 +239,15 @@
 
 <!-- App JS -->
 <script type="module">
+  /* ===== GAS_BASE import FIRST (fix ReferenceError) ===== */
+  import { GAS_BASE as CONFIG_GAS_BASE } from './assets/js/config.js';
+  const GAS_BASE = CONFIG_GAS_BASE;
+  window.GAS_BASE = GAS_BASE; // (optional) if some non-module code needs it
+
+  /* ===== rest of module imports ===== */
   import { ensureLoggedIn, applyLoginButton, getAuth, isSuper } from './assets/js/app.auth.js';
   import { buildDeptMenu, buildSettingsMenu, gasList, gasSave, gasDelete, ID_FIELDS } from './assets/js/app.menu.js';
-
-  applyLoginButton();
-  ensureLoggedIn('login.html');
+  import { initIssues } from './assets/js/pages/issues/issues.js';
 
   /* ---------- Simple loader ---------- */
   const AppLoader = (() => {
@@ -250,6 +261,7 @@
   })();
 
   /* ---------- Require login ---------- */
+  applyLoginButton();
   ensureLoggedIn('login.html');
 
   /* ---------- Menus (left sidebar) ---------- */
@@ -292,13 +304,15 @@
   const viewUrl = (p) => baseDir + p.replace(/^\/+/,'');
 
   const routes = {
-    '':                     { view:'pages/home.html',                       init:initDashboard },
+    '':                     { view:'pages/home.html',                        init:initDashboard },
     'settings/indicators':  { view:'pages/settings/indicators/index.html',  init:initIndicators },
     'settings/departments': { view:'pages/settings/departments/index.html',  init:initDepartments },
     'settings/units':       { view:'pages/settings/units/index.html',        init:initUnits },
     'settings/periods':     { view:'pages/settings/periods/index.html',      init:initPeriods },
-    'settings/users':       { view:'pages/settings/users/index.html',         init:initUsers },
-    'data-entry':           { view:'pages/data-entry/index.html',             init:initDataEntry },
+    'settings/users':       { view:'pages/settings/users/index.html',        init:initUsers },
+    'data-entry':           { view:'pages/data-entry/index.html',            init:initDataEntry },
+    'issues':               { view:'pages/issues/index.html',                init:initIssues },
+
 
   };
 
@@ -329,6 +343,7 @@
 
   function setActiveByHash(h){
     const top = h.startsWith('settings/') ? 'settings'
+             : h.startsWith('issues') ? 'issues'
              : h.startsWith('depts')      ? 'depts'
              : h.startsWith('reports')    ? 'reports'
              : 'dashboard';
@@ -387,989 +402,1060 @@
     }
   }
 
- // ======================= Data Entry (Indicators + Issues) =======================
+/* ======================= initDataEntry ======================= */
 async function initDataEntry(){
-  // ----- deps from your app -----
-  const { getAuth, isSuper } = await import('./assets/js/app.auth.js');
-  const { gasList, gasSave, gasDelete, ID_FIELDS } = await import('./assets/js/app.menu.js');
-  // optional: API helper for report upsert (ប្រសិនបើមាន)
-  let upsertReport = async (p)=> gasSave('reports', p);
-  try {
-    upsertReport = (await import('./assets/js/app.api.js')).upsertReport || upsertReport;
-  } catch { /* fallback to gasSave */ }
+  /* ---------- DOM ---------- */
+  const $  = (s, r=document)=> r.querySelector(s);
+  const toArr = (x)=> Array.isArray(x) ? x : (x?.rows||x?.content||[]);
+  const auth = getAuth() || {};
 
-  // ----- tiny utils -----
-  const $  = (s,root=document)=>root.querySelector(s);
-  const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
-  const setStatus = (id, msg)=>{ const el=document.getElementById(id); if(el) el.textContent=msg||''; };
-  const prettyPeriod = pid=>{
-    const mNames = ['មករា','កុម្ភះ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
-    const y   = (String(pid||'').match(/^(\d{4})/)||[])[1]||'';
-    const tag = (String(pid||'').match(/(M\d{2}|Q[1-4]|H[12]|N9|Y12)$/)||[])[1]||'';
-    if(/^M\d{2}$/.test(tag)) return `${mNames[+tag.slice(1)-1]} ${y}`;
-    if(/^Q[1-4]$/.test(tag)) return `${tag} ${y}`;
-    if(/^H[12]$/.test(tag))  return `${tag} ${y}`;
-    if(tag==='N9')  return `៩ខែ ${y}`;
-    if(tag==='Y12') return `១២ខែ ${y}`;
-    return pid||'';
+  const selYear   = $('#selYear');
+  const selPeriod = $('#selPeriod');
+  const selDept   = $('#selDept');
+  const selUnit   = $('#selUnit');
+  const inpSearch = $('#inpSearch');
+  const swOnlyMy  = $('#swOnlyMy');
+  const completeInfo = $('#completeInfo');
+  const onlyEmpty    = $('#onlyEmpty');
+
+  const tbl       = $('#tblReports');
+  const tbody     = tbl?.querySelector('tbody');
+  const btnCopy   = $('#btnCopyPrev');
+  const btnSaveAll= $('#btnSaveAll');
+  const statusEl  = $('#status');
+  const countInfo = $('#countInfo');
+  const dirtyBadge= $('#dirtyCount');
+
+  // Modal
+  const mdlEl = $('#mdlIssue'), frm = $('#frmIssue');
+  const f_aid=$('#f_action_id'), f_iid=$('#f_indicator_id'), f_uid=$('#f_unit_id');
+  const f_iname=$('#f_indicator_name'), f_plbl=$('#f_period_label');
+  const f_issue=$('#f_issue_text'), f_act=$('#f_action_text');
+  const f_owner=$('#f_action_owner'), f_due=$('#f_action_due'), f_stat=$('#f_action_status');
+  const Modal = window.bootstrap?.Modal; const mdl = (Modal && mdlEl) ? new Modal(mdlEl) : null;
+
+  const setStatus = (m)=>{ if(statusEl) statusEl.textContent = m || ''; };
+  const setDirty  = ()=>{ if(dirtyBadge) dirtyBadge.textContent = String(DIRTY.size); };
+
+  /* ---------- Period helpers (self-contained) ---------- */
+  const KH_MONTHS = ['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+  const pidOfMonth   = (y,m)=>`${y}M${String(m).padStart(2,'0')}`;
+  const pidOfQuarter = (y,q)=>`${y}Q${q}`;
+  const pidOfHalf    = (y,h)=>`${y}H${h}`;
+  const pidOfYear    = (y)=>`${y}Y12`;
+
+  function parsePid(pid){
+    const y = +String(pid).slice(0,4);
+    const tag = String(pid).slice(4); // M09 / Q3 / H1 / Y12
+    const type = tag.startsWith('M') ? 'month'
+               : tag.startsWith('Q') ? 'quarter'
+               : tag.startsWith('H') ? 'half'
+               : 'year';
+    const m = (type==='month') ? +tag.slice(1) : null;
+    return { year:y, tag, type, month:m };
+  }
+  function prettyPid(pid){
+    const {year, type, month, tag} = parsePid(pid);
+    if (type==='month')   return `${KH_MONTHS[month-1]} ${year}`;
+    if (type==='quarter') return `ត្រីមាស ${tag.slice(1)} • ${year}`;
+    if (type==='half')    return `ឆមាស ${tag.slice(1)} • ${year}`;
+    return `ឆ្នាំ ${year}`;
+  }
+  function prevPid(pid){
+    const p = parsePid(pid);
+    if (p.type==='month'){ let y=p.year, m=p.month-1; if(m<1){y--; m=12;} return pidOfMonth(y,m); }
+    if (p.type==='quarter'){ let y=p.year, q=+p.tag.slice(1)-1; if(q<1){y--; q=4;} return pidOfQuarter(y,q); }
+    if (p.type==='half'){ let y=p.year, h=(+p.tag.slice(1)===2)?1:2; if(+p.tag.slice(1)===1){y--; h=2;} return pidOfHalf(y,h); }
+    return pidOfYear(p.year-1);
+  }
+
+  async function buildPeriodSelectors(selYearEl, selPeriodEl, onChange){
+    // years ±3
+    const nowY = new Date().getFullYear();
+    if (!selYearEl.options.length){
+      for (let y=nowY-3; y<=nowY+3; y++){
+        const o=document.createElement('option'); o.value=y; o.textContent=y; selYearEl.appendChild(o);
+      }
+      selYearEl.value = String(nowY);
+    }
+
+    // try fetch periods; if fail → build local
+    let periods = await gasList('periods').catch(()=>[]);
+    periods = toArr(periods).map(r=>String(r.period_id)).filter(Boolean);
+
+    const ensureYear = (y)=>{
+      const has = periods.some(pid=>String(pid).startsWith(String(y)));
+      if (has) return;
+      for (let m=1;m<=12;m++) periods.push(pidOfMonth(y,m));
+      for (let q=1;q<=4;q++) periods.push(pidOfQuarter(y,q));
+      periods.push(pidOfHalf(y,1), pidOfHalf(y,2), pidOfYear(y));
+    };
+    [nowY-1, nowY, nowY+1, +selYearEl.value].forEach(ensureYear);
+
+    const renderForYear=(y)=>{
+      const pids = periods.filter(pid=>String(pid).startsWith(String(y)));
+      const months   = pids.filter(pid=>/M\d{2}$/.test(pid));
+      const quarters = pids.filter(pid=>/Q[1-4]$/.test(pid));
+      const halves   = pids.filter(pid=>/H[12]$/.test(pid));
+      const years    = pids.filter(pid=>/Y\d{2}$/.test(pid));
+      const opt = pid=>`<option value="${pid}">${prettyPid(pid)}</option>`;
+      const og  = (label,arr)=> arr.length ? `<optgroup label="${label}">${arr.map(opt).join('')}</optgroup>` : '';
+      selPeriodEl.innerHTML = og('ខែ (Monthly)', months)
+                            + og('ត្រីមាស (Quarterly)', quarters)
+                            + og('ឆមាស (Half-year)', halves)
+                            + og('ឆ្នាំ (Yearly)', years);
+      const d=new Date();
+      const prefer = (y===d.getFullYear()) ? pidOfMonth(y, d.getMonth()+1)
+                                           : (months[0]||quarters[0]||halves[0]||years[0]);
+      if (prefer) selPeriodEl.value = prefer;
+    };
+
+    renderForYear(+selYearEl.value);
+    selYearEl.addEventListener('change', ()=>{ renderForYear(+selYearEl.value); onChange?.(); });
+    selPeriodEl.addEventListener('change', ()=> onChange?.());
+  }
+
+  const curPeriod = ()=>{
+    const pid = selPeriod?.value || '';
+    const {year, tag, type, month} = parsePid(pid);
+    return { pid, year, monthTag: tag, type, monthNum: month };
   };
 
-  // ----- auth/role -----
-  const auth  = getAuth();
-  const SUPER = isSuper(auth);
-
-  // ================= INDICATORS (Reports) =================
-  const elPeriodI = $('#ind_period');
-  const elDeptI   = $('#ind_department');
-  const elUnitI   = $('#ind_unit');
-  const elInd     = $('#ind_indicator');
-  const elVal     = $('#ind_value');
-  const elNote    = $('#ind_note');
-  const repIdEl   = $('#report_id');
-  const tblRep    = $('#tblReports tbody');
-  const qReports  = $('#qReports');
-  const btnSaveReport = $('#btnSaveReport');
-
-  // ================= ISSUES =================
-  const elPeriodS = $('#iss_period');
-  const elDeptS   = $('#iss_department');
-  const elUnitS   = $('#iss_unit');
-  const elIndS    = $('#iss_indicator');
-  const issIdEl   = $('#issue_id');
-  const issTitle  = $('#iss_title');
-  const issSeverity = $('#iss_severity');
-  const issDesc   = $('#iss_desc');
-  const tblIss    = $('#tblIssues tbody');
-  const qIssues   = $('#qIssues');
-  const btnSaveIssue = $('#btnSaveIssue');
-
-  // guard (when user opens another tab)
-  if (!elPeriodI || !elDeptI || !elUnitI || !elInd || !tblRep || !elPeriodS || !elDeptS || !elUnitS || !tblIss) {
-    setStatus('statusEntry','components not found'); return;
-  }
-
-  // ----- state -----
-  let PERIODS=[], DEPTS=[], UNITS=[], INDS=[];
-  let REPORTS=[], ISSUES=[];
-
-  const deptName=id=>DEPTS.find(d=>String(d.department_id)===String(id))?.department_name||'';
-  const unitName=id=>UNITS.find(u=>String(u.unit_id)===String(id))?.unit_name||'';
-  const indName =id=>INDS.find(i=>String(i.indicator_id)===String(id))?.indicator_name||'';
-
-  // skeletons
-  tblRep.innerHTML = '<tr><td colspan="6" class="skel"></td></tr><tr><td colspan="6" class="skel"></td></tr>';
-  tblIss.innerHTML = '<tr><td colspan="6" class="skel"></td></tr><tr><td colspan="6" class="skel"></td></tr>';
-
-  // ----- load masters -----
-  try{
-    const [periods, depts, units, inds] = await Promise.all([
-      gasList('periods').catch(()=>[]),
-      gasList('departments').catch(()=>[]),
-      gasList('units').catch(()=>[]),
-      gasList('indicators').catch(()=>[]),
-    ]);
-
-    PERIODS = periods.sort((a,b)=>String(a.period_id).localeCompare(String(b.period_id)));
-    DEPTS   = SUPER? depts  : depts.filter(d=>String(d.department_id)===String(auth?.department_id));
-    UNITS   = SUPER? units  : units.filter(u=>String(u.department_id)===String(auth?.department_id));
-    INDS    = SUPER? inds   : inds.filter(i=>{
-      if (String(i.department_id)!==String(auth?.department_id)) return false;
-      return auth?.unit_id ? String(i.unit_id)===String(auth.unit_id) : true;
-    });
-
-    // fill periods
-    const optPeriods = PERIODS.map(p=>`<option value="${p.period_id}">${prettyPeriod(p.period_id)}</option>`).join('');
-    elPeriodI.innerHTML = optPeriods; elPeriodS.innerHTML = optPeriods;
-
-    // fill departments
-    const optDepts = `<option value="">— ការិយាល័យ —</option>` + DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
-    elDeptI.innerHTML = optDepts; elDeptS.innerHTML = optDepts;
-    if (!SUPER){
-      elDeptI.value = elDeptS.value = auth?.department_id||'';
-      elDeptI.disabled = elDeptS.disabled = true;
-    }
-
-    // fill units based on dep
-    const fillUnits = (sel, depId)=>{
-      const list = UNITS.filter(u=>String(u.department_id)===String(depId));
-      sel.innerHTML = `<option value="">— ផ្នែក —</option>` + list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
-      if (!SUPER){ sel.value = auth?.unit_id||''; sel.disabled = true; }
-    };
-    const dep0 = SUPER ? (elDeptI.value || DEPTS[0]?.department_id) : (auth?.department_id || '');
-    if (dep0){ fillUnits(elUnitI, dep0); fillUnits(elUnitS, dep0); }
-
-    // indicators (depends on dep/unit)
-    const refillIndicators = ()=>{
-      const dep = elDeptI.value || (SUPER? '' : auth?.department_id);
-      const uni = elUnitI.value || (SUPER? '' : auth?.unit_id);
-      const list = INDS.filter(i => (!dep || String(i.department_id)===String(dep)) && (!uni || String(i.unit_id)===String(uni)));
-      elInd.innerHTML  = list.length ? list.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('')
-                                     : `<option value="">— គ្មានសូចនាករ —</option>`;
-      elIndS.innerHTML = `<option value="">— (ស្រេចចិត្ត) —</option>` + list.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
-    };
-    refillIndicators();
-
-    // load latest rows
-    REPORTS = (await gasList('reports').catch(()=>[])).slice(-50).reverse();
-    ISSUES  = (await gasList('issues').catch(()=>[])).slice(-50).reverse();
-
-    renderReports(); renderIssues();
-    setStatus('statusEntry','បានផ្ទុកទិន្នន័យ');
-  }catch(e){
-    console.error('[data-entry] load', e);
-    setStatus('statusEntry','បរាជ័យផ្ទុកទិន្នន័យ');
-  }
-
-  // ----- linkage -----
-  elDeptI.addEventListener('change', ()=>{
-    const dep = elDeptI.value;
-    const list = UNITS.filter(u=>String(u.department_id)===String(dep));
-    elUnitI.innerHTML = `<option value="">— ផ្នែក —</option>` + list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
-    if (!SUPER){ elUnitI.value = auth?.unit_id||''; elUnitI.disabled = true; }
-    // indicators
-    const inds = INDS.filter(i => !dep || String(i.department_id)===String(dep));
-    elInd.innerHTML  = inds.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
-    elIndS.innerHTML = `<option value="">— (ស្រេចចិត្ត) —</option>` + inds.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
-  });
-  elUnitI.addEventListener('change', ()=>{
-    const dep = elDeptI.value, uni = elUnitI.value;
-    const inds = INDS.filter(i => (!dep || String(i.department_id)===String(dep)) && (!uni || String(i.unit_id)===String(uni)));
-    elInd.innerHTML  = inds.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
-    elIndS.innerHTML = `<option value="">— (ស្រេចចិត្ត) —</option>` + inds.map(i=>`<option value="${i.indicator_id}">${i.indicator_name}</option>`).join('');
-  });
-  elDeptS.addEventListener('change', ()=>{
-    const dep = elDeptS.value;
-    const list = UNITS.filter(u=>String(u.department_id)===String(dep));
-    elUnitS.innerHTML = `<option value="">— ផ្នែក —</option>` + list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
-    if (!SUPER){ elUnitS.value = auth?.unit_id||''; elUnitS.disabled = true; }
-  });
-
-  // =================== Reports form ===================
-  $('#btnResetReport')?.addEventListener('click', ()=>{ repIdEl.value=''; elVal.value=''; elNote.value=''; });
-
-  $('#frmReport')?.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const value = (elVal.value||'').trim();
-    elVal.classList.toggle('is-invalid', !value);
-    if (!value) return;
-
-    const payload = {
-      report_id    : repIdEl.value || null,
-      period_id    : elPeriodI.value,
-      indicator_id : elInd.value,
-      department_id: SUPER ? elDeptI.value : (auth?.department_id||''),
-      unit_id      : SUPER ? elUnitI.value : (auth?.unit_id||''),
-      value        : Number(value),
-      note         : elNote.value||'',
-    };
-
-    const old=btnSaveReport.innerHTML; btnSaveReport.disabled=true; btnSaveReport.innerHTML='កំពុងរក្សាទុក…';
-    try{
-      const res = await upsertReport(payload);
-      const row = res.row || res;
-      const i = REPORTS.findIndex(r=>String(r.report_id)===String(row.report_id));
-      if (i>=0) REPORTS[i]=row; else REPORTS.unshift(row);
-      renderReports();
-      repIdEl.value=''; elVal.value=''; elNote.value='';
-      setStatus('statusReports','រក្សាទុករួចរាល់');
-    }catch(err){
-      alert('បរាជ័យរក្សាទុក: ' + (err?.message||err));
-    }finally{
-      btnSaveReport.disabled=false; btnSaveReport.innerHTML=old;
-    }
-  });
-
-  function renderReports(){
-    const q = String(qReports?.value||'').trim().toLowerCase();
-    const rows = REPORTS.filter(r=>{
-      const hay = `${r.report_id} ${r.period_id} ${prettyPeriod(r.period_id)} ${indName(r.indicator_id)||''} ${r.value||''} ${r.note||''}`.toLowerCase();
-      return !q || hay.includes(q);
-    });
-    if (!rows.length){ tblRep.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`; return; }
-    const frag = document.createDocumentFragment();
-    for (const r of rows){
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><span class="badge text-bg-light border">#${r.report_id||''}</span></td>
-        <td>${prettyPeriod(r.period_id)}</td>
-        <td>${indName(r.indicator_id)||r.indicator_id}</td>
-        <td>${r.value ?? ''}</td>
-        <td>${r.note||''}</td>
-        <td class="text-end">
-          <button class="btn btn-sm btn-warning me-1" data-act="edit" data-id="${r.report_id}">កែ</button>
-          <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${r.report_id}">លុប</button>
-        </td>`;
-      frag.appendChild(tr);
-    }
-    tblRep.innerHTML=''; tblRep.appendChild(frag);
-  }
-  qReports?.addEventListener('input', renderReports);
-
-  tblRep.addEventListener('click', async (e)=>{
-    const btn = e.target.closest('button[data-act]'); if (!btn) return;
-    const id  = btn.dataset.id;
-    const row = REPORTS.find(r=>String(r.report_id)===String(id));
-    if (!row) return;
-
-    if (btn.dataset.act==='edit'){
-      repIdEl.value = row.report_id||'';
-      elPeriodI.value = row.period_id || elPeriodI.value;
-      elDeptI.value   = row.department_id || elDeptI.value; elDeptI.dispatchEvent(new Event('change'));
-      elUnitI.value   = row.unit_id || elUnitI.value;       elUnitI.dispatchEvent(new Event('change'));
-      elInd.value     = row.indicator_id || elInd.value;
-      elVal.value     = row.value || '';
-      elNote.value    = row.note  || '';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    if (btn.dataset.act==='del'){
-      if (!confirm('លុបរបាយការណ៍នេះមែនទេ?')) return;
-      try{
-        if (ID_FIELDS?.reports) await gasDelete('reports', ID_FIELDS.reports, row.report_id);
-        else await gasSave('reports', { report_id: row.report_id, _delete: true }); // fallback
-        REPORTS = REPORTS.filter(x=>String(x.report_id)!==String(id));
-        renderReports(); setStatus('statusReports','លុបរួចរាល់');
-      }catch(err){ alert(err?.message||err); }
-    }
-  });
-
-  // =================== Issues form ===================
-  $('#btnResetIssue')?.addEventListener('click', ()=>{ issIdEl.value=''; issTitle.value=''; issSeverity.value=''; issDesc.value=''; });
-
-  $('#frmIssue')?.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const title=(issTitle.value||'').trim();
-    issTitle.classList.toggle('is-invalid', !title);
-    if (!title) return;
-
-    const payload = {
-      issue_id     : issIdEl.value || null,
-      title        : title,
-      description  : issDesc.value || '',
-      severity     : issSeverity.value || '',
-      period_id    : elPeriodS.value,
-      indicator_id : elIndS.value || '',
-      department_id: SUPER ? elDeptS.value : (auth?.department_id||''),
-      unit_id      : SUPER ? elUnitS.value : (auth?.unit_id||''),
-      status       : 'open'
-    };
-
-    const old = btnSaveIssue.innerHTML; btnSaveIssue.disabled=true; btnSaveIssue.innerHTML='កំពុងរក្សាទុក…';
-    try{
-      const res = await gasSave('issues', payload);
-      const row = res.row || res;
-      const i = ISSUES.findIndex(x=>String(x.issue_id)===String(row.issue_id));
-      if (i>=0) ISSUES[i]=row; else ISSUES.unshift(row);
-      renderIssues(); $('#btnResetIssue')?.click();
-      setStatus('statusIssues','រក្សាទុករួចរាល់');
-    }catch(err){
-      alert('បរាជ័យរក្សាទុក: ' + (err?.message||err));
-    }finally{
-      btnSaveIssue.disabled=false; btnSaveIssue.innerHTML=old;
-    }
-  });
-
-  function renderIssues(){
-    const q = String(qIssues?.value||'').trim().toLowerCase();
-    const rows = ISSUES.filter(r=>{
-      const hay = `${r.issue_id} ${r.title||''} ${r.severity||''} ${r.period_id||''} ${indName(r.indicator_id)||''}`.toLowerCase();
-      return !q || hay.includes(q);
-    });
-    if (!rows.length){ tblIss.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`; return; }
-    const frag = document.createDocumentFragment();
-    for (const r of rows){
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><span class="badge text-bg-light border">#${r.issue_id||''}</span></td>
-        <td>${r.title || ''}</td>
-        <td>${(r.severity||'').toUpperCase()}</td>
-        <td>${prettyPeriod(r.period_id)}</td>
-        <td>${indName(r.indicator_id)||''}</td>
-        <td class="text-end">
-          <button class="btn btn-sm btn-warning me-1" data-act="edit" data-id="${r.issue_id}">កែ</button>
-          <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${r.issue_id}">លុប</button>
-        </td>`;
-      frag.appendChild(tr);
-    }
-    tblIss.innerHTML=''; tblIss.appendChild(frag);
-  }
-  qIssues?.addEventListener('input', renderIssues);
-
-  tblIss.addEventListener('click', async (e)=>{
-    const btn = e.target.closest('button[data-act]'); if(!btn) return;
-    const id  = btn.dataset.id;
-    const row = ISSUES.find(r=>String(r.issue_id)===String(id));
-    if (!row) return;
-
-    if (btn.dataset.act==='edit'){
-      issIdEl.value = row.issue_id || '';
-      elPeriodS.value = row.period_id || elPeriodS.value;
-      elDeptS.value   = row.department_id || elDeptS.value; elDeptS.dispatchEvent(new Event('change'));
-      elUnitS.value   = row.unit_id || elUnitS.value;
-      elIndS.value    = row.indicator_id || '';
-      issTitle.value  = row.title || '';
-      issSeverity.value = row.severity || '';
-      issDesc.value   = row.description || '';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    if (btn.dataset.act==='del'){
-      if (!confirm('លុបបញ្ហានេះមែនទេ?')) return;
-      try{
-        if (ID_FIELDS?.issues) await gasDelete('issues', ID_FIELDS.issues, row.issue_id);
-        else await gasSave('issues', { issue_id: row.issue_id, _delete: true });
-        ISSUES = ISSUES.filter(x=>String(x.issue_id)!==String(id));
-        renderIssues(); setStatus('statusIssues','លុបរួចរាល់');
-      }catch(err){ alert(err?.message||err); }
-    }
-  });
-}
-
-
- /* ======================= Indicators ======================= */
-async function initIndicators(){
-  const auth   = getAuth();
-  const SUPER  = isSuper(auth);
-
-  const table   = document.getElementById('tblIndicators');
-  const tbody   = table?.querySelector('tbody');
-  const btnAdd  = document.getElementById('btnAdd');
-  const frm     = document.getElementById('frmIndicator');
-  const selDept = document.getElementById('department_id');
-  const selUnit = document.getElementById('unit_id');
-  const selOwner= document.getElementById('owner_id'); // optional owner select
-  const btnSave = document.getElementById('btnSave');
-  const modal   = makeModal('mdlIndicator');
-
-  if (!table || !tbody || !btnAdd || !frm || !selDept || !selUnit || !btnSave) return;
-
-  let CACHE = { departments:[], unitsAll:[], usersAll:[], indicators:[], unitsByDep:new Map() };
-  let MAPS  = { deptName:{}, unitName:{}, userName:{} };
-
-  const setStatus = m=>{ const el=document.getElementById('statusLine'); if(el) el.textContent=m||''; };
-  const skel=()=>{ tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="6" class="skel"></td>`; tbody.appendChild(tr);} };
-  skel();
-
-  try{
-    let [depts, inds] = await Promise.all([
-      gasList('departments'),
-      gasList('indicators')
-    ]);
-
-    if (!SUPER && auth?.department_id){
-      const depId=String(auth.department_id);
-      depts = depts.filter(d=>String(d.department_id)===depId);
-      inds  = inds.filter(r=>String(r.department_id)===depId);
-    }
-
-    let unitsAll = SUPER ? await gasList('units')
-                         : await gasList('units',{department_id:auth?.department_id||''});
-
-    let usersAll=[];
-    if (selOwner){
-      if (SUPER) usersAll = await gasList('users');
-      else usersAll=[{user_id:auth?.user_id,user_name:auth?.user_name,full_name:auth?.full_name}];
-    }
-
-    CACHE.departments=depts;
-    CACHE.unitsAll=unitsAll||[];
-    CACHE.usersAll=usersAll||[];
-    CACHE.indicators=inds;
-
-    MAPS.deptName = Object.fromEntries(CACHE.departments.map(d=>[String(d.department_id),d.department_name]));
-    MAPS.unitName = Object.fromEntries(CACHE.unitsAll.map(u=>[String(u.unit_id),u.unit_name]));
-    MAPS.userName = Object.fromEntries(CACHE.usersAll.map(u=>[String(u.user_id),(u.full_name||u.user_name||('User#'+u.user_id))]));
-
-    await fillDeptSelect(SUPER?'':auth?.department_id);
-    await fillUnitSelect(SUPER?selDept.value:auth?.department_id, SUPER?'':auth?.unit_id);
-
-    if (selOwner){
-      if (SUPER){
-        selOwner.innerHTML=`<option value="">— ជ្រើសម្ចាស់ —</option>`+
-          CACHE.usersAll.map(u=>`<option value="${u.user_id}">${MAPS.userName[String(u.user_id)]}</option>`).join('');
-        selOwner.disabled=false;
-      } else {
-        selOwner.innerHTML=`<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`;
-        selOwner.disabled=true;
-      }
-    }
-
-    // SUPER auto-align dep/unit when owner changes
-    const usersById=Object.fromEntries((CACHE.usersAll||[]).map(u=>[String(u.user_id),u]));
-    selOwner?.addEventListener('change',async()=>{
-      if(!SUPER) return;
-      const u=usersById[String(selOwner.value||'')];
-      if(!u) return;
-      selDept.value=u.department_id||'';
-      selDept.disabled=false;
-      await fillUnitSelect(u.department_id,u.unit_id||'');
-      selUnit.disabled=false;
-      setStatus(`Aligned to ${u.full_name||u.user_name}`);
-    });
-
-    renderTable();
-    setStatus(`បានផ្ទុក ${inds.length} សូចនាករ`);
-  }catch(e){
-    console.error(e);
-    tbody.innerHTML=`<tr><td colspan="6" class="text-center text-danger py-4">បរាជ័យផ្ទុកទិន្នន័យ</td></tr>`;
-    setStatus('បរាជ័យផ្ទុកទិន្នន័យ');
-  }
-
-  async function fillDeptSelect(selected){
-    selDept.innerHTML=`<option value="">— ជ្រើសការិយាល័យ —</option>`+
-      CACHE.departments.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
-    if(selected) selDept.value=selected;
-    selDept.disabled=!SUPER;
-  }
-  async function fillUnitSelect(depId,selected){
-    selUnit.innerHTML=`<option value="">— ជ្រើសផ្នែក —</option>`;
-    if(!depId){ selUnit.disabled=true; return; }
-    let units=CACHE.unitsByDep.get(String(depId));
-    if(!units){
-      const fromAll=CACHE.unitsAll.filter(u=>String(u.department_id)===String(depId));
-      units=fromAll.length?fromAll:await gasList('units',{department_id:depId});
-      CACHE.unitsByDep.set(String(depId),units);
-      for(const u of units) MAPS.unitName[String(u.unit_id)]=u.unit_name;
-    }
-    selUnit.innerHTML=`<option value="">— ជ្រើសផ្នែក —</option>`+(units||[]).map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
-    if(selected) selUnit.value=selected;
-    selUnit.disabled=!SUPER;
-  }
-
-  function canEditRow(ind){
-    if(SUPER) return true;
-    return String(ind.department_id)===String(auth?.department_id||'')
-        && String(ind.unit_id||'')===String(auth?.unit_id||'')
-        && String(ind.owner_id||'')===String(auth?.user_id||'');
-  }
-
- function renderTable(){
-  if(!CACHE.indicators.length){
-    tbody.innerHTML=`<tr><td colspan="7" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
-    return;
-  }
-  const frag=document.createDocumentFragment();
-  for(const ind of CACHE.indicators){
-    const depN   = MAPS.deptName[String(ind.department_id)]||'';
-    const unitN  = MAPS.unitName[String(ind.unit_id)]||'';
-    const ownerN = MAPS.userName[String(ind.owner_id)]||'';
-    const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td>${ind.indicator_id}</td>
-      <td>${ind.indicator_name||''}</td>
-      <td>${ind.indicator_type||''}</td>
-      <td>${depN}</td>
-      <td>${unitN}</td>
-      <td>${ownerN||''}</td>
-      <td class="text-end">
-        ${canEditRow(ind)
-          ? `<button class="btn btn-sm btn-warning me-1" data-act="edit" data-id="${ind.indicator_id}">កែ</button>
-             <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${ind.indicator_id}">លុប</button>`
-          : `<span class="text-muted">—</span>`}
-      </td>`;
-    frag.appendChild(tr);
-  }
-  tbody.innerHTML='';
-  tbody.appendChild(frag);
-}
-
-
-  selDept.addEventListener('change',e=>fillUnitSelect(e.target.value,''));
-  btnAdd.addEventListener('click',async()=>{
-    frm.reset(); document.getElementById('indicator_id').value='';
-    if(SUPER){
-      selDept.disabled=false; await fillUnitSelect(selDept.value,'');
-      if(selOwner){ selOwner.disabled=false; selOwner.value=''; }
-    }else{
-      selDept.value=auth?.department_id||''; selDept.disabled=true;
-      await fillUnitSelect(auth?.department_id,auth?.unit_id); selUnit.disabled=true;
-      if(selOwner){
-        selOwner.innerHTML=`<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`;
-        selOwner.disabled=true;
-      }
-    }
-    modal?.show();
-  });
-
-  tbody.addEventListener('click',async e=>{
-    const btn=e.target.closest('button[data-act]'); if(!btn) return;
-    const id=btn.getAttribute('data-id');
-    const row=CACHE.indicators.find(x=>String(x.indicator_id)===String(id));
-    if(!row) return;
-
-    if(btn.dataset.act==='edit'){
-      if(!canEditRow(row) && !SUPER) return alert('Permission denied');
-      frm.reset();
-      document.getElementById('indicator_id').value=row.indicator_id;
-      document.getElementById('indicator_name').value=row.indicator_name||'';
-      document.getElementById('indicator_type').value=row.indicator_type||'';
-      selDept.value=row.department_id||''; if(!SUPER) selDept.disabled=true;
-      await fillUnitSelect(row.department_id,row.unit_id||''); if(!SUPER) selUnit.disabled=true;
-      if(selOwner){
-        if(SUPER){ selOwner.value=row.owner_id||''; selOwner.disabled=false; }
-        else{ selOwner.innerHTML=`<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`; selOwner.disabled=true; }
-      }
-      modal?.show();
-    }
-
-    if(btn.dataset.act==='del'){
-      if(!canEditRow(row) && !SUPER) return alert('Permission denied');
-      if(!confirm('លុបមែនទេ?')) return;
-      try{
-        await gasDelete('indicators',ID_FIELDS.indicators,row.indicator_id);
-        CACHE.indicators=CACHE.indicators.filter(x=>String(x.indicator_id)!==String(id));
-        renderTable();
-      }catch(err){ alert('បរាជ័យលុប: '+(err?.message||err)); }
-    }
-  });
-
-  frm.addEventListener('submit',async e=>{
-    e.preventDefault();
-    const payload={
-      indicator_id  : document.getElementById('indicator_id').value||null,
-      indicator_name: document.getElementById('indicator_name').value.trim(),
-      indicator_type: document.getElementById('indicator_type').value.trim(),
-      department_id : SUPER?selDept.value:(auth?.department_id||''),
-      unit_id       : SUPER?selUnit.value:(auth?.unit_id||'')
-    };
-    if(selOwner) payload.owner_id=SUPER?(selOwner.value||''):(auth?.user_id||'');
-
-    const nameEl=document.getElementById('indicator_name');
-    nameEl.classList.toggle('is-invalid',!payload.indicator_name);
-    if(!payload.indicator_name) return;
-
-    const old=btnSave.innerHTML; btnSave.disabled=true; btnSave.innerHTML='កំពុងរក្សាទុក…';
-    try{
-      const saved=await gasSave('indicators',payload);
-      const row=saved.row||saved;
-      const i=CACHE.indicators.findIndex(x=>String(x.indicator_id)===String(row.indicator_id));
-      if(i>=0) CACHE.indicators[i]=row; else CACHE.indicators.push(row);
-      renderTable(); modal?.hide();
-      setStatus('រក្សាទុករួចរាល់');
-    }catch(err){ alert('បរាជ័យរក្សាទុក: '+(err?.message||err)); }
-    finally{ btnSave.disabled=false; btnSave.innerHTML=old; }
-  });
-}
-
-
-
-/* ======================= Users ======================= */
-async function initUsers(){
-  const auth  = getAuth();
-  const SUPER = isSuper(auth);
-
-  // ---- DOM ----
-  const tbl      = document.getElementById('tblUsers');
-  const tbody    = tbl?.querySelector('tbody');
-  const btnAdd   = document.getElementById('btnAddUser');
-  const frm      = document.getElementById('frmUser');
-  const modal    = makeModal('mdlUser');
-
-  const idEl     = document.getElementById('user_id');
-  const nameEl   = document.getElementById('user_name');
-  const fullEl   = document.getElementById('full_name');
-  const roleEl   = document.getElementById('user_type');
-  const passEl   = document.getElementById('user_pass');
-  const selDept  = document.getElementById('department_id');
-  const selUnit  = document.getElementById('unit_id');
-  const btnSave  = document.getElementById('btnSaveUser');
-  const txtQ     = document.getElementById('txtSearchUsers'); // (មាន/មិនមានក៏បាន)
-  const $status  = (m)=>{ const el=document.getElementById('statusUsers'); if(el) el.textContent=m||''; };
-
-  if (!tbl || !tbody || !btnAdd || !frm || !idEl || !nameEl || !roleEl || !selDept || !selUnit || !btnSave) return;
-
-  // ---- Skeleton ----
-  (function skel(){ tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="6" class="skel"></td>`; tbody.appendChild(tr);} })();
-
-  // ---- State ----
-  let ROWS = [];      // users
-  let DEPTS = [];     // departments
-  let UNITS = [];     // units
-  let FILTER_Q = '';  // search
-  let SORT = { key:'user_id', dir:1 }; // 1=asc, -1=desc
-
-  const deptName=(id)=> DEPTS.find(d=>String(d.department_id)===String(id))?.department_name || '';
-  const unitName=(id)=> UNITS.find(u=>String(u.unit_id)===String(id))?.unit_name || '';
-
-  const badgeRole = (r)=>{
-    const v = String(r||'').toLowerCase();
-    const cls = v==='super' || v==='superuser' ? 'bg-primary'
-              : v==='admin'                    ? 'bg-warning text-dark'
-              : v.includes('data')             ? 'bg-success'
-              : 'bg-secondary';
-    const txt = v==='superuser' ? 'super' : v;
-    return `<span class="badge ${cls} text-uppercase">${txt||'viewer'}</span>`;
-  };
-
-  // ---- Load ----
-  try{
-    [ROWS, DEPTS, UNITS] = await Promise.all([
-      gasList('users'),
-      gasList('departments'),
-      gasList('units'),
-    ]);
-    render(); $status(`បានផ្ទុក ${ROWS.length} អ្នកប្រើប្រាស់`);
-  }catch(e){
-    console.error(e);
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
-    $status('បរាជ័យទាញទិន្នន័យ');
-  }
-
-  // ---- Select fill ----
-  function fillDeptSelect(selected){
-    selDept.innerHTML = `<option value="">— ជ្រើសការិយាល័យ —</option>`+
+  /* ---------- State ---------- */
+  let DEPTS=[], UNITS=[], IND=[], VALUES=[], ACTIONS=[];
+  let ROWS=[]; let FILTER_Q=''; let ONLY_MY=false; let SHOW_ONLY_EMPTY=false;
+  const DIRTY = new Map(); // key "indicator_id|unit_id" -> payload
+
+  /* ---------- UI helpers ---------- */
+  function fillDept(){
+    selDept.innerHTML = `<option value="">ការិយាល័យទាំងអស់</option>`+
       DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
-    if (selected) selDept.value = selected;
-    selDept.disabled = !SUPER;
   }
-  function fillUnitSelect(depId, selected){
-    selUnit.innerHTML = `<option value="">— ជ្រើសផ្នែក —</option>`;
-    if (!depId){ selUnit.disabled = true; return; }
-    const list = UNITS.filter(u=>String(u.department_id)===String(depId));
-    selUnit.innerHTML = `<option value="">— ជ្រើសផ្នែក —</option>`+
+  function fillUnit(depId){
+    const list = depId ? UNITS.filter(u=>String(u.department_id)===String(depId)) : UNITS;
+    selUnit.innerHTML = `<option value="">ផ្នែកទាំងអស់</option>`+
       list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
-    if (selected) selUnit.value = selected;
-    selUnit.disabled = !SUPER;
+  }
+  function applyFilters(list){
+    const dep = selDept.value||''; const unit=selUnit.value||'';
+    let out = list.slice();
+    if (dep)  out = out.filter(r=>String(r.department_id)===String(dep));
+    if (unit) out = out.filter(r=>String(r.unit_id)===String(unit));
+    if (ONLY_MY){
+      const uid = auth?.unit_id;
+      if (uid!=null) out = out.filter(r=>String(r.unit_id)===String(uid));
+    }
+    if (FILTER_Q){
+      const q = FILTER_Q.toLowerCase();
+      out = out.filter(r =>
+        String(r.indicator_id).includes(q) ||
+        (r.indicator_name||'').toLowerCase().includes(q) ||
+        (r.unit_name||'').toLowerCase().includes(q) ||
+        (r.department_name||'').toLowerCase().includes(q)
+      );
+    }
+    if (SHOW_ONLY_EMPTY){
+      out = out.filter(r => r.value==='' || r.value==null || String(r.value).trim()==='');
+    }
+    return out;
   }
 
-  // ---- Render table (filter + sort) ----
   function render(){
-    let list = ROWS.slice();
+    const rowsAll = ROWS.slice();
+    const filledCount = rowsAll.reduce((n,r)=>{
+      const v = (DIRTY.get(`${r.indicator_id}|${r.unit_id}`)?.value ?? r.value);
+      return n + ((v!=='' && v!=null && String(v).trim()!=='') ? 1 : 0);
+    }, 0);
+    if (completeInfo) completeInfo.textContent = `${filledCount} / ${rowsAll.length}`;
 
-    // filter
-    if (FILTER_Q){
-      const q = FILTER_Q;
-      list = list.filter(r=>{
-        const hay = `${r.user_id} ${r.user_name||''} ${r.full_name||''} ${r.user_type||''} ${deptName(r.department_id)} ${unitName(r.unit_id)}`.toLowerCase();
-        return hay.includes(q);
-      });
-    }
+    const rows = applyFilters(ROWS);
+    if (countInfo) countInfo.textContent = `${rows.length}`;
+    if (!tbody) return;
 
-    // sort (localeNumeric)
-    list.sort((a,b)=>{
-      const key = SORT.key;
-      const av = (a[key] ?? '').toString();
-      const bv = (b[key] ?? '').toString();
-      return av.localeCompare(bv, undefined, { numeric:true, sensitivity:'base' }) * SORT.dir;
-    });
-
-    if (!list.length){
+    if (!rows.length){
       tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
       return;
     }
 
     const frag = document.createDocumentFragment();
-    for (const r of list){
-      const tr = document.createElement('tr');
-      tr.dataset.id = r.user_id;
+    for (const r of rows){
+      const key = `${r.indicator_id}|${r.unit_id}`;
+      const val = (DIRTY.get(key)?.value ?? r.value ?? '');
+      const missing = (val==='' || val==null || String(val).trim()==='');
+
+      const pidLabel = prettyPid(`${r.year}${r.month}`);
+      const tr  = document.createElement('tr');
+      if (missing) tr.classList.add('row-missing');
+
       tr.innerHTML = `
-        <td style="width:80px"><span class="badge text-bg-light border">#${r.user_id}</span></td>
-        <td>${r.user_name || ''}</td>
-        <td>${r.full_name || ''}</td>
-        <td style="width:140px">${badgeRole(r.user_type)}</td>
-        <td>${deptName(r.department_id)}${r.unit_id?` / ${unitName(r.unit_id)}`:''}</td>
-        <td class="text-end" style="width:160px">
-          ${SUPER
-            ? `<button class="btn btn-sm btn-warning me-1" data-act="edit"><i class="bi bi-pencil-square"></i> កែ</button>
-               <button class="btn btn-sm btn-danger"  data-act="del"><i class="bi bi-trash"></i> លុប</button>`
-            : `<span class="text-muted">—</span>`}
+        <td>${r.indicator_id}</td>
+        <td>
+          <div class="fw-semibold">${r.indicator_name||''}</div>
+          <div class="small mt-1">
+            ${missing
+              ? '<span class="badge badge-missing">មិនទាន់</span>'
+              : '<span class="badge badge-done">បានបំពេញ</span>'}
+          </div>
+        </td>
+        <td>${r.department_name||''}${r.unit_name?` / ${r.unit_name}`:''}</td>
+        <td>${pidLabel}</td>
+        <td>
+          <input
+            type="number" inputmode="decimal" pattern="^[0-9]+(\\.[0-9]*)?$"
+            step="any" min="0"
+            class="form-control form-control-sm inp-val"
+            data-key="${key}" value="${missing ? '' : val}" placeholder="0"
+          />
+        </td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-primary" data-act="issue" data-key="${key}">
+            Issue / Action
+          </button>
         </td>`;
       frag.appendChild(tr);
     }
-    tbody.innerHTML = '';
-    tbody.appendChild(frag);
+    tbody.innerHTML=''; tbody.appendChild(frag);
+  }
 
-    // update sort header classes (if you add th.th-sort with data-sort)
-    tbl.querySelectorAll('th.th-sort').forEach(th=>{
-      th.classList.remove('asc','desc');
-      if (th.dataset.sort === SORT.key) th.classList.add(SORT.dir===1?'asc':'desc');
+  /* ---------- Initial load ---------- */
+  try{
+    await buildPeriodSelectors(selYear, selPeriod, ()=>reloadPeriod());
+
+    const [deps, units, inds] = await Promise.all([
+      gasList('departments'), gasList('units'), gasList('indicators')
+    ]);
+    DEPTS = toArr(deps); UNITS = toArr(units); IND = toArr(inds);
+
+    fillDept(); fillUnit('');
+    await reloadPeriod();
+  }catch(e){
+    console.error(e);
+    setStatus('បរាជ័យផ្ទុកទិន្នន័យ');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-danger text-center py-4">មិនអាចទាញទិន្នន័យបាន</td></tr>`;
+  }
+
+  /* ---------- Data reload ---------- */
+  async function reloadPeriod(){
+    const P = curPeriod();
+    setStatus('កំពុងផ្ទុកទិន្នន័យរយៈពេល…');
+
+    const [values, actions] = await Promise.all([
+      gasList('reports', { year:P.year, month:P.monthTag }),
+      gasList('actions', { year:P.year, month:P.monthTag }),
+    ]).catch(()=>[[],[]]);
+
+    VALUES  = toArr(values);
+    ACTIONS = toArr(actions);
+
+    const depName = Object.fromEntries(DEPTS.map(d=>[String(d.department_id), d.department_name]));
+    const unitName= Object.fromEntries(UNITS.map(u=>[String(u.unit_id), u.unit_name]));
+    const vMap = new Map(VALUES.map(v => [`${v.indicator_id}|${v.unit_id}`, v]));
+    const aMap = new Map(ACTIONS.map(a => [`${a.indicator_id}|${a.unit_id}`, a]));
+    const myUnit = String(auth?.unit_id||'');
+
+    ROWS = IND.map(ind=>{
+      const key = `${ind.indicator_id}|${ind.unit_id}`;
+      const v = vMap.get(key) || {};
+      const a = aMap.get(key) || {};
+      return {
+        indicator_id   : ind.indicator_id,
+        indicator_name : ind.indicator_name,
+        department_id  : ind.department_id,
+        department_name: depName[String(ind.department_id)]||'',
+        unit_id        : ind.unit_id,
+        unit_name      : unitName[String(ind.unit_id)]||'',
+        assigned_to_me : String(ind.unit_id)===myUnit,
+        year           : P.year,
+        month          : P.monthTag,    // e.g. M09 / Q3 / H1 / Y12
+        value          : v.value ?? null,
+        report_id      : v.report_id || null,
+        action_id      : a.action_id || null,
+        issue_text     : a.issue_text||'',
+        action_text    : a.action_text||'',
+        action_owner   : a.action_owner||'',
+        action_due     : a.action_due||'',
+        action_status  : a.action_status||'',
+      };
+    });
+
+    DIRTY.clear(); setDirty(); setStatus('');
+    render();
+  }
+
+  /* ---------- Input sanitizers & save ---------- */
+  function cleanDecimal(s){
+    s = String(s || '');
+    s = s.replace(/[^0-9.]/g, '');
+    const i = s.indexOf('.');
+    if (i !== -1) s = s.slice(0,i+1) + s.slice(i+1).replace(/\./g,'');
+    if (s === '.') s = '';
+    return s;
+  }
+  function markDirtyFromInput(inp){
+    const key = inp.dataset.key;
+    const [indicator_id, unit_id] = key.split('|');
+    const P = curPeriod();
+    const base = ROWS.find(r=>String(r.indicator_id)===indicator_id && String(r.unit_id)===unit_id) || {};
+    DIRTY.set(key, {
+      indicator_id: +indicator_id,
+      unit_id: +unit_id,
+      year: P.year,
+      month: P.monthTag,
+      value: inp.value,
+      report_id: base.report_id || null
+    });
+    setDirty();
+  }
+  async function saveOne(key){
+    const row = DIRTY.get(key); if(!row) return;
+    try{
+      const res = await gasSave('reports', row);
+      const saved = res?.row || res || {};
+      const i = ROWS.findIndex(r=>`${r.indicator_id}|${r.unit_id}`===key);
+      if (i>=0){
+        ROWS[i].value     = row.value;
+        ROWS[i].report_id = saved.report_id || ROWS[i].report_id || null;
+      }
+      DIRTY.delete(key); setDirty(); setStatus('បានរក្សាទុក');
+    }catch(err){
+      console.error(err); setStatus('បរាជ័យរក្សាទុក ('+key+')');
+    }
+  }
+
+  /* ---------- Events ---------- */
+  selDept?.addEventListener('change', ()=>{ fillUnit(selDept.value); render(); });
+  selUnit?.addEventListener('change', ()=>render());
+  inpSearch?.addEventListener('input', e=>{ FILTER_Q = String(e.target.value||'').trim().toLowerCase(); render(); });
+  swOnlyMy?.addEventListener('change', e=>{ ONLY_MY = !!e.target.checked; render(); });
+  onlyEmpty?.addEventListener('change', e=>{ SHOW_ONLY_EMPTY = !!e.target.checked; render(); });
+
+  // numeric-only inputs
+  tbody?.addEventListener('keydown', (e)=>{
+    const inp = e.target.closest('.inp-val'); if(!inp) return;
+    const ctrl = ['Backspace','Delete','Tab','Escape','Enter','ArrowLeft','ArrowRight','Home','End'];
+    if (ctrl.includes(e.key)) {
+      if (e.key==='Enter'){ e.preventDefault(); inp.blur(); }
+      return;
+    }
+    if (e.key === '.') { if (inp.value.includes('.')) e.preventDefault(); return; }
+    if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+  });
+  tbody?.addEventListener('input', (e)=>{
+    const inp = e.target.closest('.inp-val'); if(!inp) return;
+    const cleaned = cleanDecimal(inp.value);
+    if (inp.value !== cleaned) inp.value = cleaned;
+    markDirtyFromInput(inp);
+  });
+  tbody?.addEventListener('paste', (e)=>{
+    const inp = e.target.closest('.inp-val'); if(!inp) return;
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    const cleaned = cleanDecimal(text);
+    const { selectionStart:s, selectionEnd:t, value:v } = inp;
+    inp.value = cleanDecimal(v.slice(0,s) + cleaned + v.slice(t));
+    markDirtyFromInput(inp);
+  });
+  tbody?.addEventListener('blur', async (e)=>{
+    const inp = e.target.closest('.inp-val'); if(!inp) return;
+    const key = inp.dataset.key;
+    if (!DIRTY.has(key)) return;
+    await saveOne(key);
+  }, true);
+
+  btnSaveAll?.addEventListener('click', async ()=>{
+    const keys = Array.from(DIRTY.keys());
+    if (!keys.length){ setStatus('គ្មានអ្វីត្រូវរក្សាទុក'); return; }
+    setStatus('កំពុងរក្សាទុកទាំងអស់…');
+    for (const k of keys){ /* eslint-disable no-await-in-loop */ await saveOne(k); }
+    render(); setStatus('រក្សាទុករួចរាល់');
+  });
+
+  btnCopy?.addEventListener('click', async ()=>{
+    const cur = curPeriod(); const prev = prevPid(cur.pid);
+    setStatus('កំពុងយកតម្លៃរយៈពេលមុន…');
+    try{
+      const pp = parsePid(prev);
+      const prevVals = toArr(await gasList('reports', { year:pp.year, month:pp.tag }));
+      const mapPrev = new Map(prevVals.map(r=>[`${r.indicator_id}|${r.unit_id}`, r.value]));
+      let changed=0;
+      for (const r of ROWS){
+        const key = `${r.indicator_id}|${r.unit_id}`;
+        if ((r.value==null||r.value==='') && mapPrev.has(key)){
+          DIRTY.set(key, {
+            indicator_id:r.indicator_id, unit_id:r.unit_id,
+            year:cur.year, month:cur.monthTag,
+            value: mapPrev.get(key), report_id:r.report_id||null
+          });
+          changed++;
+        }
+      }
+      setDirty(); render();
+      setStatus(`បានបំពេញពីរយៈពេលមុន ${changed} ជួរ (សូមចុច "រក្សាទុកទាំងអស់")`);
+    }catch(err){ console.error(err); setStatus('បរាជ័យយករយៈពេលមុន'); }
+  });
+
+  // Issue/Action modal
+  tbody?.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-act="issue"]'); if(!btn) return;
+    const key = btn.dataset.key;
+    const row = ROWS.find(r=>`${r.indicator_id}|${r.unit_id}`===key); if(!row) return;
+    const P = curPeriod();
+    f_aid.value = row.action_id || '';
+    f_iid.value = row.indicator_id;
+    f_uid.value = row.unit_id;
+    f_iname.textContent = row.indicator_name||'';
+    f_plbl.textContent  = prettyPid(P.pid);
+    f_issue.value = row.issue_text || '';
+    f_act.value   = row.action_text || '';
+    f_owner.value = row.action_owner || '';
+    f_due.value   = row.action_due || '';
+    f_stat.value  = row.action_status || '';
+    $('#editStatus').textContent='';
+    mdl?.show();
+  });
+  frm?.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const P = curPeriod();
+    const payload = {
+      action_id   : f_aid.value || null,
+      indicator_id: +f_iid.value,
+      unit_id     : +f_uid.value,
+      year:P.year, month:P.monthTag,
+      issue_text  : f_issue.value.trim(),
+      action_text : f_act.value.trim(),
+      action_owner: f_owner.value.trim(),
+      action_due  : f_due.value || '',
+      action_status: f_stat.value || ''
+    };
+    const btn = $('#btnSaveIssue'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='កំពុងរក្សាទុក…';
+    try{
+      const res = await gasSave('actions', payload);
+      const saved = res?.row || res || {};
+      const i = ROWS.findIndex(r => r.indicator_id===payload.indicator_id && r.unit_id===payload.unit_id);
+      if (i>=0){
+        ROWS[i].action_id    = saved.action_id || ROWS[i].action_id || null;
+        ROWS[i].issue_text   = payload.issue_text;
+        ROWS[i].action_text  = payload.action_text;
+        ROWS[i].action_owner = payload.action_owner;
+        ROWS[i].action_due   = payload.action_due;
+        ROWS[i].action_status= payload.action_status;
+      }
+      mdl?.hide(); setStatus('រក្សាទុក Issue/Action រួចរាល់');
+    }catch(err){
+      console.error(err);
+      $('#editStatus').textContent = 'បរាជ័យរក្សាទុក: ' + (err?.message || err);
+    }finally{
+      btn.disabled=false; btn.innerHTML=old;
+    }
+  });
+
+  // filters re-render
+  selDept?.addEventListener('change', ()=>{ fillUnit(selDept.value); render(); });
+}
+
+
+
+
+/*======================= Issuese============================= */
+
+
+
+
+/* ======================= Indicators ======================= */
+  async function initIndicators(){
+    const auth   = getAuth();
+    const SUPER  = isSuper(auth);
+
+    const table   = document.getElementById('tblIndicators');
+    const tbody   = table?.querySelector('tbody');
+    const btnAdd  = document.getElementById('btnAdd');
+    const frm     = document.getElementById('frmIndicator');
+    const selDept = document.getElementById('department_id');
+    const selUnit = document.getElementById('unit_id');
+    const selOwner= document.getElementById('owner_id');
+    const btnSave = document.getElementById('btnSave');
+    const modal   = makeModal('mdlIndicator');
+
+    if (!table || !tbody || !btnAdd || !frm || !selDept || !selUnit || !btnSave) return;
+
+    let CACHE = { departments:[], unitsAll:[], usersAll:[], indicators:[], unitsByDep:new Map() };
+    let MAPS  = { deptName:{}, unitName:{}, userName:{} };
+
+    const setStatus = m=>{ const el=document.getElementById('statusLine'); if(el) el.textContent=m||''; };
+    const skel=()=>{ tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="6" class="skel"></td>`; tbody.appendChild(tr);} };
+    skel();
+
+    try{
+      let [depts, inds] = await Promise.all([
+        gasList('departments'),
+        gasList('indicators')
+      ]);
+
+      if (!SUPER && auth?.department_id){
+        const depId=String(auth.department_id);
+        depts = depts.filter(d=>String(d.department_id)===depId);
+        inds  = inds.filter(r=>String(r.department_id)===depId);
+      }
+
+      let unitsAll = SUPER ? await gasList('units')
+                           : await gasList('units',{department_id:auth?.department_id||''});
+
+      let usersAll=[];
+      if (selOwner){
+        if (SUPER) usersAll = await gasList('users');
+        else usersAll=[{user_id:auth?.user_id,user_name:auth?.user_name,full_name:auth?.full_name}];
+      }
+
+      CACHE.departments=depts||[];
+      CACHE.unitsAll=unitsAll||[];
+      CACHE.usersAll=usersAll||[];
+      CACHE.indicators=inds||[];
+
+      MAPS.deptName = Object.fromEntries(CACHE.departments.map(d=>[String(d.department_id),d.department_name]));
+      MAPS.unitName = Object.fromEntries(CACHE.unitsAll.map(u=>[String(u.unit_id),u.unit_name]));
+      MAPS.userName = Object.fromEntries(CACHE.usersAll.map(u=>[String(u.user_id),(u.full_name||u.user_name||('User#'+u.user_id))]));
+
+      await fillDeptSelect(SUPER?'':auth?.department_id);
+      await fillUnitSelect(SUPER?selDept.value:auth?.department_id, SUPER?'':auth?.unit_id);
+
+      if (selOwner){
+        if (SUPER){
+          selOwner.innerHTML=`<option value="">— ជ្រើសម្ចាស់ —</option>`+
+            CACHE.usersAll.map(u=>`<option value="${u.user_id}">${MAPS.userName[String(u.user_id)]}</option>`).join('');
+          selOwner.disabled=false;
+        } else {
+          selOwner.innerHTML=`<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`;
+          selOwner.disabled=true;
+        }
+      }
+
+      const usersById=Object.fromEntries((CACHE.usersAll||[]).map(u=>[String(u.user_id),u]));
+      selOwner?.addEventListener('change',async()=>{
+        if(!SUPER) return;
+        const u=usersById[String(selOwner.value||'')];
+        if(!u) return;
+        selDept.value=u.department_id||'';
+        selDept.disabled=false;
+        await fillUnitSelect(u.department_id,u.unit_id||'');
+        selUnit.disabled=false;
+        setStatus(`Aligned to ${u.full_name||u.user_name}`);
+      });
+
+      renderTable();
+      setStatus(`បានផ្ទុក ${CACHE.indicators.length} សូចនាករ`);
+    }catch(e){
+      console.error(e);
+      tbody.innerHTML=`<tr><td colspan="6" class="text-center text-danger py-4">បរាជ័យផ្ទុកទិន្នន័យ</td></tr>`;
+      setStatus('បរាជ័យផ្ទុកទិន្នន័យ');
+    }
+
+    async function fillDeptSelect(selected){
+      selDept.innerHTML=`<option value="">— ជ្រើសការិយាល័យ —</option>`+
+        CACHE.departments.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+      if(selected) selDept.value=selected;
+      selDept.disabled=!SUPER;
+    }
+    async function fillUnitSelect(depId,selected){
+      selUnit.innerHTML=`<option value="">— ជ្រើសផ្នែក —</option>`;
+      if(!depId){ selUnit.disabled=true; return; }
+      let units=CACHE.unitsByDep.get(String(depId));
+      if(!units){
+        const fromAll=CACHE.unitsAll.filter(u=>String(u.department_id)===String(depId));
+        units=fromAll.length?fromAll:await gasList('units',{department_id:depId});
+        CACHE.unitsByDep.set(String(depId),units);
+        for(const u of units) MAPS.unitName[String(u.unit_id)]=u.unit_name;
+      }
+      selUnit.innerHTML=`<option value="">— ជ្រើសផ្នែក —</option>`+(units||[]).map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+      if(selected) selUnit.value=selected;
+      selUnit.disabled=!SUPER;
+    }
+
+    function canEditRow(ind){
+      if(SUPER) return true;
+      return String(ind.department_id)===String(auth?.department_id||'')
+          && String(ind.unit_id||'')===String(auth?.unit_id||'')
+          && String(ind.owner_id||'')===String(auth?.user_id||'');
+    }
+
+    function renderTable(){
+      if(!CACHE.indicators.length){
+        tbody.innerHTML=`<tr><td colspan="7" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+        return;
+      }
+      const frag=document.createDocumentFragment();
+      for(const ind of CACHE.indicators){
+        const depN   = MAPS.deptName[String(ind.department_id)]||'';
+        const unitN  = MAPS.unitName[String(ind.unit_id)]||'';
+        const ownerN = MAPS.userName[String(ind.owner_id)]||'';
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td>${ind.indicator_id}</td>
+          <td>${ind.indicator_name||''}</td>
+          <td>${ind.indicator_type||''}</td>
+          <td>${depN}</td>
+          <td>${unitN}</td>
+          <td>${ownerN||''}</td>
+          <td class="text-end">
+            ${canEditRow(ind)
+              ? `<button class="btn btn-sm btn-warning me-1" data-act="edit" data-id="${ind.indicator_id}">កែ</button>
+                 <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${ind.indicator_id}">លុប</button>`
+              : `<span class="text-muted">—</span>`}
+          </td>`;
+        frag.appendChild(tr);
+      }
+      tbody.innerHTML='';
+      tbody.appendChild(frag);
+    }
+
+    selDept.addEventListener('change',e=>fillUnitSelect(e.target.value,''));
+    btnAdd.addEventListener('click',async()=>{
+      frm.reset(); document.getElementById('indicator_id').value='';
+      if(SUPER){
+        selDept.disabled=false; await fillUnitSelect(selDept.value,'');
+        if(selOwner){ selOwner.disabled=false; selOwner.value=''; }
+      }else{
+        selDept.value=auth?.department_id||''; selDept.disabled=true;
+        await fillUnitSelect(auth?.department_id,auth?.unit_id); selUnit.disabled=true;
+        if(selOwner){
+          selOwner.innerHTML=`<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`;
+          selOwner.disabled=true;
+        }
+      }
+      modal?.show();
+    });
+
+    tbody.addEventListener('click',async e=>{
+      const btn=e.target.closest('button[data-act]'); if(!btn) return;
+      const id=btn.getAttribute('data-id');
+      const row=CACHE.indicators.find(x=>String(x.indicator_id)===String(id));
+      if(!row) return;
+
+      if(btn.dataset.act==='edit'){
+        if(!canEditRow(row) && !SUPER) return alert('Permission denied');
+        frm.reset();
+        document.getElementById('indicator_id').value=row.indicator_id;
+        document.getElementById('indicator_name').value=row.indicator_name||'';
+        document.getElementById('indicator_type').value=row.indicator_type||'';
+        selDept.value=row.department_id||''; if(!SUPER) selDept.disabled=true;
+        await fillUnitSelect(row.department_id,row.unit_id||''); if(!SUPER) selUnit.disabled=true;
+        if(selOwner){
+          if(SUPER){ selOwner.value=row.owner_id||''; selOwner.disabled=false; }
+          else{ selOwner.innerHTML=`<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`; selOwner.disabled=true; }
+        }
+        modal?.show();
+      }
+
+      if(btn.dataset.act==='del'){
+        if(!canEditRow(row) && !SUPER) return alert('Permission denied');
+        if(!confirm('លុបមែនទេ?')) return;
+        try{
+          await gasDelete('indicators',ID_FIELDS.indicators,row.indicator_id);
+          CACHE.indicators=CACHE.indicators.filter(x=>String(x.indicator_id)!==String(id));
+          renderTable();
+        }catch(err){ alert('បរាជ័យលុប: '+(err?.message||err)); }
+      }
+    });
+
+    frm.addEventListener('submit',async e=>{
+      e.preventDefault();
+      const payload={
+        indicator_id  : document.getElementById('indicator_id').value||null,
+        indicator_name: document.getElementById('indicator_name').value.trim(),
+        indicator_type: document.getElementById('indicator_type').value.trim(),
+        department_id : SUPER?selDept.value:(auth?.department_id||''),
+        unit_id       : SUPER?selUnit.value:(auth?.unit_id||'')
+      };
+      if(selOwner) payload.owner_id=SUPER?(selOwner.value||''):(auth?.user_id||'');
+
+      const nameEl=document.getElementById('indicator_name');
+      nameEl.classList.toggle('is-invalid',!payload.indicator_name);
+      if(!payload.indicator_name) return;
+
+      const old=btnSave.innerHTML; btnSave.disabled=true; btnSave.innerHTML='កំពុងរក្សាទុក…';
+      try{
+        const saved=await gasSave('indicators',payload);
+        const row=saved.row||saved;
+        const i=CACHE.indicators.findIndex(x=>String(x.indicator_id)===String(row.indicator_id));
+        if(i>=0) CACHE.indicators[i]=row; else CACHE.indicators.push(row);
+        renderTable(); modal?.hide();
+        setStatus('រក្សាទុករួចរាល់');
+      }catch(err){ alert('បរាជ័យរក្សាទុក: '+(err?.message||err)); }
+      finally{ btnSave.disabled=true; btnSave.innerHTML=old; btnSave.disabled=false; }
     });
   }
 
-  // ---- Search (optional input id="txtSearchUsers") ----
-  txtQ?.addEventListener('input', e=>{
-    FILTER_Q = String(e.target.value||'').trim().toLowerCase();
-    render();
-  });
+  /* ======================= Users ======================= */
+  async function initUsers(){
+    const auth  = getAuth();
+    const SUPER = isSuper(auth);
 
-  // ---- Sort by header (add class="th-sort" data-sort="field") ----
-  tbl.querySelectorAll('th.th-sort').forEach(th=>{
-    th.addEventListener('click', ()=>{
-      const key = th.dataset.sort;
-      if (!key) return;
-      if (SORT.key === key) SORT.dir *= -1; else { SORT.key=key; SORT.dir=1; }
+    const tbl      = document.getElementById('tblUsers');
+    const tbody    = tbl?.querySelector('tbody');
+    const btnAdd   = document.getElementById('btnAddUser');
+    const frm      = document.getElementById('frmUser');
+    const modal    = makeModal('mdlUser');
+
+    const idEl     = document.getElementById('user_id');
+    const nameEl   = document.getElementById('user_name');
+    const fullEl   = document.getElementById('full_name');
+    const roleEl   = document.getElementById('user_type');
+    const passEl   = document.getElementById('user_pass');
+    const selDept  = document.getElementById('department_id');
+    const selUnit  = document.getElementById('unit_id');
+    const btnSave  = document.getElementById('btnSaveUser');
+    const txtQ     = document.getElementById('txtSearchUsers');
+    const $status  = (m)=>{ const el=document.getElementById('statusUsers'); if(el) el.textContent=m||''; };
+
+    if (!tbl || !tbody || !btnAdd || !frm || !idEl || !nameEl || !roleEl || !selDept || !selUnit || !btnSave) return;
+
+    (function skel(){ tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="6" class="skel"></td>`; tbody.appendChild(tr);} })();
+
+    let ROWS = []; let DEPTS = []; let UNITS = [];
+    let FILTER_Q = '';  let SORT = { key:'user_id', dir:1 };
+
+    const deptName=(id)=> DEPTS.find(d=>String(d.department_id)===String(id))?.department_name || '';
+    const unitName=(id)=> UNITS.find(u=>String(u.unit_id)===String(id))?.unit_name || '';
+    const badgeRole = (r)=>{
+      const v = String(r||'').toLowerCase();
+      const cls = v==='super' || v==='superuser' ? 'bg-primary'
+                : v==='admin'                    ? 'bg-warning text-dark'
+                : v.includes('data')             ? 'bg-success'
+                : 'bg-secondary';
+      const txt = v==='superuser' ? 'super' : v;
+      return `<span class="badge ${cls} text-uppercase">${txt||'viewer'}</span>`;
+    };
+
+    try{
+      [ROWS, DEPTS, UNITS] = await Promise.all([
+        gasList('users'),
+        gasList('departments'),
+        gasList('units'),
+      ]);
+      render(); $status(`បានផ្ទុក ${ROWS.length} អ្នកប្រើប្រាស់`);
+    }catch(e){
+      console.error(e);
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
+      $status('បរាជ័យទាញទិន្នន័យ');
+    }
+
+    function fillDeptSelect(selected){
+      selDept.innerHTML = `<option value="">— ជ្រើសការិយាល័យ —</option>`+
+        DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+      if (selected) selDept.value = selected;
+      selDept.disabled = !SUPER;
+    }
+    function fillUnitSelect(depId, selected){
+      selUnit.innerHTML = `<option value="">— ជ្រើសផ្នែក —</option>`;
+      if (!depId){ selUnit.disabled = true; return; }
+      const list = UNITS.filter(u=>String(u.department_id)===String(depId));
+      selUnit.innerHTML = `<option value="">— ជ្រើសផ្នែក —</option>`+
+        list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+      if (selected) selUnit.value = selected;
+      selUnit.disabled = !SUPER;
+    }
+
+    function render(){
+      let list = ROWS.slice();
+      if (FILTER_Q){
+        const q = FILTER_Q;
+        list = list.filter(r=>{
+          const hay = `${r.user_id} ${r.user_name||''} ${r.full_name||''} ${r.user_type||''} ${deptName(r.department_id)} ${unitName(r.unit_id)}`.toLowerCase();
+          return hay.includes(q);
+        });
+      }
+      list.sort((a,b)=>{
+        const key = SORT.key;
+        const av = (a[key] ?? '').toString();
+        const bv = (b[key] ?? '').toString();
+        return av.localeCompare(bv, undefined, { numeric:true, sensitivity:'base' }) * SORT.dir;
+      });
+
+      if (!list.length){
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      for (const r of list){
+        const tr = document.createElement('tr');
+        tr.dataset.id = r.user_id;
+        tr.innerHTML = `
+          <td style="width:80px"><span class="badge text-bg-light border">#${r.user_id}</span></td>
+          <td>${r.user_name || ''}</td>
+          <td>${r.full_name || ''}</td>
+          <td style="width:140px">${badgeRole(r.user_type)}</td>
+          <td>${deptName(r.department_id)}${r.unit_id?` / ${unitName(r.unit_id)}`:''}</td>
+          <td class="text-end" style="width:160px">
+            ${SUPER
+              ? `<button class="btn btn-sm btn-warning me-1" data-act="edit"><i class="bi bi-pencil-square"></i> កែ</button>
+                 <button class="btn btn-sm btn-danger"  data-act="del"><i class="bi bi-trash"></i> លុប</button>`
+              : `<span class="text-muted">—</span>`}
+          </td>`;
+        frag.appendChild(tr);
+      }
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
+
+      tbl.querySelectorAll('th.th-sort').forEach(th=>{
+        th.classList.remove('asc','desc');
+        if (th.dataset.sort === SORT.key) th.classList.add(SORT.dir===1?'asc':'desc');
+      });
+    }
+
+    txtQ?.addEventListener('input', e=>{
+      FILTER_Q = String(e.target.value||'').trim().toLowerCase();
       render();
     });
-  });
 
-  // ---- Add ----
-  btnAdd.addEventListener('click', ()=>{
-    if (!SUPER) return alert('ត្រូវការ SUPER');
-    frm.reset();
-    idEl.value = '';
-    roleEl.value = 'viewer';
-    fillDeptSelect('');
-    fillUnitSelect('', '');
-    nameEl.classList.remove('is-invalid');
-    roleEl.classList.remove('is-invalid');
-    modal?.show();
-  });
+    tbl.querySelectorAll('th.th-sort').forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const key = th.dataset.sort;
+        if (!key) return;
+        if (SORT.key === key) SORT.dir *= -1; else { SORT.key=key; SORT.dir=1; }
+        render();
+      });
+    });
 
-  // ---- Row actions ----
-  tbody.addEventListener('click', async (e)=>{
-    const btn = e.target.closest('button[data-act]'); if (!btn) return;
-    if (!SUPER) return alert('ត្រូវការ SUPER');
-
-    const id  = btn.closest('tr')?.dataset?.id;
-    const row = ROWS.find(x=>String(x.user_id)===String(id));
-    if (!row) return;
-
-    if (btn.dataset.act==='edit'){
+    btnAdd.addEventListener('click', ()=>{
+      if (!SUPER) return alert('ត្រូវការ SUPER');
       frm.reset();
-      idEl.value   = row.user_id;
-      nameEl.value = row.user_name || '';
-      fullEl.value = row.full_name || '';
-      roleEl.value = (row.user_type || 'viewer').toLowerCase();
-      passEl.value = '';
-      fillDeptSelect(row.department_id || '');
-      fillUnitSelect(row.department_id || '', row.unit_id || '');
+      idEl.value = '';
+      roleEl.value = 'viewer';
+      fillDeptSelect('');
+      fillUnitSelect('', '');
       nameEl.classList.remove('is-invalid');
       roleEl.classList.remove('is-invalid');
       modal?.show();
-    }
+    });
 
-    if (btn.dataset.act==='del'){
-      if (!confirm('លុបអ្នកប្រើប្រាស់នេះមែនទេ?')) return;
+    tbody.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button[data-act]'); if (!btn) return;
+      if (!SUPER) return alert('ត្រូវការ SUPER');
+
+      const id  = btn.closest('tr')?.dataset?.id;
+      const row = ROWS.find(x=>String(x.user_id)===String(id));
+      if (!row) return;
+
+      if (btn.dataset.act==='edit'){
+        frm.reset();
+        idEl.value   = row.user_id;
+        nameEl.value = row.user_name || '';
+        fullEl.value = row.full_name || '';
+        roleEl.value = (row.user_type || 'viewer').toLowerCase();
+        passEl.value = '';
+        fillDeptSelect(row.department_id || '');
+        fillUnitSelect(row.department_id || '', row.unit_id || '');
+        nameEl.classList.remove('is-invalid');
+        roleEl.classList.remove('is-invalid');
+        modal?.show();
+      }
+
+      if (btn.dataset.act==='del'){
+        if (!confirm('លុបអ្នកប្រើប្រាស់នេះមែនទេ?')) return;
+        try{
+          await gasDelete('users', ID_FIELDS.users, row.user_id);
+          ROWS = ROWS.filter(x=>String(x.user_id)!==String(id));
+          render(); $status('លុបរួចរាល់');
+        }catch(err){ alert('បរាជ័យលុប: '+(err?.message||err)); }
+      }
+    });
+
+    frm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      if (!SUPER) return alert('ត្រូវការ SUPER');
+
+      const payload = {
+        user_id      : idEl.value || null,
+        user_name    : (nameEl.value||'').trim(),
+        full_name    : (fullEl.value||'').trim(),
+        user_type    : (roleEl.value||'viewer'),
+        department_id: selDept.value || '',
+        unit_id      : selUnit.value || '',
+      };
+      const pw = (passEl.value||'').trim();
+      if (pw) payload.user_pass = pw;
+
+      nameEl.classList.toggle('is-invalid', !payload.user_name);
+      roleEl.classList.toggle('is-invalid', !payload.user_type);
+      if (!payload.user_name || !payload.user_type) return;
+
+      const old = btnSave.innerHTML; btnSave.disabled = true; btnSave.innerHTML = 'កំពុងរក្សាទុក…';
       try{
-        await gasDelete('users', ID_FIELDS.users, row.user_id);
-        ROWS = ROWS.filter(x=>String(x.user_id)!==String(id));
-        render(); $status('លុបរួចរាល់');
-      }catch(err){ alert('បរាជ័យលុប: '+(err?.message||err)); }
-    }
-  });
+        const saved = await gasSave('users', payload);
+        const row   = saved.row || saved;
+        const i     = ROWS.findIndex(x=>String(x.user_id)===String(row.user_id));
+        if (i>=0) ROWS[i] = row; else ROWS.push(row);
+        render(); modal?.hide(); $status('រក្សាទុករួចរាល់');
+      }catch(err){
+        alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
+      }finally{
+        btnSave.disabled = false; btnSave.innerHTML = old;
+      }
+    });
 
-  // ---- Save ----
-  frm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    if (!SUPER) return alert('ត្រូវការ SUPER');
-
-    const payload = {
-      user_id      : idEl.value || null,
-      user_name    : (nameEl.value||'').trim(),
-      full_name    : (fullEl.value||'').trim(),
-      user_type    : (roleEl.value||'viewer'),
-      department_id: selDept.value || '',
-      unit_id      : selUnit.value || '',
-    };
-    const pw = (passEl.value||'').trim();
-    if (pw) payload.user_pass = pw; // កែពាក្យសម្ងាត់តែក្នុងករណីបញ្ចូល
-
-    nameEl.classList.toggle('is-invalid', !payload.user_name);
-    roleEl.classList.toggle('is-invalid', !payload.user_type);
-    if (!payload.user_name || !payload.user_type) return;
-
-    const old = btnSave.innerHTML; btnSave.disabled = true; btnSave.innerHTML = 'កំពុងរក្សាទុក…';
-    try{
-      const saved = await gasSave('users', payload);
-      const row   = saved.row || saved;
-      const i     = ROWS.findIndex(x=>String(x.user_id)===String(row.user_id));
-      if (i>=0) ROWS[i] = row; else ROWS.push(row);
-      render(); modal?.hide(); $status('រក្សាទុករួចរាល់');
-    }catch(err){
-      alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
-    }finally{
-      btnSave.disabled = false; btnSave.innerHTML = old;
-    }
-  });
-
-  // ---- Dep → Unit linkage ----
-  selDept.addEventListener('change', ()=> fillUnitSelect(selDept.value,''));
-}
-
-
-
-
-
+    selDept.addEventListener('change', ()=> fillUnitSelect(selDept.value,''));
+  }
 
   /* ======================= Departments ======================= */
-async function initDepartments(){
-  const auth  = getAuth();
-  const SUPER = isSuper(auth);
+  async function initDepartments(){
+    const auth  = getAuth();
+    const SUPER = isSuper(auth);
 
-  // DOM
-  const tbl     = document.getElementById('tblDepts');
-  const tbody   = tbl?.querySelector('tbody');
-  const btnAdd  = document.getElementById('btnAddDept');
-  const frm     = document.getElementById('frmDept');
-  const modal   = makeModal('mdlDept');
-  const idEl    = document.getElementById('department_id');
-  const nameEl  = document.getElementById('department_name');
-  const txtQ    = document.getElementById('txtSearchDept');
-  const $status = (m)=>{ const el=document.getElementById('statusDept'); if(el) el.textContent=m||''; };
+    const tbl     = document.getElementById('tblDepts');
+    const tbody   = tbl?.querySelector('tbody');
+    const btnAdd  = document.getElementById('btnAddDept');
+    const frm     = document.getElementById('frmDept');
+    const modal   = makeModal('mdlDept');
+    const idEl    = document.getElementById('department_id');
+    const nameEl  = document.getElementById('department_name');
+    const txtQ    = document.getElementById('txtSearchDept');
+    const $status = (m)=>{ const el=document.getElementById('statusDept'); if(el) el.textContent=m||''; };
 
-  if (!tbl || !tbody || !btnAdd || !frm || !idEl || !nameEl) return;
+    if (!tbl || !tbody || !btnAdd || !frm || !idEl || !nameEl) return;
 
-  // Skeleton
-  (function skel(){ tbody.innerHTML=''; for(let i=0;i<3;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="3" class="skel"></td>`; tbody.appendChild(tr);} })();
+    (function skel(){ tbody.innerHTML=''; for(let i=0;i<3;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="3" class="skel"></td>`; tbody.appendChild(tr);} })();
 
-  // State
-  let ROWS = [];
-  let FILTER_Q = '';
-  let SORT = { key:'department_id', dir:1 }; // 1=asc, -1=desc
+    let ROWS = [];
+    let FILTER_Q = '';
+    let SORT = { key:'department_id', dir:1 };
 
-  // Load
-  try{
-    ROWS = await gasList('departments');
-    render();
-    $status(`បានផ្ទុក ${ROWS.length} នាយកដ្ឋាន`);
-  }catch(e){
-    console.error(e);
-    tbody.innerHTML = `<tr><td colspan="3" class="text-danger text-center py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
-    $status('បរាជ័យទាញទិន្នន័យ');
-  }
-
-  // Render
-  function render(){
-    let list = ROWS.slice();
-
-    // filter
-    if (FILTER_Q){
-      const q = FILTER_Q;
-      list = list.filter(r =>
-        String(r.department_id).toLowerCase().includes(q) ||
-        String(r.department_name||'').toLowerCase().includes(q)
-      );
+    try{
+      ROWS = await gasList('departments');
+      render();
+      $status(`បានផ្ទុក ${ROWS.length} នាយកដ្ឋាន`);
+    }catch(e){
+      console.error(e);
+      tbody.innerHTML = `<tr><td colspan="3" class="text-danger text-center py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
+      $status('បរាជ័យទាញទិន្នន័យ');
     }
 
-    // sort (numeric aware)
-    const k = SORT.key;
-    list.sort((a,b)=>{
-      const av = (a[k] ?? '').toString();
-      const bv = (b[k] ?? '').toString();
-      return av.localeCompare(bv, undefined, {numeric:true, sensitivity:'base'}) * SORT.dir;
-    });
+    function render(){
+      let list = ROWS.slice();
+      if (FILTER_Q){
+        const q = FILTER_Q;
+        list = list.filter(r =>
+          String(r.department_id).toLowerCase().includes(q) ||
+          String(r.department_name||'').toLowerCase().includes(q)
+        );
+      }
+      const k = SORT.key;
+      list.sort((a,b)=>{
+        const av = (a[k] ?? '').toString();
+        const bv = (b[k] ?? '').toString();
+        return av.localeCompare(bv, undefined, {numeric:true, sensitivity:'base'}) * SORT.dir;
+      });
 
-    if (!list.length){
-      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
-      return;
+      if (!list.length){
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      for (const r of list){
+        const tr = document.createElement('tr');
+        tr.dataset.id = r.department_id;
+        tr.innerHTML = `
+          <td style="width:110px"><span class="badge text-bg-light border">#${r.department_id}</span></td>
+          <td>${r.department_name || ''}</td>
+          <td class="td-actions text-end" style="width:160px">
+            <div class="actions-right">
+              ${SUPER
+                ? `<button class="btn btn-sm btn-warning" data-act="edit">កែ</button>
+                   <button class="btn btn-sm btn-danger"  data-act="del">លុប</button>`
+                : `<span class="text-muted">—</span>`}
+            </div>
+          </td>`;
+        frag.appendChild(tr);
+      }
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
+
+      tbl.querySelectorAll('th.th-sort').forEach(th=>{
+        th.classList.remove('asc','desc');
+        if (th.dataset.sort === SORT.key) th.classList.add(SORT.dir===1?'asc':'desc');
+      });
     }
 
-    const frag = document.createDocumentFragment();
-    for (const r of list){
-      const tr = document.createElement('tr');
-      tr.dataset.id = r.department_id;
-      tr.innerHTML = `
-        <td style="width:110px"><span class="badge text-bg-light border">#${r.department_id}</span></td>
-        <td>${r.department_name || ''}</td>
-        <td class="td-actions text-end" style="width:160px">
-          <div class="actions-right">
-            ${SUPER
-              ? `<button class="btn btn-sm btn-warning" data-act="edit">កែ</button>
-                 <button class="btn btn-sm btn-danger"  data-act="del">លុប</button>`
-              : `<span class="text-muted">—</span>`}
-          </div>
-        </td>`;
-      frag.appendChild(tr);
-    }
-    tbody.innerHTML = '';
-    tbody.appendChild(frag);
-
-    // update sort indicators
-    tbl.querySelectorAll('th.th-sort').forEach(th=>{
-      th.classList.remove('asc','desc');
-      if (th.dataset.sort === SORT.key) th.classList.add(SORT.dir===1?'asc':'desc');
-    });
-  }
-
-  // Search (filter)
-  txtQ?.addEventListener('input', e=>{
-    FILTER_Q = String(e.target.value||'').trim().toLowerCase();
-    render();
-  });
-
-  // Sort by header (ensure your <th> has class "th-sort" and data-sort="field")
-  tbl.querySelectorAll('th.th-sort').forEach(th=>{
-    th.addEventListener('click', ()=>{
-      const key = th.dataset.sort;
-      if (!key) return;
-      if (SORT.key === key) SORT.dir *= -1; else { SORT.key = key; SORT.dir = 1; }
+    txtQ?.addEventListener('input', e=>{
+      FILTER_Q = String(e.target.value||'').trim().toLowerCase();
       render();
     });
-  });
 
-  // Add
-  btnAdd.addEventListener('click', ()=>{
-    if (!SUPER) return alert('ត្រូវការ SUPER');
-    frm.reset();
-    idEl.value   = '';
-    nameEl.value = '';
-    nameEl.classList.remove('is-invalid');
-    modal?.show();
-  });
+    tbl.querySelectorAll('th.th-sort').forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const key = th.dataset.sort;
+        if (!key) return;
+        if (SORT.key === key) SORT.dir *= -1; else { SORT.key = key; SORT.dir = 1; }
+        render();
+      });
+    });
 
-  // Row actions
-  tbody.addEventListener('click', async (e)=>{
-    const btn = e.target.closest('button[data-act]');
-    if (!btn) return;
-    if (!SUPER) return alert('ត្រូវការ SUPER');
-
-    const id  = btn.closest('tr')?.dataset?.id;
-    const row = ROWS.find(x=>String(x.department_id)===String(id));
-    if (!row) return;
-
-    if (btn.dataset.act === 'edit'){
-      idEl.value   = row.department_id;
-      nameEl.value = row.department_name || '';
+    btnAdd.addEventListener('click', ()=>{
+      if (!SUPER) return alert('ត្រូវការ SUPER');
+      frm.reset();
+      idEl.value   = '';
+      nameEl.value = '';
       nameEl.classList.remove('is-invalid');
       modal?.show();
-    }
+    });
 
-    if (btn.dataset.act === 'del'){
-      if (!confirm('តើចង់លុបធាតុនេះមែនទេ?')) return;
+    tbody.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      if (!SUPER) return alert('ត្រូវការ SUPER');
+
+      const id  = btn.closest('tr')?.dataset?.id;
+      const row = ROWS.find(x=>String(x.department_id)===String(id));
+      if (!row) return;
+
+      if (btn.dataset.act === 'edit'){
+        idEl.value   = row.department_id;
+        nameEl.value = row.department_name || '';
+        nameEl.classList.remove('is-invalid');
+        modal?.show();
+      }
+
+      if (btn.dataset.act === 'del'){
+        if (!confirm('តើចង់លុបធាតុនេះមែនទេ?')) return;
+        try{
+          await gasDelete('departments', ID_FIELDS.departments, row.department_id);
+          ROWS = ROWS.filter(x=>String(x.department_id)!==String(id));
+          render(); $status('លុបរួចរាល់');
+        }catch(err){
+          console.error(err);
+          alert('បរាជ័យលុប: ' + (err?.message || err));
+        }
+      }
+    });
+
+    frm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      if (!SUPER) return alert('ត្រូវការ SUPER');
+
+      const name = (nameEl.value||'').trim();
+      nameEl.classList.toggle('is-invalid', !name);
+      if (!name) return;
+
+      const payload = idEl.value
+        ? { department_id: Number(idEl.value), department_name: name }
+        : { department_name: name };
+
+      const btn = document.getElementById('btnSaveDept');
+      const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'កំពុងរក្សាទុក…';
       try{
-        await gasDelete('departments', ID_FIELDS.departments, row.department_id);
-        ROWS = ROWS.filter(x=>String(x.department_id)!==String(id));
-        render(); $status('លុបរួចរាល់');
+        const res = await gasSave('departments', payload);
+        const row = res.row || res;
+        const i = ROWS.findIndex(x=>String(x.department_id)===String(row.department_id));
+        if (i>=0) ROWS[i]=row; else ROWS.push(row);
+        render(); modal?.hide(); $status('រក្សាទុករួចរាល់');
       }catch(err){
         console.error(err);
-        alert('បរាជ័យលុប: ' + (err?.message || err));
+        alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
+      }finally{
+        btn.disabled = false; btn.innerHTML = old;
       }
-    }
-  });
-
-  // Save
-  frm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    if (!SUPER) return alert('ត្រូវការ SUPER');
-
-    const name = (nameEl.value||'').trim();
-    nameEl.classList.toggle('is-invalid', !name);
-    if (!name) return;
-
-    const payload = idEl.value
-      ? { department_id: Number(idEl.value), department_name: name }
-      : { department_name: name };
-
-    const btn = document.getElementById('btnSaveDept');
-    const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'កំពុងរក្សាទុក…';
-    try{
-      const res = await gasSave('departments', payload);
-      const row = res.row || res;
-      const i = ROWS.findIndex(x=>String(x.department_id)===String(row.department_id));
-      if (i>=0) ROWS[i]=row; else ROWS.push(row);
-      render(); modal?.hide(); $status('រក្សាទុករួចរាល់');
-    }catch(err){
-      console.error(err);
-      alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
-    }finally{
-      btn.disabled = false; btn.innerHTML = old;
-    }
-  });
-}
-
-
-
-
+    });
+  }
 
   /* ======================= Units ======================= */
   async function initUnits(){
@@ -1462,305 +1548,243 @@ async function initDepartments(){
     });
   }
 
- /* ======================= Periods view (sortable) ======================= */
+  /* ======================= Periods ======================= */
+  async function initPeriods(){
+    const SUPER = isSuper(getAuth());
 
-async function initPeriods(){
-  const SUPER = isSuper(getAuth());
+    const table    = document.getElementById('tblPeriods');
+    const tbody    = table?.querySelector('tbody');
+    const ths      = Array.from(table?.querySelectorAll('thead th.th-sort') || []);
+    const selYear  = document.getElementById('selYear');
+    const txtSearch= document.getElementById('txtSearch');
+    const btnGen   = document.getElementById('btnGenYear');
 
-  const table    = document.getElementById('tblPeriods');
-  const tbody    = table?.querySelector('tbody');
-  const ths      = Array.from(table?.querySelectorAll('thead th.th-sort') || []);
-  const selYear  = document.getElementById('selYear');
-  const txtSearch= document.getElementById('txtSearch');
-  const btnGen   = document.getElementById('btnGenYear');
+    const mdl      = makeModal('mdlPeriod');
+    const frm      = document.getElementById('frmPeriod');
+    const idEl     = document.getElementById('period_id');
+    const nameEl   = document.getElementById('period_name');
 
-  const mdl      = makeModal('mdlPeriod');
-  const frm      = document.getElementById('frmPeriod');
-  const idEl     = document.getElementById('period_id');
-  const nameEl   = document.getElementById('period_name');
+    const PERIOD_ID_FIELD = (window.ID_FIELDS && ID_FIELDS.periods) || 'period_id';
+    const $status = m => { const el=document.getElementById('statusPeriods'); if(el) el.textContent=m||''; };
 
-  const PERIOD_ID_FIELD = (window.ID_FIELDS && ID_FIELDS.periods) || 'period_id';
-  const $status = m => { const el=document.getElementById('statusPeriods'); if(el) el.textContent=m||''; };
+    if (!table || !tbody || !selYear || !btnGen || !frm) return;
+    if (!SUPER) btnGen.style.display = 'none';
 
-  if (!table || !tbody || !selYear || !btnGen || !frm) return;
-  if (!SUPER) btnGen.style.display = 'none';
-
-  // ---------- helpers ----------
-  const mNames = ['មករា','កុម្ភះ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
-  const getYear  = pid => ( /^(\d{4})/.exec(String(pid||'')) || [] )[1] || '';
-  const getTag   = pid => ( String(pid||'').match(/(M\d{2}|Q[1-4]|H[12]|N9|Y12)$/) || [] )[1] || '';
-  const pretty   = (pid, fallback='')=>{
-    const y = getYear(pid), tag = getTag(pid);
-    if (/^M\d{2}$/.test(tag)) return `${mNames[+tag.slice(1)-1]} ${y}`;
-    if (/^(Q[1-4]|H[12])$/.test(tag)) return `${tag} ${y}`;
-    if (tag==='N9')  return `៩ខែ ${y}`;
-    if (tag==='Y12') return `១២ខែ ${y}`;
-    return fallback || y;
-  };
-  const seqOf = pid=>{
-    const tag=getTag(pid);
-    if (/^M\d{2}$/.test(tag)) return 100+(+tag.slice(1));
-    if (/^Q[1-4]$/.test(tag)) return 200+(+tag.slice(1));
-    if (/^H[12]$/.test(tag))  return 300+(tag==='H1'?1:2);
-    if (tag==='N9') return 400;
-    if (tag==='Y12')return 500;
-    return 9999;
-  };
-  // normalize any row shapes (object/array, header names Khmer/EN)
-  const norm = r=>{
-    if (Array.isArray(r)) {
-      const [period_id, period_name, year, month] = r;
+    const mNames = ['មករា','កុម្ភះ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+    const getYear  = pid => ( /^(\d{4})/.exec(String(pid||'')) || [] )[1] || '';
+    const getTag   = pid => ( String(pid||'').match(/(M\d{2}|Q[1-4]|H[12]|N9|Y12)$/) || [] )[1] || '';
+    const pretty   = (pid, fallback='')=>{
+      const y = getYear(pid), tag = getTag(pid);
+      if (/^M\d{2}$/.test(tag)) return `${mNames[+tag.slice(1)-1]} ${y}`;
+      if (/^(Q[1-4]|H[12])$/.test(tag)) return `${tag} ${y}`;
+      if (tag==='N9')  return `៩ខែ ${y}`;
+      if (tag==='Y12') return `១២ខែ ${y}`;
+      return fallback || y;
+    };
+    const seqOf = pid=>{
+      const tag=getTag(pid);
+      if (/^M\d{2}$/.test(tag)) return 100+(+tag.slice(1));
+      if (/^Q[1-4]$/.test(tag)) return 200+(+tag.slice(1));
+      if (tag==='H1') return 301;
+      if (tag==='H2') return 302;
+      if (tag==='N9') return 400;
+      if (tag==='Y12')return 500;
+      return 9999;
+    };
+    const norm = r=>{
+      if (Array.isArray(r)) {
+        const [period_id, period_name, year, month] = r;
+        return { period_id, period_name, year, month };
+      }
+      const period_id   = r.period_id ?? r['Period ID'] ?? r.ID ?? r.id;
+      const period_name = r.period_name ?? r['ឈ្មោះ'] ?? r.name ?? r['Name'];
+      const year        = r.year ?? r['Year'];
+      const month       = r.month ?? r['Month'];
       return { period_id, period_name, year, month };
+    };
+
+    let ALL = [];
+    const nowY = new Date().getFullYear();
+    if (!selYear.options.length){
+      for (let y=nowY-3;y<=nowY+3;y++){
+        const o=document.createElement('option'); o.value=y; o.textContent=y; selYear.appendChild(o);
+      }
     }
-    const period_id   = r.period_id ?? r['Period ID'] ?? r.ID ?? r.id;
-    const period_name = r.period_name ?? r['ឈ្មោះ'] ?? r.name ?? r['Name'];
-    const year        = r.year ?? r['Year'];
-    const month       = r.month ?? r['Month'];
-    return { period_id, period_name, year, month };
-  };
+    selYear.value = selYear.value || String(nowY);
+    let CUR_YEAR  = +selYear.value;
+    let FILTER_Q  = '';
+    let SORT      = { key:'id', dir:'asc' };
 
-  // ---------- state ----------
-  let ALL = [];
-  const nowY = new Date().getFullYear();
-  if (!selYear.options.length){
-    for (let y=nowY-3;y<=nowY+3;y++){
-      const o=document.createElement('option'); o.value=y; o.textContent=y; selYear.appendChild(o);
-    }
-  }
-  selYear.value = selYear.value || String(nowY);
-  let CUR_YEAR  = +selYear.value;
-  let FILTER_Q  = '';
-  let SORT      = { key:'id', dir:'asc' };
-
-  const applySortClasses = ()=>{
-    ths.forEach(th=>{
-      th.classList.remove('active','desc');
-      if (th.dataset.sort===SORT.key){ th.classList.add('active'); if (SORT.dir==='desc') th.classList.add('desc'); }
-    });
-  };
-
-  // skeleton
-  tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML='<td colspan="5" class="skel"></td>'; tbody.appendChild(tr); }
-
-  // ---------- load ----------
-  async function load(){
-    try{
-      $status('កំពុងផ្ទុកទិន្នន័យ…');
-      const raw = await gasList('periods').catch(()=>[]);
-      ALL = raw.map(norm).filter(x=>x.period_id);
-      render();
-      $status(`បានផ្ទុក ${ALL.length} រយៈពេល`);
-    }catch(e){
-      console.error(e);
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
-      $status('បរាជ័យទាញទិន្នន័យ');
-    }
-  }
-  await load(); applySortClasses();
-
-  // ---------- render ----------
-  function render(){
-    const rows = ALL
-      .filter(r => String(r.year || getYear(r.period_id)) === String(CUR_YEAR))
-      .filter(r => FILTER_Q ? ( (r.period_id+' '+(r.period_name||'')+' '+pretty(r.period_id)).toLowerCase().includes(FILTER_Q) ) : true)
-      .sort((a,b)=>{
-        if (SORT.key==='id')   return (SORT.dir==='asc'?1:-1) * a.period_id.localeCompare(b.period_id);
-        if (SORT.key==='name') return (SORT.dir==='asc'?1:-1) * ( (a.period_name||pretty(a.period_id)).toLowerCase().localeCompare((b.period_name||pretty(b.period_id)).toLowerCase()) );
-        if (SORT.key==='year') return (SORT.dir==='asc'?1:-1) * ((+a.year||+getYear(a.period_id)) - (+b.year||+getYear(b.period_id)));
-        if (SORT.key==='seq')  return (SORT.dir==='asc'?1:-1) * (seqOf(a.period_id) - seqOf(b.period_id));
-        return 0;
+    const applySortClasses = ()=>{
+      ths.forEach(th=>{
+        th.classList.remove('active','desc');
+        if (th.dataset.sort===SORT.key){ th.classList.add('active'); if (SORT.dir==='desc') th.classList.add('desc'); }
       });
+    };
 
-    if (!rows.length){
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
-      return;
-    }
-    const frag = document.createDocumentFragment();
-    for (const r of rows){
-      const yy  = r.year || getYear(r.period_id);
-      const tag = getTag(r.period_id);
-      const mon = /^M\d{2}$/.test(tag) ? tag.slice(1) : '';
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.period_id}</td>
-        <td>${r.period_name || pretty(r.period_id)}</td>
-        <td style="width:120px">${yy}</td>
-        <td style="width:120px">${mon}</td>
-        <td class="td-actions" style="width:180px">
-          <div class="actions-right">
-            ${SUPER
-              ? `<button class="btn btn-sm btn-warning" data-act="edit" data-id="${r.period_id}">កែ</button>
-                 <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${r.period_id}">លុប</button>`
-              : `<span class="text-muted">—</span>`}
-          </div>
-        </td>`;
-      frag.appendChild(tr);
-    }
-    tbody.innerHTML=''; tbody.appendChild(frag);
-  }
+    tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML='<td colspan="5" class="skel"></td>'; tbody.appendChild(tr); }
 
-  // ---------- sort / search / year ----------
-  ths.forEach(th=>{
-    th.addEventListener('click', ()=>{
-      const k = th.dataset.sort;
-      if (SORT.key===k) SORT.dir = (SORT.dir==='asc' ? 'desc' : 'asc');
-      else { SORT.key=k; SORT.dir='asc'; }
-      applySortClasses(); render();
-    });
-  });
-  txtSearch?.addEventListener('input', e=>{ FILTER_Q = String(e.target.value||'').trim().toLowerCase(); render(); });
-  const onYear = ()=>{ CUR_YEAR = +selYear.value || nowY; render(); };
-  selYear.addEventListener('change', onYear);
-  selYear.addEventListener('input',  onYear);
-
-  // ---------- row actions ----------
-  tbody.addEventListener('click', async (e)=>{
-    const btn = e.target.closest('button[data-act]'); if(!btn) return;
-    const id  = btn.dataset.id;
-    const row = ALL.find(x=>String(x.period_id)===String(id)); if(!row) return;
-
-    if (btn.dataset.act==='edit'){
-      idEl.value = row.period_id;
-      nameEl.value = row.period_name || pretty(row.period_id);
-      nameEl.classList.remove('is-invalid');
-      mdl?.show();
-    }
-
-    if (btn.dataset.act==='del'){
-      if (!confirm(`លុប Period: ${id} ?`)) return;
+    async function load(){
       try{
-        await gasDelete('periods', PERIOD_ID_FIELD, id);
-        ALL = ALL.filter(x=>String(x.period_id)!==String(id));
-        render(); $status('លុបរួចរាល់');
-      }catch(err){ alert('បរាជ័យលុប: ' + (err?.message||err)); }
+        $status('កំពុងផ្ទុកទិន្នន័យ…');
+        const raw = await gasList('periods').catch(()=>[]);
+        ALL = raw.map(norm).filter(x=>x.period_id);
+        render();
+        $status(`បានផ្ទុក ${ALL.length} រយៈពេល`);
+      }catch(e){
+        console.error(e);
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
+        $status('បរាជ័យទាញទិន្នន័យ');
+      }
     }
-  });
+    await load(); applySortClasses();
 
-  // ---------- save rename ----------
-  frm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const pid  = idEl.value;
-    const name = (nameEl.value||'').trim();
-    nameEl.classList.toggle('is-invalid', !name);
-    if (!name) return;
+    function render(){
+      const rows = ALL
+        .filter(r => String(r.year || getYear(r.period_id)) === String(CUR_YEAR))
+        .filter(r => FILTER_Q ? ( (r.period_id+' '+(r.period_name||'')+' '+pretty(r.period_id)).toLowerCase().includes(FILTER_Q) ) : true)
+        .sort((a,b)=>{
+          if (SORT.key==='id')   return (SORT.dir==='asc'?1:-1) * a.period_id.localeCompare(b.period_id);
+          if (SORT.key==='name') return (SORT.dir==='asc'?1:-1) * ( (a.period_name||pretty(a.period_id)).toLowerCase().localeCompare((b.period_name||pretty(b.period_id)).toLowerCase()) );
+          if (SORT.key==='year') return (SORT.dir==='asc'?1:-1) * ((+a.year||+getYear(a.period_id)) - (+b.year||+getYear(b.period_id)));
+          if (SORT.key==='seq')  return (SORT.dir==='asc'?1:-1) * (seqOf(a.period_id) - seqOf(b.period_id));
+          return 0;
+        });
 
-    const btn = document.getElementById('btnSavePeriod');
-    const old = btn.innerHTML; btn.disabled=true; btn.innerHTML='កំពុងរក្សាទុក…';
-    try{
-      const saved = await gasSave('periods', { period_id: pid, period_name: name });
-      const i = ALL.findIndex(x=>String(x.period_id)===String(pid));
-      if (i>=0) ALL[i] = { ...ALL[i], ...(saved.row||saved) };
-      render(); mdl?.hide(); $status('រក្សាទុករួចរាល់');
-    }catch(err){ alert('បរាជ័យរក្សាទុក: ' + (err?.message||err)); }
-    finally{ btn.disabled=false; btn.innerHTML=old; }
-  });
-
-  // ---------- generate year (send id+name+year+month) ----------
-  function buildWanted(y){
-    const rows=[];
-    // 12 months
-    for (let m=1;m<=12;m++){
-      const mm  = String(m).padStart(2,'0');
-      const pid = `${y}M${mm}`;
-      rows.push({ period_id:pid, period_name:`${mNames[m-1]} ${y}`, year:y, month:mm });
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      for (const r of rows){
+        const yy  = r.year || getYear(r.period_id);
+        const tag = getTag(r.period_id);
+        const mon = /^M\d{2}$/.test(tag) ? tag.slice(1) : '';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.period_id}</td>
+          <td>${r.period_name || pretty(r.period_id)}</td>
+          <td style="width:120px">${yy}</td>
+          <td style="width:120px">${mon}</td>
+          <td class="td-actions" style="width:180px">
+            <div class="actions-right">
+              ${SUPER
+                ? `<button class="btn btn-sm btn-warning" data-act="edit" data-id="${r.period_id}">កែ</button>
+                   <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${r.period_id}">លុប</button>`
+                : `<span class="text-muted">—</span>`}
+            </div>
+          </td>`;
+        frag.appendChild(tr);
+      }
+      tbody.innerHTML=''; tbody.appendChild(frag);
     }
-    // Q1..Q4
-    for (let q=1;q<=4;q++){
-      const pid = `${y}Q${q}`;
-      rows.push({ period_id:pid, period_name:`Q${q} ${y}`, year:y, month:`Q${q}` });
-    }
-    // H1/H2
-    rows.push({ period_id:`${y}H1`, period_name:`H1 ${y}`, year:y, month:'H1' });
-    rows.push({ period_id:`${y}H2`, period_name:`H2 ${y}`, year:y, month:'H2' });
-    // 9-month & 12-month
-    rows.push({ period_id:`${y}N9`,  period_name:`៩ខែ ${y}`,  year:y, month:'N9'  });
-    rows.push({ period_id:`${y}Y12`, period_name:`១២ខែ ${y}`, year:y, month:'Y12' });
-    return rows;
-  }
 
- btnGen.addEventListener('click', async ()=>{
-  if (!SUPER) return alert('ត្រូវការ SUPER');
+    ths.forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const k = th.dataset.sort;
+        if (SORT.key===k) SORT.dir = (SORT.dir==='asc' ? 'desc' : 'asc');
+        else { SORT.key=k; SORT.dir='asc'; }
+        applySortClasses(); render();
+      });
+    });
+    txtSearch?.addEventListener('input', e=>{ FILTER_Q = String(e.target.value||'').trim().toLowerCase(); render(); });
+    const onYear = ()=>{ CUR_YEAR = +selYear.value || nowY; render(); };
+    selYear.addEventListener('change', onYear);
+    selYear.addEventListener('input',  onYear);
 
-  const y = Number(selYear.value || new Date().getFullYear());
-  if (!confirm(`បង្កើតរយៈពេលសម្រាប់ឆ្នាំ ${y} ?`)) return;
+    tbody.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button[data-act]'); if(!btn) return;
+      const id  = btn.dataset.id;
+      const row = ALL.find(x=>String(x.period_id)===String(id)); if(!row) return;
 
-  const old = btnGen.innerHTML;
-  btnGen.disabled = true;
-  btnGen.innerHTML = 'កំពុងបង្កើត…';
+      if (btn.dataset.act==='edit'){
+        idEl.value = row.period_id;
+        nameEl.value = row.period_name || pretty(row.period_id);
+        nameEl.classList.remove('is-invalid');
+        mdl?.show();
+      }
 
-  try {
-    // 1) សាក bulk API: route=period&op=generate&year=YYYY
-    const GAS_BASE = (window.GAS_BASE || (await import('../../../assets/js/config.js')).GAS_BASE);
-    const token    = (await import('../../../assets/js/app.auth.js')).getAuth()?.token || '';
-    const bulkOk = await (async () => {
+      if (btn.dataset.act==='del'){
+        if (!confirm(`លុប Period: ${id} ?`)) return;
+        try{
+          await gasDelete('periods', PERIOD_ID_FIELD, id);
+          ALL = ALL.filter(x=>String(x.period_id)!==String(id));
+          render(); $status('លុបរួចរាល់');
+        }catch(err){ alert('បរាជ័យលុប: ' + (err?.message || err)); }
+      }
+    });
+
+    frm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const pid  = idEl.value;
+      const name = (nameEl.value||'').trim();
+      nameEl.classList.toggle('is-invalid', !name);
+      if (!name) return;
+
+      const btn = document.getElementById('btnSavePeriod');
+      const old = btn.innerHTML; btn.disabled=true; btn.innerHTML='កំពុងរក្សាទុក…';
+      try{
+        const saved = await gasSave('periods', { period_id: pid, period_name: name });
+        const i = ALL.findIndex(x=>String(x.period_id)===String(pid));
+        if (i>=0) ALL[i] = { ...ALL[i], ...(saved.row||saved) };
+        render(); mdl?.hide(); $status('រក្សាទុករួចរាល់');
+      }catch(err){ alert('បរាជ័យរក្សាទុក: ' + (err?.message || err)); }
+      finally{ btn.disabled=false; btn.innerHTML=old; }
+    });
+
+    btnGen.addEventListener('click', async ()=>{
+      if (!SUPER) return alert('ត្រូវការ SUPER');
+
+      const y = Number(selYear.value || new Date().getFullYear());
+      if (!confirm(`បង្កើតរយៈពេលសម្រាប់ឆ្នាំ ${y} ?`)) return;
+
+      const old = btnGen.innerHTML;
+      btnGen.disabled = true;
+      btnGen.innerHTML = 'កំពុងបង្កើត…';
+
       try {
+        // Try bulk API (if your GAS supports it)
         const u = new URL(GAS_BASE);
         u.searchParams.set('api','1');
-        u.searchParams.set('route','period');   // ⚠️ singular 'period' សម្រាប់ generate
+        u.searchParams.set('route','period');
         u.searchParams.set('op','generate');
         u.searchParams.set('year', String(y));
-        if (token) u.searchParams.set('token', token);
-
         const r = await fetch(u.toString(), { cache:'no-store' });
         const j = await r.json().catch(()=> ({}));
-        if (j && j.ok === false) throw new Error(j.error || 'API error');
-        return true; // success
-      } catch (e) {
-        // មិនគាំទ្រ bulk → fallback
-        const msg = String(e?.message || e);
-        if (/unknown op|unknown route|not found|404/i.test(msg)) return false;
-        // ករណីផ្សេងៗ តែបើ JSON មិនត្រឡប់សញ្ញាស្ថានៈ → fallback ផងដែរ
-        return false;
+        if (!j || j.ok === false) throw new Error(j?.error || 'bulk not supported');
+
+      } catch (_) {
+        // Fallback: client-side generate & save
+        const KH_MONTHS = ['មករា','កុម្ភះ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+        const want = [];
+        for (let m=1; m<=12; m++){
+          const mm = String(m).padStart(2,'0');
+          want.push({ period_id:`${y}M${mm}`, period_name:`${KH_MONTHS[m-1]} ${y}`, year:y, month:mm });
+        }
+        for (let q=1; q<=4; q++) want.push({ period_id:`${y}Q${q}`, period_name:`Q${q} ${y}`, year:y, month:`Q${q}` });
+        want.push({ period_id:`${y}H1`,  period_name:`H1 ${y}`,  year:y, month:'H1' });
+        want.push({ period_id:`${y}H2`,  period_name:`H2 ${y}`,  year:y, month:'H2' });
+        want.push({ period_id:`${y}N9`,  period_name:`៩ខែ ${y}`,  year:y, month:'N9' });
+        want.push({ period_id:`${y}Y12`, period_name:`១២ខែ ${y}`, year:y, month:'Y12' });
+
+        const have = new Set((await gasList('periods').catch(()=>[])).map(r => String(r.period_id)));
+        const todo = want.filter(r => !have.has(String(r.period_id)));
+        const CHUNK = 5;
+        for (let i = 0; i < todo.length; i += CHUNK) {
+          await Promise.allSettled(todo.slice(i, i+CHUNK).map(row => gasSave('periods', row)));
+        }
       }
-    })();
 
-    // 2) បើ bulk មិនមាន → build rows ហើយ save ជាចំណុះៗ
-    if (!bulkOk) {
-      const KH_MONTHS = ['មករា','កុម្ភះ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
-      const want = [];
-      for (let m=1; m<=12; m++){
-        const mm = String(m).padStart(2,'0');
-        want.push({ period_id:`${y}M${mm}`, period_name:`${KH_MONTHS[m-1]} ${y}`, year:y, month:mm });
-      }
-      for (let q=1; q<=4; q++) want.push({ period_id:`${y}Q${q}`, period_name:`Q${q} ${y}`, year:y, month:`Q${q}` });
-      want.push({ period_id:`${y}H1`,  period_name:`H1 ${y}`,  year:y, month:'H1' });
-      want.push({ period_id:`${y}H2`,  period_name:`H2 ${y}`,  year:y, month:'H2' });
-      want.push({ period_id:`${y}N9`,  period_name:`៩ខែ ${y}`,  year:y, month:'N9' });
-      want.push({ period_id:`${y}Y12`, period_name:`១២ខែ ${y}`, year:y, month:'Y12' });
-
-      const have = new Set(ALL.map(r => String(r.period_id)));
-      const todo = want.filter(r => !have.has(String(r.period_id)));
-      if (!todo.length) { alert('ឆ្នាំនេះមានគ្រប់រួចហើយ'); btnGen.disabled=false; btnGen.innerHTML=old; return; }
-
-      const CHUNK = 5; // កុំបុក quota
-      for (let i = 0; i < todo.length; i += CHUNK) {
-        await Promise.allSettled(
-          todo.slice(i, i+CHUNK).map(row => gasSave('periods', row)) // ⬅️ អនុញ្ញាត fallback នៅក្នុង gasSave()
-        );
-      }
-    }
-
-    // reload table & keep year
-    const rows = await gasList('periods').catch(()=>[]);
-    ALL = rows;
-    selYear.value = String(y);
-    CUR_YEAR = y;
-    render();
-    $status('បង្កើតរួចរាល់');
-  } catch (err) {
-    console.error('[periods] generate failed:', err);
-    alert('បរាជ័យបង្កើត: ' + (err?.message || err));
-  } finally {
-    btnGen.disabled = false;
-    btnGen.innerHTML = old;
+      // reload table & keep year
+      const rows = await gasList('periods').catch(()=>[]);
+      ALL = rows.map(norm);
+      selYear.value = String(y);
+      CUR_YEAR = y;
+      render();
+      $status('បង្កើតរួចរាល់');
+      btnGen.disabled = false; btnGen.innerHTML = old;
+    });
   }
-});
-
-}
-
-
-
-
 
   /* ---------- Modal helper (BS5/BS4/fallback) ---------- */
   function makeModal(id){
@@ -1790,12 +1814,7 @@ async function initPeriods(){
     }
     fmt(); setInterval(fmt,1000);
   })();
-
-  // expose GAS_BASE to periods generator (tiny helper)
-  import * as cfg from './assets/js/config.js';
-  window.GAS_BASE = cfg.GAS_BASE;
 </script>
-
 
 </body>
 </html>

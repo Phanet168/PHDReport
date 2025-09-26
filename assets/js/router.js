@@ -7,6 +7,8 @@ const ROUTES = {
   'settings/departments':      'pages/settings/departments/index.html',
   'settings/units':            'pages/settings/units/index.html',
   'settings/periods':          'pages/settings/periods/index.html',
+  'issues':                    'pages/issues/index.html',
+
 };
 const baseDir = location.pathname.replace(/\/[^/]*$/, '/');
 
@@ -24,6 +26,20 @@ function getViewRoot(){
     console.warn('[router] #route-outlet not found — created automatically.');
   }
   return el;
+}
+async function render(path){
+  const conf = routes[path] || routes[''];
+  const res  = await fetch(conf.view, { cache:'no-store' });
+  const html = await res.text();
+  document.getElementById('route-outlet').innerHTML = html;
+
+  // call init if provided
+  if (conf.load) {
+    const initFn = await conf.load();    // dynamic import
+    if (typeof initFn === 'function') await initFn();
+  } else if (typeof conf.init === 'function') {
+    await conf.init();
+  }
 }
 
 function resolveRoute(hash){

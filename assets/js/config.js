@@ -1,82 +1,125 @@
-// === Base URL of your deployed Apps Script Web App (must end with /exec) ===
-// 👉 ប្តូរ URL ខាងក្រោមជាមួយ URL ពិតរបស់បង (ចុងបញ្ចប់ជា /exec)
+// assets/js/config.js
+
+// ================== GAS Base (បញ្ចប់ដោយ /exec) ==================
 export const GAS_BASE =
-  'https://script.google.com/macros/s/AKfycbyJ66uzM1KttC5e4R6gjZr6l8gnG3xM0CsCIS6Sqh7bXctQHuSn1ynUUQqrt2JhxwLdVg/exec';
+  'https://script.google.com/macros/s/AKfycbyRdisnEaiOGjzh7EIqjY1Juhory07KJG_8PQ-rYFT5lvfy_ItGQ_pnIuUvjn82ahoZVg/exec';
 
-import { getAuth } from './app.auth.js';   // <<< សំខាន់: ដើម្បីយក token
+import { getAuth } from './app.auth.js';
 
-/* ------------------------------------------------------------------ */
-/* Core: build URL + ភ្ជាប់ token ជាស្វ័យប្រវត្តិ                     */
-/* ------------------------------------------------------------------ */
-function makeUrl(params = {}) {
-  // កុំប្រើ location.origin ដើម្បីជៀសបញ្ហា cross-origin
+// ជៀស Error បើ URL invalid ឬ មិនមាន window.location (តេស្ត)
+const SAME_ORIGIN = (() => {
+  try { return new URL(GAS_BASE).origin === window.location.origin; }
+  catch { return false; }
+})();
+
+// ---- append api=1 + token ទៅ params ----
+function withToken(params = {}) {
+  const p = { ...params };
+  if (!('api' in p)) p.api = '1';
+  const tok = getAuth?.()?.token;
+  if (tok && !('token' in p)) p.token = tok;
+  return p;
+}
+
+// ---- បង្កើត URL សម្រាប់ fetch ----
+function buildUrl(params = {}) {
   const u = new URL(GAS_BASE);
-
-  // flag សម្រាប់ API
-  if (!u.searchParams.has('api')) u.searchParams.set('api', '1');
-
-  // append params
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, v);
+  const p = withToken(params);
+  for (const [k, v] of Object.entries(p)) {
+    if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, String(v));
   }
-
-  // ✅ append token (បើមាន) ទៅជា query param
-  const tok = getAuth()?.token;
-  if (tok) u.searchParams.set('token', tok);
-
   return u.toString();
 }
 
-/* ------------------------------------------------------------------ */
-/* Low-level fetchers                                                 */
-/* ------------------------------------------------------------------ */
-export async function gasGet(params) {
-  const r = await fetch(makeUrl(params), { cache: 'no-store' });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const j = await r.json().catch(() => ({}));
-  if (j && j.ok === false) throw new Error(j.error || 'API error');
-  return j;
-}
+// ================== JSONP helper (ចៀស CORS) ==================
+function jsonp(params = {}, timeoutMs = 12000) {
+  return new Promise((resolve, reject) => {
+    const cb = '__jp' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+    const u = new URL(GAS_BASE);
+    const p = withToken({ ...params, callback: cb });
+    Object.entries(p).forEach(([k, v]) => u.searchParams.set(k, String(v)));
 
-export async function gasPost(params, body) {
-  const r = await fetch(makeUrl(params), {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' }, // ជៀស preflight
-    body: JSON.stringify(body || {})
+    const s = document.createElement('script');
+    let done = false;
+    const cleanup = () => {
+      try { delete window[cb]; } catch {}
+      if (s && s.parentNode) s.parentNode.removeChild(s);
+    };
+    const tmr = setTimeout(() => {
+      if (!done) { cleanup(); reject(new Error('JSONP timeout')); }
+    }, timeoutMs);
+
+    window[cb] = (data) => { done = true; clearTimeout(tmr); cleanup(); resolve(data); };
+    s.onerror = (e) => { clearTimeout(tmr); cleanup(); reject(new Error('JSONP failed')); };
+    s.onload  = () => { /* បើ server មិនហៅ callback នឹង timeout */ };
+
+    s.src = u.toString();
+    document.head.appendChild(s);
+
+    // debug ប្រសិនបើចង់ពិនិត្យ
+    // console.debug('[JSONP] →', s.src);
   });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const j = await r.json().catch(() => ({}));
+}
+
+// ================== HTTP adapters ==================
+async function httpGet(params) {
+  if (SAME_ORIGIN) {
+    const r = await fetch(buildUrl(params), { cache: 'no-store' });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json().catch(() => ({}));
+    if (j && j.ok === false) throw new Error(j.error || 'API error');
+    return j;
+  }
+  const j = await jsonp(params);
   if (j && j.ok === false) throw new Error(j.error || 'API error');
   return j;
 }
 
-/* ------------------------------------------------------------------ */
-/* High-level wrappers                                                */
-/* ------------------------------------------------------------------ */
+async function httpPost(params, body) {
+  // Same-origin: POST ដើរតួធម្មតា
+  if (SAME_ORIGIN) {
+    const r = await fetch(buildUrl(params), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' }, // ជៀស preflight
+      body: JSON.stringify(body || {})
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json().catch(() => ({}));
+    if (j && j.ok === false) throw new Error(j.error || 'API error');
+    return j;
+  }
+  // Cross-origin: ប្រើ JSONP (បម្លែង POST → GET params)
+  const j = await jsonp({ ...params, ...(body || {}) });
+  if (j && j.ok === false) throw new Error(j.error || 'API error');
+  return j;
+}
 
-// List rows → always return Array
+// ================== Public API ==================
+export async function gasGet(params)  { return httpGet(params); }
+export async function gasPost(params, body) { return httpPost(params, body); }
+
+// List rows → always Array
 export async function apiList(table, extraParams = {}) {
-  const res = await gasGet({ route: table, op: 'list', ...extraParams });
+  const res = await httpGet({ route: table, op: 'list', ...extraParams });
   return Array.isArray(res?.rows) ? res.rows : (Array.isArray(res) ? res : []);
 }
 
-// Insert/update one row
+// Upsert one row
 export async function apiUpsert(table, row) {
-  // token បានភ្ជាប់ជា query នៅ makeUrl រួចហើយ -> មិនចាំបាច់ដាក់ក្នុង body ទៀត
-  return gasPost({ route: table, op: 'upsert' }, row);
+  return httpPost({ route: table, op: 'upsert' }, row);
 }
 
 // Delete by id
 export async function apiDelete(table, idField, idValue) {
-  return gasPost({ route: table, op: 'delete' }, { [idField]: idValue });
+  return httpPost({ route: table, op: 'delete' }, { [idField]: idValue });
 }
 
 // Login → { token, role, exp, ... }
 export async function apiLogin(username, password) {
-  return gasPost({ route: 'auth', op: 'login' }, { username, password });
+  return httpPost({ route: 'auth', op: 'login' }, { username, password });
 }
 
-/* Optional helpers (ស្រាលស្រួល import) */
+// Aliases ស្រួលហៅក្នុងគម្រោង
 export const gasList   = apiList;
 export const gasSave   = apiUpsert;
 export const gasDelete = apiDelete;
