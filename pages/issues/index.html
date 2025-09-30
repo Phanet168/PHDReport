@@ -1,38 +1,602 @@
-<div class="container-page">
-    <div class="page-head">
-        <div class="d-flex align-items-center gap-2">
-            <h1 class="kh-head h4 m-0">បញ្ហាប្រឈម & សកម្មភាព ទិសដៅបន្ត Dashboard</h1>
-            <nav aria-label="breadcrumb" class="small">
-                <ol class="breadcrumb m-0">
-                    <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
-                    <li class="breadcrumb-item">Reports</li>
-                    <li class="breadcrumb-item active" aria-current="page">Issues</li>
-                </ol>
-            </nav>
-        </div>
-        <div class="separator-breadcrumb border-top"></div>
-    </div>
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Issues & Actions | PHD Report</title>
 
-    <div class="page-body">
-        <div class="card shadow-sm w-100">
-            <div class="card-body">
-                <div id="issuesSummary" class="mb-3 small text-muted">Loading…</div>
-                <div class="table-responsive">
-                    <table id="tblIssues" class="table table-striped align-middle mb-0">
-                        <thead>
-                        <tr>
-                            <th style="width:80px">សូចនាករ</th>
-                            <th>បញ្ហាប្រឈម</th>
-                            <th>សកម្មភាព/th>
-                            <th style="width:160px">អ្នកទទួលខុសត្រូវ</th>
-                            <th style="width:120px">ពេលវេលាកំណត់</th>
-                            <th style="width:120px">ស្ថានភាព</th>
-                        </tr>
-                        </thead>
-                        <tbody><!-- JS render --></tbody>
-                    </table>
+    <!-- Khmer fonts (WOFF2) -->
+    <link rel="preload" href="dist-assets/fonts/NotoSansKhmer.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="dist-assets/fonts/KhmerOSSiemreap.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="dist-assets/fonts/KhmerM1.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="dist-assets/fonts/TACTENG.woff2" as="font" type="font/woff2" crossorigin>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
+    <style>
+        :root{ --ink:#0f172a; --muted:#6b7280; --line:#e5e7eb; --soft:#f8fafc; --brand:#6d28d9; --radius:14px; --boxH:36px; }
+
+        /* Khmer fonts */
+        @font-face{ font-family:"Noto Sans Khmer"; src:url("dist-assets/fonts/NotoSansKhmer.woff2") format("woff2"); font-weight:100 900; font-style:normal; font-display:swap; }
+        @font-face{ font-family:"Khmer OS Siemreap"; src:url("dist-assets/fonts/KhmerOSSiemreap.woff2") format("woff2"); font-weight:400; font-style:normal; font-display:swap; }
+        @font-face{ font-family:"Khmer M1"; src:url("dist-assets/fonts/KhmerM1.woff2") format("woff2"); font-weight:400; font-style:normal; font-display:swap; }
+        @font-face{ font-family:"Tacteng"; src:url("dist-assets/fonts/TACTENG.woff2") format("woff2"); font-weight:400; font-style:normal; font-display:swap; }
+
+        :root{
+          --text-kh:"Noto Sans Khmer", system-ui, sans-serif;
+          --head-kh:"Khmer OS Siemreap","Khmer M1","Noto Sans Khmer",sans-serif;
+        }
+        html[lang="km"] body{ font-family:var(--text-kh); line-height:1.55; }
+        .kh-head{ font-family:var(--head-kh); }
+
+        .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+        .container-page{width:100%; max-width:1280px; margin:0 auto; padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
+        .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
+        .page-head .breadcrumb{color:var(--muted)}
+        .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
+        .centered-card{max-width:1200px; border:1px solid #eef0f4; border-radius:var(--radius); background:#fff;}
+        .card-title{font-size:1.05rem}
+
+        .toolbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+        .toolbar .actions{min-width:260px}
+        .toolbar .form-select-sm, .toolbar .btn-sm{min-height:var(--boxH)}
+        .btn-primary{background:var(--brand); border-color:var(--brand)}
+        .btn-primary:hover{filter:brightness(.95)}
+        .btn-outline-secondary{border-color:var(--line); color:var(--ink)}
+
+        .seg{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
+        .segbtn{background:#fff;border:0;padding:.35rem .6rem;font-size:.85rem}
+        .segbtn+ .segbtn{border-left:1px solid #e5e7eb}
+        .segbtn.active{background:#f3f4f6;font-weight:600}
+
+        .table thead th{white-space:nowrap; background:#fff; position:sticky; top:0; z-index:5; border-bottom:1px solid var(--line); cursor:pointer;}
+        .table-responsive{max-height:64vh; overflow:auto; border-radius:12px; border:1px solid #eef0f4}
+        th.sorted-asc, th.sorted-desc{color:#111827}
+        .sort-mark{font-size:.75rem; opacity:.7;}
+
+        .skel{position:relative; overflow:hidden; background:#f3f4f6; height:44px; border-radius:8px}
+        .skel::after{content:""; position:absolute; inset:0; transform:translateX(-100%);
+          background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+          animation:shimmer 1.05s infinite linear}
+        @keyframes shimmer{100%{transform:translateX(100%)}}
+
+        .badge-status{font-weight:600;padding:.25rem .5rem;border-radius:.5rem;border:1px solid transparent}
+        .status-pending{background:#fff7ed;color:#c2410c;border-color:#fed7aa}
+        .status-progress{background:#ecfeff;color:#155e75;border-color:#a5f3fc}
+        .status-done{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+        .status-blocked{background:#fef2f2;color:#991b1b;border-color:#fecaca}
+
+        /* PDF look */
+        .pdf-A4{ width:1120px; background:#fff; color:#111; font-family:"Noto Sans Khmer",system-ui,sans-serif; padding:16px; }
+        .pdf-table{ width:100%; border-collapse:collapse; table-layout:fixed; font-size:13px }
+        .pdf-table th,.pdf-table td{ border:1px solid #333; padding:9px 10px; line-height:1.65; vertical-align:top; text-align:left; word-break:break-word; }
+        .pdf-table thead th{ background:#fafafa }
+
+        .pdf-headline{ display:grid; grid-template-columns: 1fr 2fr 1fr; align-items:end; gap:12px; border-bottom:2px solid #0f172a; padding-bottom:10px; margin-bottom:10px; }
+        .ph-left{ display:flex; align-items:flex-end; gap:10px; min-height:56px; }
+        .ph-left .seal{ width:56px; height:56px; object-fit:contain; }
+        .ph-left .org{ display:flex; flex-direction:column; line-height:1.25; }
+        .ph-left .org-line{ font-size:13.5px; }
+
+        .ph-center{ text-align:center; }
+        .ph-center .title{ font-family:"Khmer M1","Noto Sans Khmer",sans-serif; font-size:20px; line-height:1.35; letter-spacing:.2px; }
+        .ph-center .deco{ font-family:"Tacteng"; font-size:18px; line-height:1; margin-top:4px; opacity:.9; }
+        .ph-center .deco::before{ content:"6"; }
+
+        .ph-right{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+        .ph-right .brand{ height:24px; object-fit:contain; }
+        .print-date{ white-space:nowrap; color:#334155; }
+
+        .pdf-footer{ margin-top:8px; padding-top:6px; border-top:1px dashed #94a3b8; display:flex; justify-content:flex-end; color:#475569; font-size:11px; }
+
+        button.btn-del{ display:none; } html.is-super button.btn-del{ display:inline-flex; }
+        #pdfComposer{ position:absolute; left:0; top:0; width:1120px; opacity:.001; pointer-events:none; z-index:-1; }
+    </style>
+</head>
+
+<body>
+<div class="settings-page">
+    <div class="container-page">
+        <!-- Page head -->
+        <div class="page-head">
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="kh-head h4 m-0">បញ្ហាប្រឈម & សកម្មភាព</h1>
+                <nav aria-label="breadcrumb" class="small">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+                        <li class="breadcrumb-item">Reports</li>
+                        <li class="breadcrumb-item active" aria-current="page">Issues</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="separator-breadcrumb border-top"></div>
+        </div>
+
+        <!-- Body -->
+        <div class="page-body">
+            <div class="card shadow-sm centered-card w-100">
+                <div class="card-body">
+                    <!-- Toolbar -->
+                    <div class="toolbar mb-3">
+                        <h4 class="card-title kh-head m-0">បញ្ជីបញ្ហាប្រឈម</h4>
+                        <div class="actions ms-auto d-flex flex-wrap align-items-end gap-2">
+                            <div class="seg d-inline-flex">
+                                <button type="button" class="segbtn active" data-type="all">All</button>
+                                <button type="button" class="segbtn" data-type="month">Month</button>
+                                <button type="button" class="segbtn" data-type="quarter">Quarter</button>
+                                <button type="button" class="segbtn" data-type="half">Half</button>
+                                <button type="button" class="segbtn" data-type="year">Year</button>
+                            </div>
+                            <div>
+                                <label class="form-label small m-0">Year</label>
+                                <select id="ySel" class="form-select form-select-sm" style="min-width:120px"></select>
+                            </div>
+                            <div id="tagWrap" style="display:none">
+                                <label class="form-label small m-0">Tag</label>
+                                <select id="tagSel" class="form-select form-select-sm" style="min-width:140px"></select>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button id="btnApply" class="btn btn-sm btn-primary">Apply</button>
+                                <button id="btnReset" class="btn btn-sm btn-outline-secondary">Reset</button>
+                                <button id="btnDownloadPdf" class="btn btn-sm btn-outline-dark">ទាញយក PDF</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary -->
+                    <div id="issuesSummary" class="mb-2 small text-muted">Loading…</div>
+
+                    <!-- Table -->
+                    <div class="table-responsive">
+                        <table id="tblIssues" class="table table-striped align-middle mb-0">
+                            <colgroup>
+                                <col style="width:320px"><col style="width:120px"><col><col>
+                                <col style="width:180px"><col style="width:120px"><col style="width:220px">
+                            </colgroup>
+                            <thead>
+                            <tr>
+                                <th>សូចនាករ</th>
+                                <th>រយៈពេល</th>
+                                <th>បញ្ហាប្រឈម</th>
+                                <th>សកម្មភាព</th>
+                                <th>អ្នកទទួលខុសត្រូវ</th>
+                                <th>កំណត់ពេល</th>
+                                <th>ស្ថានភាព / សកម្មភាព</th>
+                            </tr>
+                            </thead>
+                            <tbody><!-- JS render --></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- ===== PDF TEMPLATE ===== -->
+<template id="pdfTemplate">
+    <div class="pdf-A4">
+        <header class="pdf-headline">
+            <div class="ph-left">
+                <img class="seal" src="dist-assets/images/logo-text.png" alt="seal" crossorigin="anonymous">
+                <div class="org">
+                    <div class="org-line kh-head" data-tpl="org1">មន្ទីរសុខាភិបាលខេត្ត</div>
+                    <div class="org-line kh-head" data-tpl="org2">ផ្នែកផែនការ និងត្រួតពិនិត្យ</div>
+                </div>
+            </div>
+            <div class="ph-center">
+                <div class="title kh-head" data-tpl="title1">របាយការណ៍បញ្ហាប្រឈម</div>
+                <div class="title kh-head" data-tpl="title2">និង សកម្មភាព ដោះស្រាយ</div>
+                <div class="deco" aria-hidden="true"></div>
+            </div>
+            <div class="ph-right">
+                <img class="brand" src="dist-assets/images/logo-text.png" alt="brand" crossorigin="anonymous">
+                <div class="print-date small" data-tpl="date"></div>
+            </div>
+        </header>
+
+        <div class="pdf-meta">
+            <div class="text-muted small" data-tpl="subtitle"></div>
+        </div>
+
+        <table class="pdf-table">
+            <thead>
+            <tr>
+                <th>សូចនាករ</th><th>រយៈពេល</th><th>បញ្ហាប្រឈម</th>
+                <th>សកម្មភាព</th><th>អ្នកទទួលខុសត្រូវ</th><th>កំណត់ពេល</th><th>ស្ថានភាព</th>
+            </tr>
+            </thead>
+            <tbody data-tpl="tbody"></tbody>
+        </table>
+
+        <footer class="pdf-footer">
+            <span class="small" data-tpl="pageno">ទំព័រ ១</span>
+        </footer>
+    </div>
+</template>
+
+<div id="pdfComposer"></div>
+
+<!-- ===== Page logic (exported) ===== -->
+<script type="module">
+    export async function initIssues(){
+      const getAuth   = window.getAuth   || (()=>({}));
+      const isSuper   = window.isSuper   || ((a)=>String(a?.role||a?.user_type||'').toLowerCase()==='super');
+      const gasList   = window.gasList   || (async()=>{ throw new Error('gasList not found'); });
+      const gasDelete = window.gasDelete || (async()=>{ throw new Error('gasDelete not found'); });
+      const ID_FIELDS = window.ID_FIELDS || { actions:'action_id' };
+
+      function getAuthSafe(){
+        try{
+          const a   = getAuth() || {};
+          const raw = String(a.role ?? a.user_type ?? '').trim().toLowerCase();
+          return { ...a, role: (raw==='superuser'?'super':raw) };
+        }catch{ return { role:'' }; }
+      }
+      const AUTH  = getAuthSafe();
+      const SUPER = isSuper(AUTH);
+      document.documentElement.classList.toggle('is-super', !!SUPER);
+
+      const $ = s => document.querySelector(s);
+      const tbody   = $("#tblIssues tbody");
+      const thead   = $("#tblIssues thead");
+      const sumEl   = $("#issuesSummary");
+      const segBtns = [...document.querySelectorAll(".segbtn")];
+      const ySel    = $("#ySel");
+      const tagWrap = $("#tagWrap");
+      const tagSel  = $("#tagSel");
+      const btnApply= $("#btnApply");
+      const btnReset= $("#btnReset");
+      const btnPdf  = $("#btnDownloadPdf");
+      if (!tbody || !thead || !sumEl) return;
+
+      const KH_MONTHS=['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+      const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+      const fmtDate=s=>{
+        if(!s) return '';
+        const d=new Date(s);
+        if (Number.isNaN(+d)) return esc(s);
+        const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0'), yy=d.getFullYear();
+        return `${dd}/${mm}/${yy}`;
+      };
+      const pretty=(y,t)=>!y||!t?''
+        : /^M\d{2}$/.test(t) ? `${KH_MONTHS[+t.slice(1)-1]} ${y}`
+        : /^Q[1-4]$/.test(t) ? `ត្រីមាស ${t.slice(1)} • ${y}`
+        : /^H[12]$/.test(t) ? `ឆមាស ${t.slice(1)} • ${y}`
+        : t==='Y12' ? `ឆ្នាំ ${y}` : `${y} ${t}`;
+
+      const khStatusLabel = (s) => {
+        const v = String(s||'').toLowerCase();
+        if (v==='planned') return 'បានគ្រោង';
+        if (v==='ongoing' || v==='in-progress') return 'កំពុងដំណើរការ';
+        if (v==='done' || v==='completed') return 'បានបញ្ចប់';
+        if (v==='blocked') return 'មានឧបសគ្គ';
+        return 'កំពុងរៀបចំ';
+      };
+      const statusClass = (s)=>{
+        const v = String(s||'').toLowerCase();
+        if (v==='done') return 'status-done';
+        if (v==='ongoing' || v==='in-progress') return 'status-progress';
+        if (v==='blocked') return 'status-blocked';
+        if (v==='planned') return 'status-pending';
+        return 'status-pending';
+      };
+      const periodToSortable=(y,t)=>{ t=String(t||'').toUpperCase();
+        if(/^M\d{2}$/.test(t))return y*10000+(+t.slice(1));
+        if(/^Q[1-4]$/.test(t))return y*10000+(['Q1','Q2','Q3','Q4'].indexOf(t)+1)*100;
+        if(/^H[12]$/.test(t))return y*10000+(t==='H1'?10:20)*100;
+        if(t==='Y12')return y*10000+9999; return y*10000;
+      };
+
+      let MODE='all', sortBy=null, sortDir=1;
+      let ALL=[];
+      const PERIOD={ months:['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12'], quarters:['Q1','Q2','Q3','Q4'], halves:['H1','H2'] };
+      const SORT_KEYS=[
+        {idx:0,key:'indicator_name',type:'text'},
+        {idx:1,key:'period_sort',type:'number'},
+        {idx:2,key:'issue_text',type:'text'},
+        {idx:3,key:'action_text',type:'text'},
+        {idx:4,key:'action_owner',type:'text'},
+        {idx:5,key:'action_due',type:'date'},
+        {idx:6,key:'action_status',type:'text'},
+      ];
+
+      function buildYearOptions(list){
+        const years=[...new Set(list.map(a=>a.year).filter(Boolean))].sort((a,b)=>b-a);
+        if(!years.length) years.push(new Date().getFullYear());
+        ySel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+      }
+      function fillTagOptions(){
+        let opts='';
+        if (MODE==='month')   opts = PERIOD.months.map(t=>`<option value="${t}">${t}</option>`).join('');
+        else if (MODE==='quarter') opts = PERIOD.quarters.map(t=>`<option value="${t}">${t}</option>`).join('');
+        else if (MODE==='half')    opts = PERIOD.halves.map(t=>`<option value="${t}">${t}</option>`).join('');
+        tagSel.innerHTML = opts;
+        tagWrap.style.display = (MODE==='month'||MODE==='quarter'||MODE==='half') ? '' : 'none';
+      }
+      function setHeaderMark(){
+        thead.querySelectorAll('th').forEach(th=>{ th.classList.remove('sorted-asc','sorted-desc'); th.querySelector('.sort-mark')?.remove(); });
+        if(sortBy==null) return;
+        const conf=SORT_KEYS.find(c=>c.key===sortBy); if(!conf) return;
+        const th=thead.querySelectorAll('th')[conf.idx];
+        const m=document.createElement('span'); m.className='sort-mark'; m.textContent= sortDir===1?' ▲':' ▼';
+        th.appendChild(m); th.classList.add(sortDir===1?'sorted-asc':'sorted-desc');
+      }
+      function applySort(rows){
+        if(!sortBy) return rows;
+        const conf=SORT_KEYS.find(c=>c.key===sortBy); if(!conf) return rows;
+        const {type,key}=conf;
+        return rows.slice().sort((a,b)=>{
+          let va=a[key], vb=b[key];
+          if(type==='date'){ va=va?+new Date(va):0; vb=vb?+new Date(vb):0; return (va-vb)*sortDir; }
+          if(type==='text'){ return String(va||'').localeCompare(String(vb||''),'km-KH',{numeric:true,sensitivity:'base'})*sortDir; }
+          return ((va||0)-(vb||0))*sortDir;
+        });
+      }
+      function updateSummary(rows){
+        const low=v=>String(v||'').toLowerCase();
+        const planned=rows.filter(a=>low(a.action_status)==='planned').length;
+        const ongoing=rows.filter(a=>low(a.action_status)==='ongoing' || low(a.action_status)==='in-progress').length;
+        const done   =rows.filter(a=>low(a.action_status)==='done').length;
+        const blocked=rows.filter(a=>low(a.action_status)==='blocked').length;
+        sumEl.textContent=`សរុប ${rows.length} • បានគ្រោង ${planned} • កំពុងដំណើរការ ${ongoing} • បានបញ្ចប់ ${done} • ឧបសគ្គ ${blocked}`;
+      }
+      function matches(a, mode, year, tag){
+        if(mode==='all') return true;
+        if(String(a.year)!==String(year)) return false;
+        const t=String(a.month||a.tag||'').toUpperCase();
+        if(mode==='year')    return t==='Y12';
+        if(mode==='month')   return /^M\d{2}$/.test(t) && t===tag;
+        if(mode==='quarter') return /^Q[1-4]$/.test(t) && t===tag;
+        if(mode==='half')    return /^H[12]$/.test(t) && t===tag;
+        return true;
+      }
+
+      (function skeleton(n=6){
+        tbody.innerHTML='';
+        for(let i=0;i<n;i++){
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td><div class="skel" style="width:70%"></div><div class="skel mt-1" style="width:40%"></div></td>
+          <td><div class="skel" style="width:80px"></div></td><td><div class="skel"></div></td>
+          <td><div class="skel"></div></td><td><div class="skel" style="width:120px"></div></td>
+          <td><div class="skel" style="width:84px"></div></td><td><div class="skel" style="width:160px"></div></td>`;
+          tbody.appendChild(tr);
+        }
+      })();
+
+      const [indicators, units, depts] = await Promise.all([
+        gasList('indicators').catch(()=>[]),
+        gasList('units').catch(()=>[]),
+        gasList('departments').catch(()=>[]),
+      ]);
+      const indById = new Map((indicators||[]).map(i=>[String(i.indicator_id), i]));
+      const unitName= Object.fromEntries((units||[]).map(u=>[String(u.unit_id), u.unit_name]));
+      const deptName= Object.fromEntries((depts||[]).map(d=>[String(d.department_id), d.department_name]));
+
+      async function loadActionsSmart(){
+        const y=new Date().getFullYear();
+        const m='M'+String(new Date().getMonth()+1).padStart(2,'0');
+        let rows = await gasList('actions',{year:y,month:m}).catch(()=>[]);
+        if (!rows.length) rows = await gasList('actions').catch(()=>[]);
+        return rows;
+      }
+
+      let RAW = await loadActionsSmart();
+      // normalize a bit
+      ALL = RAW.map(a=>({
+        ...a,
+        indicator_name:a.indicator_name||'',
+        period_sort:periodToSortable(a.year, a.month||a.tag||'')
+      }));
+
+      function renderRows(rows){
+        if(!rows.length){
+          tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+          return;
+        }
+        const frag=document.createDocumentFragment();
+        for (const a of rows){
+          const ind=indById.get(String(a.indicator_id));
+          const depId=a.department_id ?? ind?.department_id ?? '';
+          const depLbl= deptName[String(depId)]||'';
+          const unitLbl= a.unit_id ? (unitName[String(a.unit_id)]||'') : '';
+          const actionId = a.action_id ?? a.actionId ?? a.id ?? '';
+
+          const tr=document.createElement('tr');
+          tr.innerHTML=`
+            <td>
+              <div class="fw-semibold">${esc(ind?.indicator_name || a.indicator_id || '')}</div>
+              <div class="small text-muted">${esc(depLbl)}${unitLbl?` / ${esc(unitLbl)}`:''}</div>
+            </td>
+            <td>${esc(pretty(a.year, a.month || a.tag))}</td>
+            <td>${esc(a.issue_text || '')}</td>
+            <td>${esc(a.action_text || '')}</td>
+            <td>${esc(Array.isArray(a.action_owner)?a.action_owner.join(', '):(a.action_owner||''))}</td>
+            <td>${fmtDate(a.action_due)}</td>
+            <td class="text-end">
+              <span class="badge-status ${statusClass(a.action_status)}">${esc(khStatusLabel(a.action_status))}</span>
+              ${ (SUPER && actionId) ? `<button class="btn btn-sm btn-outline-danger ms-2 btn-del" data-del="${esc(actionId)}">លុប</button>` : '' }
+            </td>`;
+          frag.appendChild(tr);
+        }
+        tbody.replaceChildren(frag);
+      }
+
+      buildYearOptions(ALL);
+      const first = ALL.slice().sort((a,b)=>(a.action_due?+new Date(a.action_due):Infinity)-(b.action_due?+new Date(b.action_due):Infinity));
+      renderRows(first); updateSummary(first); setHeaderMark();
+
+      segBtns.forEach(b=>b.addEventListener('click', ()=>{
+        segBtns.forEach(x=>x.classList.remove('active'));
+        b.classList.add('active'); MODE=b.dataset.type; fillTagOptions();
+      }));
+      btnApply?.addEventListener('click', ()=>{
+        const year=String(ySel.value||''); const tag=String(tagSel.value||'').toUpperCase();
+        const rows=ALL.filter(a=>matches(a, MODE, year, tag));
+        renderRows(applySort(rows)); updateSummary(rows); setHeaderMark();
+      });
+      btnReset?.addEventListener('click', ()=>{
+        MODE='all'; segBtns.forEach(x=>x.classList.toggle('active',x.dataset.type==='all')); fillTagOptions();
+        const rows=applySort(ALL);
+        renderRows(rows); updateSummary(rows); setHeaderMark();
+      });
+      thead.addEventListener('click',(e)=>{
+        const th=e.target.closest('th'); if(!th) return;
+        const idx=[...thead.querySelectorAll('th')].indexOf(th);
+        const conf=SORT_KEYS.find(c=>c.idx===idx); if(!conf) return;
+        if(sortBy===conf.key){ sortDir*=-1; } else { sortBy=conf.key; sortDir=1; }
+        const year=String(ySel.value||''); const tag=String(tagSel.value||'').toUpperCase();
+        const base=(MODE==='all')?ALL:ALL.filter(a=>matches(a, MODE, year, tag));
+        const rows=applySort(base);
+        renderRows(rows); updateSummary(base); setHeaderMark();
+      });
+
+      if (SUPER) {
+        tbody.addEventListener('click', async (e)=>{
+          const btn = e.target.closest('button[data-del]'); if(!btn) return;
+          const id  = btn.getAttribute('data-del'); if(!id) return alert('មិនមាន action_id ដើម្បីលុប');
+          if(!confirm('លុបធាតុនេះមែនទេ?')) return;
+          try{
+            const idField = (ID_FIELDS && ID_FIELDS.actions) || 'action_id';
+            await gasDelete('actions', idField, id);
+            ALL = ALL.filter(r => String(r.action_id ?? r.actionId ?? r.id) !== String(id));
+            const year=String(ySel.value||''); const tag=String(tagSel.value||'').toUpperCase();
+            const base=(MODE==='all')?ALL:ALL.filter(a=>matches(a, MODE, year, tag));
+            renderRows(applySort(base)); updateSummary(base);
+          }catch(err){ console.error(err); alert('បរាជ័យលុប: '+(err?.message||err)); }
+        }, { passive:true });
+      }
+
+      // ===== PDF =====
+      async function ensureLib(name, src){
+        if ((name==='html2canvas' && window.html2canvas) || (name==='jspdf' && window.jspdf)) return;
+        await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+      }
+      const ddmmyyyy=(d)=>`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+
+      function composePdfFromTemplate(){
+        const tplEl = document.getElementById('pdfTemplate');
+        if (!tplEl?.content){ alert('គ្មាន PDF template'); return null; }
+
+        const frag = tplEl.content.cloneNode(true);
+        const root = frag.querySelector('.pdf-A4');
+        root?.setAttribute('lang','km');
+
+        const subtitle = (document.getElementById('issuesSummary')?.textContent || '').trim();
+        frag.querySelector('[data-tpl="subtitle"]').textContent = subtitle;
+        frag.querySelector('[data-tpl="date"]').textContent = 'បោះពុម្ព៖ ' + ddmmyyyy(new Date());
+
+        frag.querySelectorAll('img').forEach(img=>{
+          const src = img.getAttribute('src');
+          if (src){ try{ img.crossOrigin='anonymous'; img.src=new URL(src, location.href).href; }catch{} }
+        });
+
+        const srcBody = document.querySelector('#tblIssues tbody');
+        const dstBody = frag.querySelector('[data-tpl="tbody"]');
+        const rows = Array.from(srcBody?.rows || []);
+        if (!rows.length){ alert('តារាងទទេ — មិនអាចបោះពុម្ព'); return null; }
+
+        rows.forEach(tr=>{
+          const c = tr.cloneNode(true);
+          c.querySelectorAll('button,.btn').forEach(b=>b.remove());
+          dstBody.appendChild(c);
+        });
+
+        const mount = document.getElementById('pdfComposer');
+        mount.innerHTML = '';
+        mount.appendChild(frag);
+        return mount.querySelector('.pdf-A4');
+      }
+
+      async function waitFontsAndImages(node){
+        try{
+          await Promise.all([
+            document.fonts.load('400 14px "Noto Sans Khmer"'),
+            document.fonts.load('600 16px "Noto Sans Khmer"'),
+            document.fonts.load('400 16px "Khmer OS Siemreap"'),
+            document.fonts.load('400 18px "Khmer M1"'),
+            document.fonts.load('400 16px "Tacteng"'),
+          ]);
+          await document.fonts.ready;
+        }catch{}
+        const imgs = Array.from(node.querySelectorAll('img'));
+        await Promise.all(imgs.map(img => (img.complete && img.naturalWidth>0)
+          ? Promise.resolve()
+          : new Promise(r => { img.onload=r; img.onerror=r; })
+        ));
+        await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      }
+
+      async function downloadIssuesTemplatePDF(filename='issues-report.pdf'){
+        await ensureLib('html2canvas','https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+        await ensureLib('jspdf','https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
+
+        const node = composePdfFromTemplate();
+        if (!node) return;
+
+        node.style.minHeight = '10px';
+        await waitFontsAndImages(node);
+
+        const options = {
+          scale: 2,
+          useCORS: true,
+          foreignObjectRendering: true,
+          backgroundColor: '#ffffff',
+          windowWidth: 1120
+        };
+
+        let canvas;
+        try {
+          canvas = await window.html2canvas(node, options);
+        } catch (e) {
+          console.warn('html2canvas(FOR) បរាជ័យ → retry without FOR:', e?.message || e);
+          options.foreignObjectRendering = false;
+          canvas = await window.html2canvas(node, options);
+        }
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p','mm','a4');
+
+        const pageW=210, pageH=297, mg=12;
+        const imgW = pageW - mg*2;
+        const pageHPx = Math.floor((canvas.width * (pageH - mg*2)) / imgW);
+
+        const pageCanvas = document.createElement('canvas');
+        const ctx = pageCanvas.getContext('2d');
+
+        let pos=0, page=0;
+        while (pos < canvas.height) {
+          const h = Math.min(pageHPx, canvas.height - pos);
+          pageCanvas.width  = canvas.width;
+          pageCanvas.height = h;
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0,0,pageCanvas.width,pageCanvas.height);
+          ctx.drawImage(canvas, 0, -pos);
+
+          const img = pageCanvas.toDataURL('image/jpeg', 0.95);
+          if (page > 0) pdf.addPage();
+          const outH = (h * imgW) / canvas.width;
+          pdf.addImage(img, 'JPEG', mg, mg, imgW, outH);
+
+          pdf.setFontSize(9);
+          pdf.text(`ទំព័រ ${page+1}`, pageW - mg, pageH - 5, { align: 'right' });
+
+          pos += h; page++;
+        }
+
+        pdf.save(filename);
+      }
+
+      if (btnPdf){
+        const fresh = btnPdf.cloneNode(true);
+        btnPdf.replaceWith(fresh);
+        fresh.addEventListener('click', async ()=>{
+          fresh.disabled=true; const t=fresh.textContent; fresh.textContent='កំពុងបង្កើត…';
+          try{ await downloadIssuesTemplatePDF(); }
+          finally{ fresh.disabled=false; fresh.textContent=t; }
+        }, { passive:true });
+      }
+    }
+</script>
+</body>
+</html>

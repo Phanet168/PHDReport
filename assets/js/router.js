@@ -7,7 +7,7 @@ const ROUTES = {
   'settings/departments':      'pages/settings/departments/index.html',
   'settings/units':            'pages/settings/units/index.html',
   'settings/periods':          'pages/settings/periods/index.html',
-  'issues':                    'pages/issues/index.html',
+
 
 };
 const baseDir = location.pathname.replace(/\/[^/]*$/, '/');

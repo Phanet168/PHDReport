@@ -4,10 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ចូលប្រព័ន្ធ | PHD Report</title>
+
+  <!-- Web fonts សម្រាប់ UI (ស្រេចចិត្ត) -->
   <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+
+  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
   <style>
-    :root{ --kh-font:"Noto Sans Khmer",system-ui,-apple-system,Segoe UI,Arial,sans-serif; --kh-head:"Khmer Moul","Noto Sans Khmer",sans-serif; }
+    :root{
+      --kh-font: "Noto Sans Khmer", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      --kh-head: "Khmer Moul", "Noto Sans Khmer", sans-serif;
+    }
     html,body{ font-family:var(--kh-font); background:#f5f7fb; }
     .login-wrap{ min-height:100dvh; display:grid; place-items:center; padding:24px; }
     .login-box{ width:100%; max-width:460px; background:#fff; border-radius:16px; box-shadow:0 10px 30px rgba(33,37,41,.08); padding:28px 24px; }
@@ -22,8 +30,10 @@
 <main class="login-wrap">
   <section class="login-box">
     <div class="logo-wrap">
+      <!-- ប្ដូរ path ប្រសិនបើ logo រក្សាទុកកន្លែងផ្សេង -->
       <img src="./dist-assets/images/logo-text.png" alt="PHD Report Logo">
     </div>
+
     <h4 class="app-title">ចូលប្រព័ន្ធគ្រប់គ្រងរបាយការណ៍</h4>
     <div class="sub">សូមបញ្ចូលឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់</div>
 
@@ -58,41 +68,57 @@
 </main>
 
 <script type="module">
-  // 👉 ប្រើ JSONP login (គ្មាន CORS)
-  import { loginJsonp, getAuth } from './assets/js/app.auth.js';
+  import { loginJsonp, isLoggedIn } from './assets/js/app.auth.js';
 
-  // Already logged in? go back to return/index
+  // ✅ កំណត់ URL ត្រឡប់ក្រោយ Login ដោយសុវត្ថិភាព (ចៀស loop ទៅ login.html)
+  function safeReturnUrl() {
+    const raw = new URLSearchParams(location.search).get('return') || 'index.html';
+    try {
+      const u = new URL(raw, location.href);
+      if (u.origin === location.origin && !/login\.html$/i.test(u.pathname)) {
+        return u.pathname + u.search + u.hash;
+      }
+    } catch {}
+    return 'index.html';
+  }
+
+  // ⏩ បើកើតមាន session រួចហើយ → ចូលទៅទំព័រចុងក្រោយភ្លាម
   (function skipIfLoggedIn(){
-    const a = getAuth();
-    if (a && a.token) {
-      const ret = new URLSearchParams(location.search).get('return') || 'index.html';
-      location.replace(ret);
-    }
+    if (isLoggedIn()) location.replace(safeReturnUrl());
   })();
 
+  // ---------- DOM ----------
   const frm = document.getElementById('frmLogin');
   const btn = document.getElementById('btnLogin');
   const msg = document.getElementById('msg');
   const btnTxt = document.getElementById('btnTxt');
   const btnSpin = document.getElementById('btnSpin');
 
+  // បិទ/បើកការមើលពាក្យសម្ងាត់
   document.getElementById('btnTogglePw').addEventListener('click', () => {
     const pw = document.getElementById('password');
     pw.type = pw.type === 'password' ? 'text' : 'password';
   });
 
-  function setBusy(b){ btn.disabled = b; btnSpin.classList.toggle('d-none', !b); btnTxt.textContent = b ? 'កំពុងចូល...' : 'ចូល'; }
+  // Helpers
+  function setBusy(b){
+    btn.disabled = b;
+    btnSpin.classList.toggle('d-none', !b);
+    btnTxt.textContent = b ? 'កំពុងចូល...' : 'ចូល';
+  }
   function showError(t){ msg.textContent = t || ''; }
   function clearInvalid(){ this.classList.remove('is-invalid'); }
   document.getElementById('username').addEventListener('input', clearInvalid);
   document.getElementById('password').addEventListener('input', clearInvalid);
 
+  // ---------- Submit ----------
   frm.addEventListener('submit', async (e) => {
     e.preventDefault();
     showError('');
 
     const u = document.getElementById('username');
     const p = document.getElementById('password');
+
     let ok = true;
     if (!u.value.trim()) { u.classList.add('is-invalid'); u.focus(); ok = false; }
     if (!p.value) { p.classList.add('is-invalid'); if (ok) p.focus(); ok = false; }
@@ -100,11 +126,14 @@
 
     setBusy(true);
     try {
-      // ✅ JSONP login — server ត្រូវឆ្លើយជា callback(...)
+      // 🔐 JSONP login (server ត្រូវឆ្លើយជា callback(...))
       await loginJsonp(u.value.trim(), p.value);
 
-      const ret = new URLSearchParams(location.search).get('return') || 'index.html';
-      location.replace(ret);
+      // 🔔 ប្រាប់ UI ផ្សេងៗថា auth ផ្លាស់ប្តូរ (header/login button/ etc.)
+      window.dispatchEvent(new Event('auth:changed'));
+
+      // ⏩ ចូលទៅទំព័រដែលបានស្នើ
+      location.replace(safeReturnUrl());
     } catch (err) {
       let m = String(err?.message || err || '');
       if (/Missing credentials/i.test(m)) m = 'សូមបំពេញឈ្មោះ និង ពាក្យសម្ងាត់';
@@ -115,5 +144,6 @@
     }
   });
 </script>
+
 </body>
 </html>

@@ -247,7 +247,7 @@
   /* ===== rest of module imports ===== */
   import { ensureLoggedIn, applyLoginButton, getAuth, isSuper } from './assets/js/app.auth.js';
   import { buildDeptMenu, buildSettingsMenu, gasList, gasSave, gasDelete, ID_FIELDS } from './assets/js/app.menu.js';
-  import { initIssues } from './assets/js/pages/issues/issues.js';
+
 
   /* ---------- Simple loader ---------- */
   const AppLoader = (() => {
@@ -261,6 +261,7 @@
   })();
 
   /* ---------- Require login ---------- */
+  console.debug('[auth@boot]', getAuth());
   applyLoginButton();
   ensureLoggedIn('login.html');
 
@@ -313,8 +314,7 @@
     'data-entry':           { view:'pages/data-entry/index.html',            init:initDataEntry },
     'issues':               { view:'pages/issues/index.html',                init:initIssues },
 
-
-  };
+};
 
   async function render(path){
     const conf = routes[path] || routes[''];
@@ -856,7 +856,351 @@ async function initDataEntry(){
 
 
 
-/*======================= Issuese============================= */
+// ======================= main index / initIssues ===========================
+// ======================= Issues: simplified full version =======================
+
+async function initIssues() {
+  /* ====== CONFIG: GAS Web App (Google Docs → PDF) ====== */
+  const GAS_WEBAPP = 'https://script.google.com/macros/s/AKfycbxHb9mWIaeZWy7zwqbC74DKzKoeYYIYPgrVfX1mbWZngP8R4uNMP6LoAlfeXp-OSpZueg/exec';
+
+  /* ====== Role (strict) ====== */
+  function getAuthSafe(){
+    try{
+      const a = (typeof window.getAuth === "function" ? window.getAuth() : {}) || {};
+      const raw  = String(a.role ?? a.user_type ?? "").trim().toLowerCase();
+      const role = (raw === "superuser") ? "super" : raw;
+      return { ...a, role };
+    }catch{ return { role:"" }; }
+  }
+  const AUTH  = getAuthSafe();
+  const SUPER = AUTH.role === "super";
+  document.documentElement.classList.toggle("is-super", SUPER);
+
+  /* ====== DOM ====== */
+  const $ = s => document.querySelector(s);
+  const tbody   = $("#tblIssues tbody");
+  const thead   = $("#tblIssues thead");
+  const sumEl   = $("#issuesSummary");
+  const segBtns = [...document.querySelectorAll(".segbtn")];
+  const ySel    = $("#ySel");
+  const tagWrap = $("#tagWrap");
+  const tagSel  = $("#tagSel");
+  const btnApply= $("#btnApply");
+  const btnReset= $("#btnReset");
+  const btnPdf  = $("#btnDownloadPdf");
+  if (!tbody || !thead || !sumEl) return;
+
+  /* ====== Utils ====== */
+  const KH_MONTHS=['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]));
+  const fmtDate=s=>{
+    if(!s) return '';
+    const d=new Date(s); if (Number.isNaN(+d)) return esc(s);
+    const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0'), yy=d.getFullYear();
+    return `${dd}/${mm}/${yy}`;
+  };
+  const pretty=(y,t)=>!y||!t?''
+    : /^M\d{2}$/.test(t) ? `${KH_MONTHS[+t.slice(1)-1]} ${y}`
+    : /^Q[1-4]$/.test(t) ? `ត្រីមាស ${t.slice(1)} • ${y}`
+    : /^H[12]$/.test(t) ? `ឆមាស ${t.slice(1)} • ${y}`
+    : t==='Y12' ? `ឆ្នាំ ${y}` : `${y} ${t}`;
+  const khStatusLabel = (s) => {
+    const v = String(s||'').toLowerCase();
+    if (v === 'planned')  return 'បានគ្រោង';
+    if (v === 'ongoing' || v === 'in-progress') return 'កំពុងដំណើរការ';
+    if (v === 'done' || v === 'completed') return 'បានបញ្ចប់';
+    if (v === 'blocked') return 'មានឧបសគ្គ';
+    return 'កំពុងរៀបចំ';
+  };
+  const statusClass = (s)=>{
+    const v = String(s||'').toLowerCase();
+    if (v==='done' || v==='completed') return 'status-done';
+    if (v==='ongoing' || v==='in-progress') return 'status-progress';
+    if (v==='blocked') return 'status-blocked';
+    if (v==='planned') return 'status-pending';
+    return 'status-pending';
+  };
+  const periodToSortable=(y,t)=>{t=String(t||'').toUpperCase();
+    if(/^M\d{2}$/.test(t))return y*10000+(+t.slice(1));
+    if(/^Q[1-4]$/.test(t))return y*10000+(['Q1','Q2','Q3','Q4'].indexOf(t)+1)*100;
+    if(/^H[12]$/.test(t))return y*10000+(t==='H1'?10:20)*100;
+    if(t==='Y12')return y*10000+9999; return y*10000;};
+
+  /* ====== State ====== */
+  let MODE='all', sortBy=null, sortDir=1;
+  let ALL=[];
+  const PERIOD={ months:['M01','M02','M03','M04','M05','M06','M07','ម08','M09','M10','M11','M12'].map(x=>x.replace('ម','M')),
+                 quarters:['Q1','Q2','Q3','Q4'], halves:['H1','H2'] };
+  const SORT_KEYS=[
+    {idx:0,key:'indicator_name',type:'text'},
+    {idx:1,key:'period_sort',type:'number'},
+    {idx:2,key:'issue_text',type:'text'},
+    {idx:3,key:'action_text',type:'text'},
+    {idx:4,key:'action_owner',type:'text'},
+    {idx:5,key:'action_due',type:'date'},
+    {idx:6,key:'action_status',type:'text'},
+  ];
+
+  /* ====== Skeleton while loading ====== */
+  (function skeleton(n=6){
+    tbody.innerHTML=''; for(let i=0;i<n;i++){
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td><div class="skel" style="width:70%"></div><div class="skel mt-1" style="width:40%"></div></td>
+      <td><div class="skel" style="width:80px"></div></td><td><div class="skel"></div></td>
+      <td><div class="skel"></div></td><td><div class="skel" style="width:120px"></div></td>
+      <td><div class="skel" style="width:84px"></div></td><td><div class="skel" style="width:160px"></div></td>`;
+      tbody.appendChild(tr);
+    }
+  })();
+
+  /* ====== Lookups & data ====== */
+  const [indicators, units, depts] = await Promise.all([
+    gasList('indicators').catch(()=>[]),
+    gasList('units').catch(()=>[]),
+    gasList('departments').catch(()=>[]),
+  ]);
+  const indById = new Map((indicators||[]).map(i=>[String(i.indicator_id), i]));
+  const unitName= Object.fromEntries((units||[]).map(u=>[String(u.unit_id), u.unit_name]));
+  const deptName= Object.fromEntries((depts||[]).map(d=>[String(d.department_id), d.department_name]));
+
+  async function loadActionsSmart(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = 'M' + String(d.getMonth()+1).padStart(2,'0');
+    let rows = await gasList('actions',{year:y,month:m}).catch(()=>[]);
+    if (!rows.length) rows = await gasList('actions').catch(()=>[]);
+    return rows;
+  }
+
+  ALL = (await loadActionsSmart()).map(a=>({
+    ...a,
+    indicator_name: a.indicator_name || indById.get(String(a.indicator_id))?.indicator_name || '',
+    period_sort: periodToSortable(a.year, a.month || a.tag || '')
+  }));
+  window.ALL = ALL; // expose
+
+  /* ====== Render ====== */
+  function buildYearOptions(list){
+    const years=[...new Set(list.map(a=>a.year).filter(Boolean))].sort((a,b)=>b-a);
+    if(!years.length) years.push(new Date().getFullYear());
+    ySel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  }
+  function fillTagOptions(){
+    let opts='';
+    if (MODE==='month')   opts = PERIOD.months.map(t=>`<option value="${t}">${t}</option>`).join('');
+    else if (MODE==='quarter') opts = PERIOD.quarters.map(t=>`<option value="${t}">${t}</option>`).join('');
+    else if (MODE==='half')    opts = PERIOD.halves.map(t=>`<option value="${t}">${t}</option>`).join('');
+    tagSel.innerHTML = opts;
+    tagWrap.style.display = (MODE==='month'||MODE==='quarter'||MODE==='half') ? '' : 'none';
+  }
+  function setHeaderMark(){
+    thead.querySelectorAll('th').forEach(th=>{ th.classList.remove('sorted-asc','sorted-desc'); th.querySelector('.sort-mark')?.remove(); });
+    if(sortBy==null) return;
+    const conf=SORT_KEYS.find(c=>c.key===sortBy); if(!conf) return;
+    const th=thead.querySelectorAll('th')[conf.idx];
+    const m=document.createElement('span'); m.className='sort-mark'; m.textContent= sortDir===1?' ▲':' ▼';
+    th.appendChild(m); th.classList.add(sortDir===1?'sorted-asc':'sorted-desc');
+  }
+  function applySort(rows){
+    if(!sortBy) return rows;
+    const conf=SORT_KEYS.find(c=>c.key===sortBy); if(!conf) return rows;
+    const {type,key}=conf;
+    return rows.slice().sort((a,b)=>{
+      let va=a[key], vb=b[key];
+      if(type==='date'){ va=va?+new Date(va):0; vb=vb?+new Date(vb):0; return (va-vb)*sortDir; }
+      if(type==='text'){ return String(va||'').localeCompare(String(vb||''),'km-KH',{numeric:true,sensitivity:'base'})*sortDir; }
+      return ((va||0)-(vb||0))*sortDir;
+    });
+  }
+  function updateSummary(rows){
+    const low=v=>String(v||'').toLowerCase();
+    const planned=rows.filter(a=>low(a.action_status)==='planned').length;
+    const ongoing=rows.filter(a=>low(a.action_status)==='ongoing' || low(a.action_status)==='in-progress').length;
+    const done   =rows.filter(a=>low(a.action_status)==='done' || low(a.action_status)==='completed').length;
+    const blocked=rows.filter(a=>low(a.action_status)==='blocked').length;
+    sumEl.textContent=`សរុប ${rows.length} • បានគ្រោង ${planned} • កំពុងដំណើរការ ${ongoing} • បានបញ្ចប់ ${done} • ឧបសគ្គ ${blocked}`;
+  }
+  function matches(a, mode, year, tag){
+    if(mode==='all') return true;
+    if(String(a.year)!==String(year)) return false;
+    const t=String(a.month||a.tag||'').toUpperCase();
+    if(mode==='year') return t==='Y12';
+    if(mode==='month') return /^M\d{2}$/.test(t) && t===tag;
+    if(mode==='quarter') return /^Q[1-4]$/.test(t) && t===tag;
+    if(mode==='half') return /^H[12]$/.test(t) && t===tag;
+    return true;
+  }
+  function renderRows(rows){
+    if(!rows.length){
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+    } else {
+      const frag=document.createDocumentFragment();
+      for (const a of rows){
+        const ind=indById.get(String(a.indicator_id));
+        const depId=a.department_id ?? ind?.department_id ?? '';
+        const depLbl= deptName[String(depId)]||'';
+        const unitLbl= a.unit_id ? (unitName[String(a.unit_id)]||'') : '';
+        const actionId = a.action_id ?? a.actionId ?? a.id ?? '';
+
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td>
+            <div class="fw-semibold">${esc(ind?.indicator_name || a.indicator_id || '')}</div>
+            <div class="small text-muted">${esc(depLbl)}${unitLbl?` / ${esc(unitLbl)}`:''}</div>
+          </td>
+          <td>${esc(pretty(a.year, a.month || a.tag))}</td>
+          <td>${esc(a.issue_text || '')}</td>
+          <td>${esc(a.action_text || '')}</td>
+          <td>${esc(Array.isArray(a.action_owner)?a.action_owner.join(', '):(a.action_owner||''))}</td>
+          <td>${fmtDate(a.action_due)}</td>
+          <td class="text-end">
+            <span class="badge-status ${statusClass(a.action_status)}">${esc(khStatusLabel(a.action_status))}</span>
+            ${ (SUPER && actionId) ? `<button class="btn btn-sm btn-outline-danger ms-2 btn-del" data-del="${esc(actionId)}">លុប</button>` : '' }
+          </td>`;
+        frag.appendChild(tr);
+      }
+      tbody.replaceChildren(frag);
+    }
+  }
+
+  /* ====== First paint ====== */
+  buildYearOptions(ALL);
+  const first = ALL.slice().sort((a,b)=>(a.action_due?+new Date(a.action_due):Infinity)-(b.action_due?+new Date(b.action_due):Infinity));
+  renderRows(first); updateSummary(first); setHeaderMark(); fillTagOptions();
+
+  /* ====== Events: filter/sort ====== */
+  segBtns.forEach(b=>b.addEventListener('click', ()=>{
+    segBtns.forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); MODE=b.dataset.type; fillTagOptions();
+  }));
+  btnApply?.addEventListener('click', ()=>{
+    const year=String(ySel.value||''); const tag=String(tagSel.value||'').toUpperCase();
+    const rows=ALL.filter(a=>matches(a, MODE, year, tag));
+    renderRows(applySort(rows)); updateSummary(rows); setHeaderMark();
+  });
+  btnReset?.addEventListener('click', ()=>{
+    MODE='all'; segBtns.forEach(x=>x.classList.toggle('active',x.dataset.type==='all')); fillTagOptions();
+    const rows=applySort(ALL);
+    renderRows(rows); updateSummary(rows); setHeaderMark();
+  });
+  thead.addEventListener('click',(e)=>{
+    const th=e.target.closest('th'); if(!th) return;
+    const idx=[...thead.querySelectorAll('th')].indexOf(th);
+    const conf=SORT_KEYS.find(c=>c.idx===idx); if(!conf) return;
+    if(sortBy===conf.key){ sortDir*=-1; } else { sortBy=conf.key; sortDir=1; }
+    const year=String(ySel.value||''); const tag=String(tagSel.value||'').toUpperCase();
+    const base=(MODE==='all')?ALL:ALL.filter(a=>matches(a, MODE, year, tag));
+    const rows=applySort(base);
+    renderRows(rows); updateSummary(base); setHeaderMark();
+  });
+
+  /* ====== Delete (SUPER only) ====== */
+  if (SUPER) {
+    tbody.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button[data-del]'); if(!btn) return;
+      const id  = btn.getAttribute('data-del'); if(!id) return alert('មិនមាន action_id ដើម្បីលុប');
+      if(!confirm('លុបធាតុនេះមែនទេ?')) return;
+      try{
+        const idField = (window.ID_FIELDS && window.ID_FIELDS.actions) || 'action_id';
+        await gasDelete('actions', idField, id);
+        ALL = ALL.filter(r => String(r.action_id ?? r.actionId ?? r.id) !== String(id));
+        const year=String(ySel.value||''); const tag=String(tagSel.value||'').toUpperCase();
+        const base=(MODE==='all')?ALL:ALL.filter(a=>matches(a, MODE, year, tag));
+        renderRows(applySort(base)); updateSummary(base);
+      }catch(err){ console.error(err); alert('បរាជ័យលុប: '+(err?.message||err)); }
+    }, { passive:true });
+  }
+
+  /* ======================== Google Docs PDF ======================== */
+  // UTF-8 safe base64
+// UTF-8 → base64 (សុវត្ថិ)
+function toB64UTF8(obj){
+  const s = JSON.stringify(obj);
+  return btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (_,h)=>String.fromCharCode('0x'+h)));
+}
+
+// POST-navigation ទៅ GAS (ក្នុង iframe ស្ងាត់)
+<!-- Hidden form: POST ទៅ Web App (គ្មាន CORS) -->
+<form id="pdfForm"
+      action="https://script.google.com/macros/s/AKfycbxoGWDc9nuPy8PB73kpFEakSc52vk7PZ6B_7U7vJSA9OX6wbfmQDym8cSzFUS1qFLPDOg/exec?route=issuesPdf&dl=1"
+      method="POST" target="_blank" style="display:none">
+  <input type="hidden" name="payload" id="payloadB64">
+</form>
+
+<!-- ប៊ូតុង -->
+<button id="btnDownloadPdf" class="btn btn-sm btn-outline-dark">ទាញយក PDF</button>
+
+<script>
+  // UTF-8 → Base64 សុវត្ថិភាព
+  function toB64UTF8(obj){
+    const s = JSON.stringify(obj);
+    return btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (_,h)=>String.fromCharCode('0x'+h)));
+  }
+
+  // ប្រមូល meta + rows ពី UI (ប្រសិនបើអ្នកមាន gatherMetaRows រួច ក៏ប្រើអានេះបាន)
+  function gatherMetaRows(){
+    const year = String(document.querySelector('#ySel')?.value || new Date().getFullYear());
+    const modeBtn = document.querySelector('.segbtn.active');
+    const MODE = modeBtn ? modeBtn.dataset.type : 'all';
+    const tag  = String(document.querySelector('#tagSel')?.value || '').toUpperCase();
+
+    const base = (MODE==='all') ? (window.ALL||[]) : (window.ALL||[]).filter(a=>{
+      if (String(a.year)!==String(year)) return false;
+      const t=String(a.month||a.tag||'').toUpperCase();
+      if (MODE==='year')    return t==='Y12';
+      if (MODE==='month')   return /^M\d{2}$/.test(t) && t===tag;
+      if (MODE==='quarter') return /^Q[1-4]$/.test(t) && t===tag;
+      if (MODE==='half')    return /^H[12]$/.test(t) && t===tag;
+      return true;
+    });
+
+    const rows = base.slice()
+      .sort((a,b)=>(a.action_due?+new Date(a.action_due):Infinity)-(b.action_due?+new Date(b.action_due):Infinity))
+      .map(a=>({
+        indicator_id   : a.indicator_id,
+        indicator_name : a.indicator_name,
+        department_name: a.department_name,
+        unit_name      : a.unit_name,
+        year           : a.year,
+        month          : a.month || a.tag,
+        issue_text     : a.issue_text,
+        action_text    : a.action_text,
+        action_owner   : Array.isArray(a.action_owner)? a.action_owner.join(', ') : (a.action_owner||''),
+        action_due     : a.action_due || '',
+        action_status  : a.action_status || ''
+      }));
+
+    const meta = {
+      year,
+      tag : (MODE==='all') ? '' : (tag || ('M'+String(new Date().getMonth()+1).padStart(2,'0'))),
+      summaryText: (document.getElementById('issuesSummary')?.textContent || '').trim(),
+      org1:'មន្ទីរសុខាភិបាលខេត្ត',
+      org2:'ផ្នែកផែនការ និងត្រួតពិនិត្យ',
+      title1:'របាយការណ៍បញ្ហាប្រឈម',
+      title2:'និង សកម្មភាព ដោះស្រាយ'
+    };
+    return { meta, rows };
+  }
+
+  document.getElementById('btnDownloadPdf')?.addEventListener('click', ()=>{
+    const btn = document.getElementById('btnDownloadPdf');
+    const t   = btn.textContent; btn.disabled = true; btn.textContent = 'កំពុងបង្កើត…';
+    try{
+      const { meta, rows } = gatherMetaRows();
+      document.getElementById('payloadB64').value = toB64UTF8({ meta, rows });
+      document.getElementById('pdfForm').submit(); // បើក 탭ថ្មី និងដោនឡូដភ្លាម
+    }finally{
+      setTimeout(()=>{ btn.disabled=false; btn.textContent=t; }, 1200);
+    }
+  });
+
+}
+
+} // end initIssues
+
+
+
+
 
 
 
