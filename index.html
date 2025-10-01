@@ -857,10 +857,11 @@ async function initDataEntry(){
 
 
 // ======================= main index / initIssues ===========================
-/// ======================= Issues: simplified full version (fixed) =======================
-async function initIssues() {
+// pages/issues/init.js (or your main SPA js)
+async function initIssues(){
+
   /* ====== CONFIG: GAS Web App (Google Docs → PDF) ====== */
-  const GAS_WEBAPP = 'https://script.google.com/macros/s/AKfycbxHb9mWIaeZWy7zwqbC74DKzKoeYYIYPgrVfX1mbWZngP8R4uNMP6LoAlfeXp-OSpZueg/exec';
+  const GAS_WEBAPP = 'https://script.google.com/macros/s/AKfycbwdPlP8f91XpvW7142HUnTRwHVVK4dMWNwMprUVzwIIRxMdIZBPERvxpU6LBoIJStolag/exec';
 
   /* ====== Role (strict) ====== */
   function getAuthSafe(){
@@ -1115,11 +1116,19 @@ async function initIssues() {
 
   /* ======================== Google Docs PDF (no HTML inside JS) ======================== */
 
-  // UTF-8 → Base64 (safe)
-  function toB64UTF8(obj){
-    const s = JSON.stringify(obj);
-    return btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (_,h)=>String.fromCharCode('0x'+h)));
-  }
+function toB64UTF8(obj) {
+  const s = JSON.stringify(obj);
+  const bytes = new TextEncoder().encode(s);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/,"");
+}
+
+
+
+// (ជំនួយ) បើអ្នកចង់ Base64url:
+// return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+
 
   // ប្រមូល meta + rows ពី UI state បច្ចុប្បន្ន
   function gatherMetaRows(){
@@ -1165,42 +1174,159 @@ async function initIssues() {
     };
     return { meta, rows };
   }
+  function formatIssuesTable(table){
+  if (!table) return;
 
-  // បង្កើត hidden form ដោយ JS (គ្មាន HTML ក្នុង module)
-  function ensureHiddenForm(){
-    let form = document.getElementById('pdfForm');
-    if (!form){
-      form = document.createElement('form');
-      form.id = 'pdfForm';
-      form.action = `${GAS_WEBAPP}?route=issuesPdf&dl=1`;
-      form.method = 'POST';
-      form.target = '_blank';
-      form.style.display = 'none';
-      const input = document.createElement('input');
-      input.type = 'hidden'; input.name = 'payload'; input.id = 'payloadB64';
-      form.appendChild(input);
-      document.body.appendChild(form);
-    }
-    return form;
-  }
+  var numRows = table.getNumRows();
+  if (numRows === 0) return;
+  var numCols = table.getRow(0).getNumCells();
 
-  function triggerDocsPdf(){
-    const { meta, rows } = gatherMetaRows();
-    const form = ensureHiddenForm();
-    const input = document.getElementById('payloadB64');
-    input.value = toB64UTF8({ meta, rows });
-    form.submit(); // open new tab + download
-  }
-
-  if (btnPdf){
-    const t = btnPdf.textContent;
-    btnPdf.addEventListener('click', ()=>{
-      btnPdf.disabled = true; btnPdf.textContent = 'កំពុងបង្កើត…';
-      try{ triggerDocsPdf(); }
-      finally{ setTimeout(()=>{ btnPdf.disabled=false; btnPdf.textContent=t; }, 1200); }
+  // ===== Header row style =====
+  var header = table.getRow(0);
+  for (var c=0; c<numCols; c++){
+    var cell = header.getCell(c);
+    cell.setAttributes({
+      [DocumentApp.Attribute.BOLD]: true,
+      [DocumentApp.Attribute.BACKGROUND_COLOR]: '#F1F5F9', // slate-100
+      [DocumentApp.Attribute.FOREGROUND_COLOR]: '#0F172A', // ink
+      [DocumentApp.Attribute.VERTICAL_ALIGNMENT]: DocumentApp.VerticalAlignment.MIDDLE,
+      [DocumentApp.Attribute.BORDER_COLOR]: '#CBD5E1', // slate-300
+      [DocumentApp.Attribute.BORDER_WIDTH]: 1
     });
+    // Center header text + tighten spacing
+    for (var k=0; k<cell.getNumChildren(); k++){
+      var p = cell.getChild(k);
+      if (p.editAsText){ // paragraph or text
+        try{
+          var para = p.asParagraph ? p.asParagraph() : null;
+          if (para){
+            para.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+            para.setSpacingBefore(0);
+            para.setSpacingAfter(2);
+            para.setLineSpacing(1.15);
+          }
+        }catch(_){}
+      }
+    }
+  }
+
+  // ===== Body rows style (striped) =====
+  for (var r=1; r<numRows; r++){
+    var row = table.getRow(r);
+    var zebra = (r % 2 === 0) ? '#FFFFFF' : '#FAFAFA'; // striping
+    for (var c2=0; c2<numCols; c2++){
+      var cell2 = row.getCell(c2);
+      cell2.setAttributes({
+        [DocumentApp.Attribute.BACKGROUND_COLOR]: zebra,
+        [DocumentApp.Attribute.FOREGROUND_COLOR]: '#0F172A',
+        [DocumentApp.Attribute.VERTICAL_ALIGNMENT]: DocumentApp.VerticalAlignment.TOP,
+        [DocumentApp.Attribute.BORDER_COLOR]: '#CBD5E1',
+        [DocumentApp.Attribute.BORDER_WIDTH]: 1
+      });
+
+      // paragraph spacing & alignment per column
+      for (var m=0; m<cell2.getNumChildren(); m++){
+        var ch = cell2.getChild(m);
+        try{
+          var para2 = ch.asParagraph ? ch.asParagraph() : null;
+          if (para2){
+            para2.setSpacingBefore(0);
+            para2.setSpacingAfter(2);
+            para2.setLineSpacing(1.15);
+
+            // Center for some columns: Period(2nd), Due date(6th), Status(7th)
+            if (c2 === 1 || c2 === 5 || c2 === 6){
+              para2.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+            } else {
+              para2.setAlignment(DocumentApp.HorizontalAlignment.LEFT);
+            }
+          }
+        }catch(_){}
+      }
+
+      // Make status column a bit bolder
+      if (c2 === 6){
+        cell2.setAttributes({ [DocumentApp.Attribute.BOLD]: true });
+      }
+    }
   }
 }
+
+
+ function ensureHiddenForm(){
+  let form = document.getElementById('pdfForm');
+  if (!form){
+    form = document.createElement('form');
+    form.id = 'pdfForm';
+    form.action = `${GAS_WEBAPP}?route=issuesPdf&dl=1`;
+    form.method = 'POST';
+    form.target = '_blank';
+    form.enctype = 'application/x-www-form-urlencoded';
+    form.acceptCharset = 'utf-8';
+    form.style.display = 'none';
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'payload';
+    input.id   = 'payloadB64';
+    form.appendChild(input);
+    document.body.appendChild(form);
+  }
+  return form;
+}
+
+
+
+// ⬇️ ជំនួស triggerDocsPdf ដើមដោយ version ប្រើ fetch (ជៀស form POST មិនបាន payload)
+function triggerDocsPdf(){
+  // ប្រមូលទិន្នន័យពី UI
+  const { meta, rows } = gatherMetaRows();
+
+  // ជួយឲ្យអ្នកដឹងបើគ្មានទិន្នន័យ
+  if (!Array.isArray(rows) || rows.length === 0) {
+    alert('មិនមាន rows ដើម្បីបង្កើត PDF ទេ');
+    return;
+  }
+
+  // ប្រាកដថាមាន form លាក់
+  const form  = ensureHiddenForm();
+  const input = document.getElementById('payloadB64');
+  if (!form || !input) {
+    console.error('pdfForm / payloadB64 not found');
+    alert('មិនអាចបង្កើតសំណើរ PDF បានទេ (form មិនមាន)');
+    return;
+  }
+
+  // Encode ជា Base64URL សុវត្ថិភាពសម្រាប់ form
+  // (Server GAS decode ដោយ Utilities.base64DecodeWebSafe)
+  try {
+    const payload = { meta, rows };
+    input.value = toB64UTF8(payload);
+  } catch (err) {
+    console.error('Encode payload fail:', err);
+    alert('បរាជ័យ encode ទិន្នន័យ');
+    return;
+  }
+
+  // បញ្ជូន POST → Web App; target="_blank" នឹងបើក tab ថ្មីសម្រាប់ទាញយក
+  form.submit();
+}
+
+
+// Hook button
+
+if (btnPdf && !btnPdf.dataset.bound){
+  btnPdf.dataset.bound = '1';
+  const label = btnPdf.textContent;
+  btnPdf.addEventListener('click', ()=>{
+    btnPdf.disabled = true; btnPdf.textContent = 'កំពុងបង្កើត…';
+    try { triggerDocsPdf(); }
+    finally { setTimeout(()=>{ btnPdf.disabled=false; btnPdf.textContent=label; }, 800); }
+  }, { passive:true });
+}
+} // <-- END initIssues()
+
+
+
 
 
 
