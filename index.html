@@ -857,8 +857,7 @@ async function initDataEntry(){
 
 
 // ======================= main index / initIssues ===========================
-// ======================= Issues: simplified full version =======================
-
+/// ======================= Issues: simplified full version (fixed) =======================
 async function initIssues() {
   /* ====== CONFIG: GAS Web App (Google Docs → PDF) ====== */
   const GAS_WEBAPP = 'https://script.google.com/macros/s/AKfycbxHb9mWIaeZWy7zwqbC74DKzKoeYYIYPgrVfX1mbWZngP8R4uNMP6LoAlfeXp-OSpZueg/exec';
@@ -929,8 +928,11 @@ async function initIssues() {
   /* ====== State ====== */
   let MODE='all', sortBy=null, sortDir=1;
   let ALL=[];
-  const PERIOD={ months:['M01','M02','M03','M04','M05','M06','M07','ម08','M09','M10','M11','M12'].map(x=>x.replace('ម','M')),
-                 quarters:['Q1','Q2','Q3','Q4'], halves:['H1','H2'] };
+  const PERIOD={
+    months:['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12'],
+    quarters:['Q1','Q2','Q3','Q4'],
+    halves:['H1','H2']
+  };
   const SORT_KEYS=[
     {idx:0,key:'indicator_name',type:'text'},
     {idx:1,key:'period_sort',type:'number'},
@@ -1111,46 +1113,28 @@ async function initIssues() {
     }, { passive:true });
   }
 
-  /* ======================== Google Docs PDF ======================== */
-  // UTF-8 safe base64
-// UTF-8 → base64 (សុវត្ថិ)
-function toB64UTF8(obj){
-  const s = JSON.stringify(obj);
-  return btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (_,h)=>String.fromCharCode('0x'+h)));
-}
+  /* ======================== Google Docs PDF (no HTML inside JS) ======================== */
 
-// POST-navigation ទៅ GAS (ក្នុង iframe ស្ងាត់)
-<!-- Hidden form: POST ទៅ Web App (គ្មាន CORS) -->
-<form id="pdfForm"
-      action="https://script.google.com/macros/s/AKfycbxoGWDc9nuPy8PB73kpFEakSc52vk7PZ6B_7U7vJSA9OX6wbfmQDym8cSzFUS1qFLPDOg/exec?route=issuesPdf&dl=1"
-      method="POST" target="_blank" style="display:none">
-  <input type="hidden" name="payload" id="payloadB64">
-</form>
-
-<!-- ប៊ូតុង -->
-<button id="btnDownloadPdf" class="btn btn-sm btn-outline-dark">ទាញយក PDF</button>
-
-<script>
-  // UTF-8 → Base64 សុវត្ថិភាព
+  // UTF-8 → Base64 (safe)
   function toB64UTF8(obj){
     const s = JSON.stringify(obj);
     return btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (_,h)=>String.fromCharCode('0x'+h)));
   }
 
-  // ប្រមូល meta + rows ពី UI (ប្រសិនបើអ្នកមាន gatherMetaRows រួច ក៏ប្រើអានេះបាន)
+  // ប្រមូល meta + rows ពី UI state បច្ចុប្បន្ន
   function gatherMetaRows(){
-    const year = String(document.querySelector('#ySel')?.value || new Date().getFullYear());
-    const modeBtn = document.querySelector('.segbtn.active');
-    const MODE = modeBtn ? modeBtn.dataset.type : 'all';
-    const tag  = String(document.querySelector('#tagSel')?.value || '').toUpperCase();
+    const year = String(ySel?.value || new Date().getFullYear());
+    const activeBtn = document.querySelector('.segbtn.active');
+    const CUR_MODE = activeBtn ? activeBtn.dataset.type : MODE;
+    const tag  = String(tagSel?.value || '').toUpperCase();
 
-    const base = (MODE==='all') ? (window.ALL||[]) : (window.ALL||[]).filter(a=>{
+    const base = (CUR_MODE==='all') ? (ALL||[]) : (ALL||[]).filter(a=>{
       if (String(a.year)!==String(year)) return false;
       const t=String(a.month||a.tag||'').toUpperCase();
-      if (MODE==='year')    return t==='Y12';
-      if (MODE==='month')   return /^M\d{2}$/.test(t) && t===tag;
-      if (MODE==='quarter') return /^Q[1-4]$/.test(t) && t===tag;
-      if (MODE==='half')    return /^H[12]$/.test(t) && t===tag;
+      if (CUR_MODE==='year')    return t==='Y12';
+      if (CUR_MODE==='month')   return /^M\d{2}$/.test(t) && t===tag;
+      if (CUR_MODE==='quarter') return /^Q[1-4]$/.test(t) && t===tag;
+      if (CUR_MODE==='half')    return /^H[12]$/.test(t) && t===tag;
       return true;
     });
 
@@ -1172,8 +1156,8 @@ function toB64UTF8(obj){
 
     const meta = {
       year,
-      tag : (MODE==='all') ? '' : (tag || ('M'+String(new Date().getMonth()+1).padStart(2,'0'))),
-      summaryText: (document.getElementById('issuesSummary')?.textContent || '').trim(),
+      tag : (CUR_MODE==='all') ? '' : (tag || ('M'+String(new Date().getMonth()+1).padStart(2,'0'))),
+      summaryText: (sumEl?.textContent || '').trim(),
       org1:'មន្ទីរសុខាភិបាលខេត្ត',
       org2:'ផ្នែកផែនការ និងត្រួតពិនិត្យ',
       title1:'របាយការណ៍បញ្ហាប្រឈម',
@@ -1182,21 +1166,41 @@ function toB64UTF8(obj){
     return { meta, rows };
   }
 
-  document.getElementById('btnDownloadPdf')?.addEventListener('click', ()=>{
-    const btn = document.getElementById('btnDownloadPdf');
-    const t   = btn.textContent; btn.disabled = true; btn.textContent = 'កំពុងបង្កើត…';
-    try{
-      const { meta, rows } = gatherMetaRows();
-      document.getElementById('payloadB64').value = toB64UTF8({ meta, rows });
-      document.getElementById('pdfForm').submit(); // បើក 탭ថ្មី និងដោនឡូដភ្លាម
-    }finally{
-      setTimeout(()=>{ btn.disabled=false; btn.textContent=t; }, 1200);
+  // បង្កើត hidden form ដោយ JS (គ្មាន HTML ក្នុង module)
+  function ensureHiddenForm(){
+    let form = document.getElementById('pdfForm');
+    if (!form){
+      form = document.createElement('form');
+      form.id = 'pdfForm';
+      form.action = `${GAS_WEBAPP}?route=issuesPdf&dl=1`;
+      form.method = 'POST';
+      form.target = '_blank';
+      form.style.display = 'none';
+      const input = document.createElement('input');
+      input.type = 'hidden'; input.name = 'payload'; input.id = 'payloadB64';
+      form.appendChild(input);
+      document.body.appendChild(form);
     }
-  });
+    return form;
+  }
 
+  function triggerDocsPdf(){
+    const { meta, rows } = gatherMetaRows();
+    const form = ensureHiddenForm();
+    const input = document.getElementById('payloadB64');
+    input.value = toB64UTF8({ meta, rows });
+    form.submit(); // open new tab + download
+  }
+
+  if (btnPdf){
+    const t = btnPdf.textContent;
+    btnPdf.addEventListener('click', ()=>{
+      btnPdf.disabled = true; btnPdf.textContent = 'កំពុងបង្កើត…';
+      try{ triggerDocsPdf(); }
+      finally{ setTimeout(()=>{ btnPdf.disabled=false; btnPdf.textContent=t; }, 1200); }
+    });
+  }
 }
-
-} // end initIssues
 
 
 
