@@ -1,4 +1,4 @@
-<!-- pages/settings/indicators/index.html -->
+<!-- pages/settings/indicators/index.html.html -->
 <div class="settings-page">
   <div class="container-page">
 
@@ -50,7 +50,6 @@
               </tr>
               </thead>
               <tbody>
-              <!-- skeleton -->
               <tr><td colspan="7" class="skel"></td></tr>
               <tr><td colspan="7" class="skel"></td></tr>
               <tr><td colspan="7" class="skel"></td></tr>
@@ -79,24 +78,24 @@
         <input type="hidden" id="indicator_id" />
 
         <div class="mb-3">
-          <label for="indicator_name" class="form-label">ឈ្មោះសូចនាករ <span class="text-danger">*</span></label>
+          <label class="form-label">ឈ្មោះសូចនាករ <span class="text-danger">*</span></label>
           <input id="indicator_name" class="form-control" required />
           <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះសូចនាករ</div>
         </div>
 
         <div class="mb-3">
-          <label for="indicator_type" class="form-label">ប្រភេទ</label>
+          <label class="form-label">ប្រភេទ</label>
           <input id="indicator_type" class="form-control" placeholder="ឧ. Output / Outcome / Process" />
         </div>
 
         <div class="row g-3">
           <div class="col-md-6">
-            <label for="department_id" class="form-label">ការិយាល័យ</label>
+            <label class="form-label">ការិយាល័យ</label>
             <select id="department_id" class="form-select"></select>
             <div class="form-text">មិនមែន SUPER ចាក់សោរ​ត្រឹមការិយាល័យខ្លួន</div>
           </div>
           <div class="col-md-6">
-            <label for="unit_id" class="form-label">ផ្នែក</label>
+            <label class="form-label">ផ្នែក</label>
             <select id="unit_id" class="form-select">
               <option value="">— ជ្រើសផ្នែក —</option>
             </select>
@@ -106,7 +105,7 @@
 
         <!-- Owner (SUPER only editable) -->
         <div class="mt-3">
-          <label for="owner_id" class="form-label">ម្ចាស់ (Owner)</label>
+          <label class="form-label">ម្ចាស់ (Owner)</label>
           <select id="owner_id" class="form-select">
             <option value="">— ជ្រើសម្ចាស់ —</option>
           </select>
@@ -142,12 +141,10 @@
     .toolbar .input-group{width:100%;}
   }
 
-  /* align action column */
   #tblIndicators th:last-child{ text-align:right; }
   #tblIndicators td.td-actions{ text-align:right; width:170px; }
   #tblIndicators td.td-actions .actions-right{ display:flex; justify-content:flex-end; gap:.45rem; }
 
-  /* unit loading state (optional) */
   .select-loading select{ background-image: repeating-linear-gradient(45deg, #f3f4f6, #f3f4f6 10px, #fff 10px, #fff 20px); }
 </style>
 
@@ -155,7 +152,7 @@
   import { getAuth, isSuper } from '../../../assets/js/app.auth.js';
   import { gasList, gasSave, gasDelete, ID_FIELDS } from '../../../assets/js/app.menu.js';
 
-  // -------- Small helpers ----------
+  // modal helper
   function makeModal(id){
     const el = document.getElementById(id);
     if (!el) return null;
@@ -166,153 +163,141 @@
     }
     return { show(){ el.style.display='block'; }, hide(){ el.style.display='none'; } };
   }
-  const $status = m => (document.getElementById('statusLine').textContent = m||'');
+  const $status = msg => (document.getElementById('statusLine').textContent = msg || '');
 
-  // -------- Page init --------------
-  (async function init(){
-    const auth  = getAuth();
-    const SUPER = isSuper(auth);
-    const modal = makeModal('mdlIndicator');
+  /* ======================= Indicators ======================= */
+  async function initIndicators(){
+    const auth   = getAuth();
+    const SUPER  = isSuper(auth);
 
-    const tbl      = document.getElementById('tblIndicators');
-    const tbody    = tbl.querySelector('tbody');
-    const frm      = document.getElementById('frmIndicator');
-    const btnAdd   = document.getElementById('btnAdd');
-    const btnSave  = document.getElementById('btnSave');
-    const selDept  = document.getElementById('department_id');
-    const selUnit  = document.getElementById('unit_id');
-    const selOwner = document.getElementById('owner_id');
-    const txtSearch= document.getElementById('txtSearch');
+    const table   = document.getElementById('tblIndicators');
+    const tbody   = table?.querySelector('tbody');
+    const btnAdd  = document.getElementById('btnAdd');
+    const frm     = document.getElementById('frmIndicator');
+    const selDept = document.getElementById('department_id');
+    const selUnit = document.getElementById('unit_id');
+    const selOwner= document.getElementById('owner_id');
+    const btnSave = document.getElementById('btnSave');
+    const modal   = makeModal('mdlIndicator');
 
-    let CACHE = { departments: [], units: [], users: [], indicators: [] };
+    if (!table || !tbody || !btnAdd || !frm || !selDept || !selUnit || !btnSave) return;
+
+    let CACHE = { departments:[], unitsAll:[], usersAll:[], indicators:[], unitsByDep:new Map() };
     let MAPS  = { deptName:{}, unitName:{}, userName:{} };
-    let FILTER_Q = '';
-    let unitsLoading=false, unitsReqSeq=0;
 
-    // skeleton
-    tbody.innerHTML = '';
-    for (let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="7" class="skel"></td>`; tbody.appendChild(tr); }
+    const setStatus = m=>{ const el=document.getElementById('statusLine'); if(el) el.textContent=m||''; };
+    const skel=()=>{ tbody.innerHTML=''; for(let i=0;i<4;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="7" class="skel"></td>`; tbody.appendChild(tr);} };
+    skel();
 
-    // load lists
     try{
       let [depts, inds] = await Promise.all([
         gasList('departments'),
         gasList('indicators')
       ]);
 
-      // non-super: narrow by own department (server already restricts; this only improves UX)
       if (!SUPER && auth?.department_id){
-        const depId = String(auth.department_id);
-        depts = depts.filter(d => String(d.department_id)===depId);
-        inds  = inds.filter(r => String(r.department_id)===depId);
+        const depId=String(auth.department_id);
+        depts = depts.filter(d=>String(d.department_id)===depId);
+        inds  = inds.filter(r=>String(r.department_id)===depId);
       }
 
-      // units
-      let units = SUPER ? await gasList('units') :
-                 (auth?.department_id ? await gasList('units', { department_id: auth.department_id }) : []);
-      // users (for SUPER to delegate)
-      let users = SUPER ? await gasList('users') :
-                 [{ user_id: auth?.user_id, user_name: auth?.user_name, full_name: auth?.full_name }];
+      let unitsAll = SUPER ? await gasList('units')
+                           : (auth?.department_id ? await gasList('units',{department_id:auth.department_id}) : []);
 
-      CACHE = { departments: depts, units, users, indicators: inds };
+      let usersAll=[];
+      if (selOwner){
+        if (SUPER) usersAll = await gasList('users');
+        else usersAll=[{user_id:auth?.user_id,user_name:auth?.user_name,full_name:auth?.full_name,department_id:auth?.department_id,unit_id:auth?.unit_id}];
+      }
 
-      MAPS.deptName = Object.fromEntries(depts.map(d=>[String(d.department_id), d.department_name]));
-      MAPS.unitName = Object.fromEntries(units.map(u=>[String(u.unit_id), u.unit_name]));
-      MAPS.userName = Object.fromEntries(users.map(u=>[String(u.user_id), (u.full_name||u.user_name||('User#'+u.user_id))]));
+      CACHE.departments=depts;
+      CACHE.unitsAll=unitsAll||[];
+      CACHE.usersAll=usersAll||[];
+      CACHE.indicators=inds;
 
-      // fill selects
-      await fillDeptSelect(SUPER ? '' : auth?.department_id);
-      await fillUnitSelect(SUPER ? selDept.value : auth?.department_id, SUPER ? '' : auth?.unit_id);
-      await fillOwnerSelect();
+      MAPS.deptName = Object.fromEntries(CACHE.departments.map(d=>[String(d.department_id),d.department_name]));
+      MAPS.unitName = Object.fromEntries(CACHE.unitsAll.map(u=>[String(u.unit_id),u.unit_name]));
+      MAPS.userName = Object.fromEntries(CACHE.usersAll.map(u=>[String(u.user_id),(u.full_name||u.user_name||('User#'+u.user_id))]));
+
+      await fillDeptSelect(SUPER?'':auth?.department_id);
+      await fillUnitSelect(SUPER?selDept.value:auth?.department_id, SUPER?'':auth?.unit_id);
+
+      // owner select
+      const usersById=Object.fromEntries((CACHE.usersAll||[]).map(u=>[String(u.user_id),u]));
+      if (selOwner){
+        if (SUPER){
+          selOwner.innerHTML=`<option value="">— ជ្រើសម្ចាស់ —</option>`+
+            CACHE.usersAll.map(u=>`<option value="${u.user_id}">${MAPS.userName[String(u.user_id)]}</option>`).join('');
+          selOwner.disabled=false;
+
+          // auto align dep/unit when owner changes
+          selOwner.addEventListener('change', async ()=>{
+            const u=usersById[String(selOwner.value||'')]; if(!u) return;
+            selDept.value=u.department_id||'';
+            selDept.disabled=false;
+            await fillUnitSelect(u.department_id, u.unit_id||'');
+            selUnit.disabled=false;
+            setStatus(`Aligned to ${u.full_name||u.user_name}`);
+          });
+        } else {
+          selOwner.innerHTML=`<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`;
+          selOwner.disabled=true;
+        }
+      }
 
       renderTable();
-      $status(`បានផ្ទុក ${CACHE.indicators.length} សូចនាករ`);
-    }catch(err){
-      console.error(err);
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">បរាជ័យផ្ទុកទិន្នន័យ</td></tr>`;
-      $status('បរាជ័យផ្ទុកទិន្នន័យ');
+      setStatus(`បានផ្ទុក ${inds.length} សូចនាករ`);
+    }catch(e){
+      console.error(e);
+      tbody.innerHTML=`<tr><td colspan="7" class="text-center text-danger py-4">បរាជ័យផ្ទុកទិន្នន័យ</td></tr>`;
+      setStatus('បរាជ័យផ្ទុកទិន្នន័យ');
     }
 
-    function fillDeptSelect(selected){
-      selDept.innerHTML = `<option value="">— ជ្រើសការិយាល័យ —</option>` +
+    async function fillDeptSelect(selected){
+      selDept.innerHTML=`<option value="">— ជ្រើសការិយាល័យ —</option>`+
         CACHE.departments.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
-      if (selected) selDept.value = selected;
-      selDept.disabled = !SUPER;
+      if(selected) selDept.value=selected;
+      selDept.disabled=!SUPER;
     }
-    function setUnitsLoading(on){
-      unitsLoading = !!on; btnSave.disabled = unitsLoading;
-      selUnit.closest('.col-md-6')?.classList.toggle('select-loading', unitsLoading);
-    }
-    async function fillUnitSelect(depId, selected){
-      selUnit.innerHTML = `<option value="">— ជ្រើសផ្នែក —</option>`;
-      if (!depId){ selUnit.disabled = true; return; }
-      setUnitsLoading(true); selUnit.disabled = true; selUnit.innerHTML = `<option>កំពុងទាញ…</option>`;
-      const mySeq = ++unitsReqSeq;
-      try{
-        // try from cache first
-        let units = CACHE.units.filter(u=>String(u.department_id)===String(depId));
-        if (!units.length) {
-          units = await gasList('units', { department_id: depId });
-          // merge to cache (dedupe)
-          const m = new Map(CACHE.units.map(u=>[String(u.unit_id), u]));
-          units.forEach(u=>m.set(String(u.unit_id), u));
-          CACHE.units = Array.from(m.values());
-          MAPS.unitName = Object.fromEntries(CACHE.units.map(u=>[String(u.unit_id), u.unit_name]));
-        }
-        if (mySeq !== unitsReqSeq) return;
-        selUnit.innerHTML = `<option value="">— ជ្រើសផ្នែក —</option>` + units.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
-        if (selected) selUnit.value = selected;
-        selUnit.disabled = !SUPER;
-      }catch(e){
-        console.error(e);
-        if (mySeq !== unitsReqSeq) return;
-        selUnit.innerHTML = `<option value="">បរាជ័យទាញ — សាកម្ដងទៀត</option>`;
-        selUnit.disabled = false;
-      }finally{
-        if (mySeq === unitsReqSeq) setUnitsLoading(false);
+    async function fillUnitSelect(depId,selected){
+      selUnit.innerHTML=`<option value="">— ជ្រើសផ្នែក —</option>`;
+      if(!depId){ selUnit.disabled=true; return; }
+      let units=CACHE.unitsByDep.get(String(depId));
+      if(!units){
+        const fromAll=CACHE.unitsAll.filter(u=>String(u.department_id)===String(depId));
+        units=fromAll.length?fromAll:await gasList('units',{department_id:depId});
+        CACHE.unitsByDep.set(String(depId),units);
+        for(const u of units) MAPS.unitName[String(u.unit_id)]=u.unit_name;
       }
-    }
-    function fillOwnerSelect(){
-      if (!selOwner) return;
-      if (SUPER){
-        selOwner.innerHTML = `<option value="">— ជ្រើសម្ចាស់ —</option>` +
-          CACHE.users.map(u=>`<option value="${u.user_id}">${MAPS.userName[String(u.user_id)]}</option>`).join('');
-        selOwner.disabled = false;
-      }else{
-        selOwner.innerHTML = `<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`;
-        selOwner.disabled = true;
-      }
+      selUnit.innerHTML=`<option value="">— ជ្រើសផ្នែក —</option>`+(units||[]).map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+      if(selected) selUnit.value=selected;
+      selUnit.disabled=!SUPER;
     }
 
     function canEditRow(ind){
-      if (SUPER) return true;
-      const sameDep  = String(ind.department_id) === String(auth?.department_id||'');
-      const sameUnit = String(ind.unit_id||'')   === String(auth?.unit_id||'');
-      const isOwner  = String(ind.owner_id||'')  === String(auth?.user_id||'');
-      return sameDep && sameUnit && isOwner;
+      if(SUPER) return true;
+      return String(ind.department_id)===String(auth?.department_id||'')
+          && String(ind.unit_id||'')===String(auth?.unit_id||'')
+          && String(ind.owner_id||'')===String(auth?.user_id||'');
     }
 
     function renderTable(){
-      const rows = CACHE.indicators.filter(r => {
-        if (!FILTER_Q) return true;
-        return JSON.stringify(r).toLowerCase().includes(FILTER_Q);
-      });
-
-      if (!rows.length){
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
+      const q = String(document.getElementById('txtSearch')?.value||'').trim().toLowerCase();
+      const rows = CACHE.indicators.filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
+      if(!rows.length){
+        tbody.innerHTML=`<tr><td colspan="7" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
         return;
       }
-
-      const frag = document.createDocumentFragment();
-      for (const ind of rows){
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
+      const frag=document.createDocumentFragment();
+      for(const ind of rows){
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
           <td>${ind.indicator_id}</td>
-          <td>${ind.indicator_name || ''}</td>
-          <td>${ind.indicator_type || ''}</td>
-          <td>${MAPS.deptName[String(ind.department_id)] || ''}</td>
-          <td>${MAPS.unitName[String(ind.unit_id)] || ''}</td>
-          <td>${MAPS.userName[String(ind.owner_id)] || ''}</td>
+          <td>${ind.indicator_name||''}</td>
+          <td>${ind.indicator_type||''}</td>
+          <td>${MAPS.deptName[String(ind.department_id)]||''}</td>
+          <td>${MAPS.unitName[String(ind.unit_id)]||''}</td>
+          <td>${MAPS.userName[String(ind.owner_id)]||''}</td>
           <td class="td-actions text-end">
             <div class="actions-right">
               ${canEditRow(ind)
@@ -323,119 +308,87 @@
           </td>`;
         frag.appendChild(tr);
       }
-      tbody.innerHTML = '';
-      tbody.appendChild(frag);
+      tbody.innerHTML=''; tbody.appendChild(frag);
     }
 
     // events
-    document.getElementById('department_id').addEventListener('change', e=> fillUnitSelect(e.target.value,''));
-    txtSearch?.addEventListener('input', e=>{ FILTER_Q=String(e.target.value||'').trim().toLowerCase(); renderTable(); });
+    document.getElementById('txtSearch')?.addEventListener('input', renderTable);
+    selDept.addEventListener('change', e=>fillUnitSelect(e.target.value,''));
 
-    btnAdd.addEventListener('click', async ()=>{
-      frm.reset(); document.getElementById('indicator_id').value = '';
-      if (SUPER){
-        selDept.disabled=false;
-        await fillUnitSelect(selDept.value,'');
-        fillOwnerSelect(); selOwner.value = '';
-        selOwner.disabled = false;
-      } else {
-        selDept.value = auth?.department_id || ''; selDept.disabled = true;
-        await fillUnitSelect(auth?.department_id, auth?.unit_id); selUnit.disabled = true;
-        selOwner.innerHTML = `<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`;
-        selOwner.disabled = true;
+    btnAdd.addEventListener('click',async()=>{
+      frm.reset(); document.getElementById('indicator_id').value='';
+      if(SUPER){
+        selDept.disabled=false; await fillUnitSelect(selDept.value,'');
+        if(selOwner){ selOwner.disabled=false; selOwner.value=''; }
+      }else{
+        selDept.value=auth?.department_id||''; selDept.disabled=true;
+        await fillUnitSelect(auth?.department_id,auth?.unit_id); selUnit.disabled=true;
+        if(selOwner){
+          selOwner.innerHTML=`<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`;
+          selOwner.disabled=true;
+        }
       }
       modal?.show();
     });
 
-    tbody.addEventListener('click', async (e)=>{
-      const btn = e.target.closest('button[data-act]'); if (!btn) return;
-      const id  = btn.getAttribute('data-id');
-      const row = CACHE.indicators.find(x=>String(x.indicator_id)===String(id)); if (!row) return;
+    tbody.addEventListener('click',async e=>{
+      const btn=e.target.closest('button[data-act]'); if(!btn) return;
+      const id=btn.getAttribute('data-id');
+      const row=CACHE.indicators.find(x=>String(x.indicator_id)===String(id));
+      if(!row) return;
 
-      if (btn.dataset.act==='edit'){
-        if (!canEditRow(row) && !SUPER) return alert('Permission denied');
+      if(btn.dataset.act==='edit'){
+        if(!canEditRow(row) && !SUPER) return alert('Permission denied');
         frm.reset();
-        document.getElementById('indicator_id').value   = row.indicator_id;
-        document.getElementById('indicator_name').value = row.indicator_name || '';
-        document.getElementById('indicator_type').value = row.indicator_type || '';
-        selDept.value = row.department_id || '';
-        if (!SUPER) selDept.disabled = true;
-        await fillUnitSelect(row.department_id, row.unit_id || '');
-        if (!SUPER) selUnit.disabled = true;
-
-        if (SUPER){
-          fillOwnerSelect();
-          selOwner.value = row.owner_id || '';
-          selOwner.disabled = false;
-        }else{
-          selOwner.innerHTML = `<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`;
-          selOwner.disabled = true;
+        document.getElementById('indicator_id').value=row.indicator_id;
+        document.getElementById('indicator_name').value=row.indicator_name||'';
+        document.getElementById('indicator_type').value=row.indicator_type||'';
+        selDept.value=row.department_id||''; if(!SUPER) selDept.disabled=true;
+        await fillUnitSelect(row.department_id,row.unit_id||''); if(!SUPER) selUnit.disabled=true;
+        if(selOwner){
+          if(SUPER){ selOwner.value=row.owner_id||''; selOwner.disabled=false; }
+          else{ selOwner.innerHTML=`<option value="${auth?.user_id||''}">${auth?.full_name||auth?.user_name||'ខ្លួនឯង'}</option>`; selOwner.disabled=true; }
         }
         modal?.show();
       }
 
-      if (btn.dataset.act==='del'){
-        if (!canEditRow(row) && !SUPER) return alert('Permission denied');
-        if (!confirm('លុបមែនទេ?')) return;
+      if(btn.dataset.act==='del'){
+        if(!canEditRow(row) && !SUPER) return alert('Permission denied');
+        if(!confirm('លុបមែនទេ?')) return;
         try{
-          await gasDelete('indicators', ID_FIELDS.indicators, row.indicator_id);
-          CACHE.indicators = CACHE.indicators.filter(x=>String(x.indicator_id)!==String(id));
+          await gasDelete('indicators',ID_FIELDS.indicators,row.indicator_id);
+          CACHE.indicators=CACHE.indicators.filter(x=>String(x.indicator_id)!==String(id));
           renderTable(); $status('លុបរួចរាល់');
-        }catch(err){
-          console.error(err); alert('បរាជ័យលុប: ' + (err?.message || err));
-        }
+        }catch(err){ alert('បរាជ័យលុប: '+(err?.message||err)); }
       }
     });
 
-    frm.addEventListener('submit', async (e)=>{
-      e.preventDefault(); if (unitsLoading) return;
-
-      const payload = {
-        indicator_id   : document.getElementById('indicator_id').value || null,
-        indicator_name : document.getElementById('indicator_name').value.trim(),
-        indicator_type : document.getElementById('indicator_type').value.trim(),
-        department_id  : SUPER ? selDept.value : (auth?.department_id || ''),
-        unit_id        : SUPER ? selUnit.value : (auth?.unit_id || '')
+    frm.addEventListener('submit',async e=>{
+      e.preventDefault();
+      const payload={
+        indicator_id  : document.getElementById('indicator_id').value||null,
+        indicator_name: document.getElementById('indicator_name').value.trim(),
+        indicator_type: document.getElementById('indicator_type').value.trim(),
+        department_id : SUPER?selDept.value:(auth?.department_id||''),
+        unit_id       : SUPER?selUnit.value:(auth?.unit_id||''),
+        owner_id      : SUPER?(selOwner.value||''):(auth?.user_id||'')
       };
-      // include owner (server will ignore/override for non-super)
-      payload.owner_id = SUPER ? (selOwner.value || '') : (auth?.user_id || '');
+      const nameEl=document.getElementById('indicator_name');
+      nameEl.classList.toggle('is-invalid',!payload.indicator_name);
+      if(!payload.indicator_name) return;
 
-      const nameEl = document.getElementById('indicator_name');
-      nameEl.classList.toggle('is-invalid', !payload.indicator_name);
-      if (!payload.indicator_name) return;
-
-      const old = btnSave.innerHTML; btnSave.disabled = true; btnSave.innerHTML = 'កំពុងរក្សាទុក…';
+      const old=btnSave.innerHTML; btnSave.disabled=true; btnSave.innerHTML='កំពុងរក្សាទុក…';
       try{
-        const saved = await gasSave('indicators', payload);
-        const row = saved.row || saved;
-
-        // refresh maps if new unit/owner hit
-        if (row.unit_id && !MAPS.unitName[String(row.unit_id)]) {
-          try{
-            const depUnits = await gasList('units', { department_id: row.department_id });
-            const m = new Map(CACHE.units.map(u=>[String(u.unit_id), u]));
-            depUnits.forEach(u=>m.set(String(u.unit_id), u));
-            CACHE.units = Array.from(m.values());
-            MAPS.unitName = Object.fromEntries(CACHE.units.map(u=>[String(u.unit_id), u.unit_name]));
-          }catch(_){}
-        }
-        if (row.owner_id && !MAPS.userName[String(row.owner_id)] && SUPER){
-          try{
-            const us = await gasList('users');
-            CACHE.users = us;
-            MAPS.userName = Object.fromEntries(us.map(u=>[String(u.user_id), (u.full_name||u.user_name)]));
-          }catch(_){}
-        }
-
-        const i = CACHE.indicators.findIndex(x=>String(x.indicator_id)===String(row.indicator_id));
-        if (i>=0) CACHE.indicators[i]=row; else CACHE.indicators.push(row);
+        const saved=await gasSave('indicators',payload);
+        const row=saved.row||saved;
+        const i=CACHE.indicators.findIndex(x=>String(x.indicator_id)===String(row.indicator_id));
+        if(i>=0) CACHE.indicators[i]=row; else CACHE.indicators.push(row);
         renderTable(); modal?.hide(); $status('រក្សាទុករួចរាល់');
-      }catch(err){
-        console.error(err);
-        alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
-      }finally{
-        btnSave.disabled = false; btnSave.innerHTML = old;
-      }
+      }catch(err){ alert('បរាជ័យរក្សាទុក: '+(err?.message||err)); }
+      finally{ btnSave.disabled=false; btnSave.innerHTML=old; }
     });
-  })();
+  }
+
+  // boot
+  initIndicators();
 </script>

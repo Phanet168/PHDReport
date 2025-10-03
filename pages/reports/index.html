@@ -1,0 +1,112 @@
+<style>
+  :root{
+    --ink:#0f172a; --muted:#6b7280; --line:#e5e7eb; --soft:#f8fafc; --brand:#6d28d9;
+    --radius:14px; --boxH:38px;
+  }
+  .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+  .container-page{max-width:1280px; margin:0 auto; padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
+  .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
+  .page-head .breadcrumb{color:var(--muted)}
+  .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
+
+  .centered-card{max-width:1200px; border:1px solid #eef0f4; border-radius:var(--radius); background:#fff;}
+  .centered-card .card-body{padding:16px;}
+
+  .reports-toolbar{
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+    padding:12px; background:#fff; border:1px solid #e5e7eb; border-radius:10px;
+    margin-bottom:12px;
+  }
+  .seg{display:inline-flex; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden}
+  .segbtn{background:#fff; border:0; height:var(--boxH); padding:0 .75rem; font-size:.9rem}
+  .segbtn + .segbtn{border-left:1px solid #e5e7eb}
+  .segbtn.active{background:#f3f4f6; font-weight:600}
+
+  .control{
+    height:var(--boxH); border-radius:8px; border:1px solid #d9e2f1; background:#fff;
+    padding:.35rem .65rem; font-size:.92rem; color:#334155;
+  }
+  .control:focus{outline:none; border-color:#4f46e5; box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+  .btn-apply{background:#10b981; border:1px solid #10b981; color:#fff; height:var(--boxH); border-radius:8px; padding:0 .9rem; font-weight:600}
+  .btn-outline{background:#fff; border:1px solid #cfd8ea; color:#334155; height:var(--boxH); border-radius:8px; padding:0 .8rem}
+  .btn-outline:hover{background:#f2f5fb}
+
+  .table-responsive{max-height:64vh; overflow:auto; border-radius:12px; border:1px solid #eef0f4}
+  .reports-table{width:100%; border-collapse:separate; border-spacing:0}
+  .reports-table thead th{
+    position:sticky; top:0; z-index:5; background:#fff;
+    border-bottom:1px solid var(--line); white-space:nowrap;
+    padding:10px 12px; color:var(--ink); font-weight:700;
+  }
+  .reports-table tbody td{padding:10px 12px; border-bottom:1px solid #eef2f7; vertical-align:top}
+  .reports-table tbody tr:hover{background:#fafcff}
+
+  .row-dept{background:#ecf2ff; border-top:1px solid #dbe7ff; border-bottom:1px solid #dbe7ff}
+  .row-dept td{font-weight:700; color:#1e293b}
+  .row-unit{background:#f6f8ff}
+  .row-unit td{font-weight:600; color:#334155}
+</style>
+
+<div class="settings-page">
+  <div class="container-page">
+    <!-- Page head -->
+    <div class="page-head">
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="h4 m-0">សង្ខេបរបាយការណ៍</h1>
+        <nav aria-label="breadcrumb" class="small">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+            <li class="breadcrumb-item">Reports</li>
+            <li class="breadcrumb-item active" aria-current="page">Summary</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="separator-breadcrumb border-top"></div>
+    </div>
+
+    <!-- Body -->
+    <div class="page-body">
+      <div class="card centered-card shadow-sm w-100">
+        <div class="card-body">
+
+          <!-- Toolbar -->
+          <div class="reports-toolbar">
+            <div class="seg" role="group" aria-label="Period type">
+              <button type="button" class="segbtn active" data-pt="M">ខែ</button>
+              <button type="button" class="segbtn" data-pt="Q">ត្រី</button>
+              <button type="button" class="segbtn" data-pt="H">ឆមាស</button>
+              <button type="button" class="segbtn" data-pt="N9">៩ខែ</button>
+              <button type="button" class="segbtn" data-pt="Y12">១២ខែ</button>
+            </div>
+
+            <!-- New: Year selector -->
+            <select id="reportYear" class="control" style="min-width:100px"></select>
+            <select id="reportTag" class="control" style="min-width:220px"></select>
+            <input id="reportSearch" class="control" type="search" placeholder="ស្វែងរក…" style="flex:1 1 320px; min-width:220px;">
+            <button id="btnSearchReports" class="btn-apply">Apply</button>
+            <button id="btnDownloadProvince" class="btn-outline">PDF ខេត្ត</button>
+            <button id="btnDownloadMinistry" class="btn-outline">PDF ក្រសួង</button>
+          </div>
+
+          <!-- Table -->
+          <div class="table-responsive">
+            <table class="reports-table">
+              <thead>
+              <tr>
+                <th style="width:60px">ID</th>
+                <th>សូចនាករ</th>
+                <th style="width:110px" class="text-center">តម្លៃ</th>
+                <th>បញ្ហាប្រឈម (Issues)</th>
+                <th>សកម្មភាព (Actions)</th>
+              </tr>
+              </thead>
+              <tbody id="tblReportsBody"></tbody>
+            </table>
+          </div>
+
+          <div id="status" class="small text-muted mt-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

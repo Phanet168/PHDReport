@@ -169,9 +169,9 @@
 
       <!-- Reports submenu -->
       <div class="submenu-area" data-parent="reports">
-        <header><h6>របាយការណ៍</h6><p>សង្ខេប និងនាំចេញ</p></header>
+        <header><h6>របាយការណ៍</h6><p>របាយការណ៍សង្ខែប</p></header>
         <ul class="childNav">
-          <li class="nav-item"><a href="#/"><i class="nav-icon i-Bar-Chart"></i><span class="item-name">សង្ខេបឆ្នាំ</span></a></li>
+          <li class="nav-item"><a href="#/reports"><i class="nav-icon i-Bar-Chart"></i><span class="item-name">របាយការណ៍សង្ខែប</span></a></li>
         </ul>
       </div>
 
@@ -313,6 +313,7 @@
     'settings/users':       { view:'pages/settings/users/index.html',        init:initUsers },
     'data-entry':           { view:'pages/data-entry/index.html',            init:initDataEntry },
     'issues':               { view:'pages/issues/index.html',                init:initIssues },
+    'reports':              { view:'pages/reports/index.html',               init:initReports },
 
 };
 
@@ -1114,6 +1115,10 @@ async function initIssues(){
     }, { passive:true });
   }
 
+
+
+
+
   /* ======================== Google Docs PDF (no HTML inside JS) ======================== */
 
 function toB64UTF8(obj) {
@@ -1327,10 +1332,183 @@ if (btnPdf && !btnPdf.dataset.bound){
 
 
 
+/// =================== Main index initReports() =======================
 
+async function initReports(){
+  // WebApp URLs
+  const PROV_WEBAPP = 'https://script.google.com/macros/s/AKfycbx5UAFmNBN5R7GUOynQeCFBIMxfCnHMjjKUHVGUILMBXw3HcK_IfTU4rkCETf_XNKnm/exec';
+  const MIN_WEBAPP  = 'https://script.google.com/macros/s/AKfycbxaXEvIZE4bw1h31GSiSPjp48yRyHThtXjprdqEQV7oIa4TWLG1yFQ3fHHTEFacFddXdA/exec';
 
+  const $ = s=>document.querySelector(s);
+  const body      = $('#tblReportsBody');
+  const inputQ    = $('#reportSearch');
+  const yearSel   = $('#reportYear');
+  const tagSel    = $('#reportTag');
+  const btnApply  = $('#btnSearchReports');
+  const btnProv   = $('#btnDownloadProvince');
+  const btnMin    = $('#btnDownloadMinistry');
+  const segBtns   = document.querySelectorAll('.segbtn');
 
+  if (!body){return;}
 
+  const toArr=x=>Array.isArray(x)?x:(x?.rows||x?.content||[]);
+  const monthsKh=['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+  const khNum=n=>String(n).replace(/\d/g,d=>'០១២៣៤៥៦៧៨៩'[+d]);
+
+  let periodType='M';const THIS_YEAR=new Date().getFullYear();
+  function fillYears(){
+    if(!yearSel)return;
+    if(!yearSel.options.length){
+      let html='';for(let y=THIS_YEAR;y>=2020;y--)html+=`<option value="${y}">${y}</option>`;
+      yearSel.innerHTML=html;
+    }
+    if(!yearSel.value)yearSel.value=String(THIS_YEAR);
+  }
+  function fillTag(){
+    if(!tagSel||!yearSel)return;
+    const y=+yearSel.value||THIS_YEAR;let opts=[];
+    if(periodType==='M'){
+      for(let m=1;m<=12;m++){const mm=String(m).padStart(2,'0');opts.push({v:`${y}M${mm}`,t:`${monthsKh[m-1]} ${y}`});}
+    }else if(periodType==='Q'){
+      for(let q=1;q<=4;q++)opts.push({v:`${y}Q${q}`,t:`ត្រីមាស ${q} ${y}`});
+    }else if(periodType==='H'){
+      opts=[{v:`${y}H1`,t:`ឆមាស 1 ${y}`},{v:`${y}H2`,t:`ឆមាស 2 ${y}`}];
+    }else if(periodType==='N9'){
+      opts=[{v:`${y}N9`,t:`៩ខែ ${y}`}];
+    }else if(periodType==='Y12'){
+      opts=[{v:`${y}Y12`,t:`១២ខែ ${y}`}];
+    }else opts=[{v:`${y}`,t:`ឆ្នាំ ${y}`}];
+    tagSel.innerHTML=opts.map(o=>`<option value="${o.v}">${o.t}</option>`).join('');
+    if(periodType==='M'){
+      const cur=`${y}M${String(new Date().getMonth()+1).padStart(2,'0')}`;
+      tagSel.value=cur;
+    }else tagSel.selectedIndex=0;
+  }
+
+  let ALL_ROWS=[];let FILTER_Q='';
+
+  const loadRows=async()=>{
+    const pid=tagSel?.value||`${yearSel?.value||THIS_YEAR}M${String(new Date().getMonth()+1).padStart(2,'0')}`;
+    const year=+String(pid).slice(0,4);const tag=String(pid).slice(4)||'Y12';
+
+    // TODO: call your gasList here
+    const [indResp,depResp,unitResp,valResp,actResp]=await Promise.all([
+      gasList('indicators'),
+      gasList('departments'),
+      gasList('units'),
+      gasList('reports',{year,month:tag}),
+      gasList('actions',{year,month:tag}),
+    ]);
+    const IND=toArr(indResp),DEPS=toArr(depResp),UNTS=toArr(unitResp),VALS=toArr(valResp),ACTS=toArr(actResp);
+
+    const deptMap=Object.fromEntries(DEPS.map(d=>[String(d.department_id),d.department_name]));
+    const unitMap=Object.fromEntries(UNTS.map(u=>[String(u.unit_id),u.unit_name]));
+    const vMap=new Map(VALS.map(v=>[`${v.indicator_id}|${v.unit_id}`,v.value]));
+    const aMap=new Map();
+    for(const a of ACTS){
+      const key=String(a.indicator_id??'');if(!key)continue;
+      const cur=aMap.get(key)||{issues:[],actions:[]};
+      if(a.issue_text||a.issue)cur.issues.push(a.issue_text||a.issue);
+      if(a.action_text||a.action)cur.actions.push(a.action_text||a.action);
+      aMap.set(key,cur);
+    }
+    ALL_ROWS=IND.map(ind=>{
+      const key=`${ind.indicator_id}|${ind.unit_id}`;
+      const aAcc=aMap.get(String(ind.indicator_id))||{issues:[],actions:[]};
+      return{
+        department_id:ind.department_id,
+        department_name:deptMap[String(ind.department_id)]||'',
+        unit_id:ind.unit_id,
+        unit_name:unitMap[String(ind.unit_id)]||'',
+        indicator_id:ind.indicator_id,
+        indicator_name:ind.indicator_name||'',
+        value:vMap.get(key)||'',
+        issues:aAcc.issues.join(' • '),
+        actions:aAcc.actions.join(' • ')
+      };
+    });
+    render();
+  };
+
+  const render=()=>{
+    let rows=ALL_ROWS.slice();
+    if(FILTER_Q){
+      const q=FILTER_Q.toLowerCase();
+      rows=rows.filter(r=>String(r.indicator_id).toLowerCase().includes(q)||(r.indicator_name||'').toLowerCase().includes(q));
+    }
+    if(!rows.length){body.innerHTML=`<tr><td colspan="5" class="text-center text-muted">គ្មានទិន្នន័យ</td></tr>`;return;}
+    const num=v=>Number(String(v).replace(/[^\d]/g,''))||0;
+    rows.sort((a,b)=>{
+      const c1=num(a.department_id)-num(b.department_id);if(c1)return c1;
+      const c2=num(a.unit_id)-num(b.unit_id);if(c2)return c2;
+      return num(a.indicator_id)-num(b.indicator_id);
+    });
+    const frag=document.createDocumentFragment();
+    let curDept=null,curUnit=null;let deptIndex=0;
+
+    // prepare unit index per dept
+    const unitsByDept=new Map();
+    for(const r of rows){
+      const d=String(r.department_id),u=String(r.unit_id);
+      if(!unitsByDept.has(d))unitsByDept.set(d,new Set());
+      unitsByDept.get(d).add(u);
+    }
+    const unitOrderIdx=new Map();
+    for(const [d,set]of unitsByDept.entries()){
+      Array.from(set).sort((x,y)=>num(x)-num(y)).forEach((u,i)=>unitOrderIdx.set(`${d}|${u}`,i+1));
+    }
+
+    for(const r of rows){
+      const dId=String(r.department_id);const uId=String(r.unit_id);
+      if(curDept!==dId){
+        curDept=dId;curUnit=null;deptIndex++;
+        const trD=document.createElement('tr');
+        trD.className='row-dept';
+        trD.innerHTML=`<td colspan="5">${khNum(deptIndex)}. ${r.department_name||('ការិយាល័យ #'+dId)}</td>`;
+        frag.appendChild(trD);
+      }
+      if(curUnit!==uId){
+        curUnit=uId;
+        const uIdx=unitOrderIdx.get(`${dId}|${uId}`)||1;
+        const trU=document.createElement('tr');
+        trU.className='row-unit';
+        trU.innerHTML=`<td colspan="5">${khNum(deptIndex)}.${khNum(uIdx)} ${r.unit_name||('ផ្នែក #'+uId)}</td>`;
+        frag.appendChild(trU);
+      }
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td class="text-muted">${r.indicator_id}</td>
+        <td class="fw-semibold">${r.indicator_name||''}</td>
+        <td class="text-center">${r.value||'<span class="text-muted">—</span>'}</td>
+        <td>${r.issues||'<span class="text-muted">—</span>'}</td>
+        <td>${r.actions||'<span class="text-muted">—</span>'}</td>`;
+      frag.appendChild(tr);
+    }
+    body.replaceChildren(frag);
+  };
+
+  segBtns.forEach(btn=>btn.addEventListener('click',()=>{periodType=btn.dataset.pt||'M';fillTag();loadRows();}));
+  yearSel?.addEventListener('change',()=>{fillTag();loadRows();});
+  tagSel?.addEventListener('change',loadRows);
+  inputQ?.addEventListener('input',e=>{FILTER_Q=e.target.value.trim().toLowerCase();render();});
+
+  btnProv?.addEventListener('click',()=>{
+    const pid=tagSel?.value||`${yearSel?.value||THIS_YEAR}M${String(new Date().getMonth()+1).padStart(2,'0')}`;
+    // send payload rows as base64-url
+    const payload = {scope:'province',rows:ALL_ROWS};
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    window.open(`${PROV_WEBAPP}?pid=${encodeURIComponent(pid)}&payload=${b64}`,'_blank');
+  });
+  btnMin?.addEventListener('click',()=>{
+    const pid=tagSel?.value||`${yearSel?.value||THIS_YEAR}M${String(new Date().getMonth()+1).padStart(2,'0')}`;
+    const payload = {scope:'ministry',rows:ALL_ROWS};
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    window.open(`${MIN_WEBAPP}?pid=${encodeURIComponent(pid)}&payload=${b64}`,'_blank');
+  });
+
+  fillYears();fillTag();await loadRows();
+}
+window.initReports=initReports;
 
 
 
