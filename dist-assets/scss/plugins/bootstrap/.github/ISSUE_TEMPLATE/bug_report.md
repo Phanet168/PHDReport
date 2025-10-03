@@ -1,5 +1,5 @@
 ---
-name: Bug report
+name: Bug reports
 about: Tell us about a bug you may have identified in Bootstrap.
 
 ---
