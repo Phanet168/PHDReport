@@ -38,7 +38,7 @@ export async function initDepartmentsPage(root = document) {
       }
       CACHE.rows = rows;
       render();
-      setStatus(`បានផ្ទុក ${rows.length} ការិយាល័យ`);
+      setStatus(`បានផ្ទុក ${rows.length} ជំពូក`);
     }catch(e){
       console.error('[departments] load failed:', e);
       setStatus('បរាជ័យផ្ទុកទិន្នន័យ');
@@ -78,7 +78,7 @@ export async function initDepartmentsPage(root = document) {
 
   // add
   btnAdd?.addEventListener('click', async ()=>{
-    const name = prompt('ឈ្មោះការិយាល័យ:');
+    const name = prompt('ឈ្មោះជំពូក:');
     if (!name) return;
     await saveDepartment({ department_name: name.trim() });
   });
@@ -98,7 +98,7 @@ export async function initDepartmentsPage(root = document) {
       render(); setStatus('លុបរួចរាល់');
     }
     if (btn.dataset.act === 'edit') {
-      const name = prompt('កែឈ្មោះការិយាល័យ:', row.department_name || '');
+      const name = prompt('កែឈ្មោះជំពូក:', row.department_name || '');
       if (!name) return;
       await saveDepartment({ department_id: row.department_id, department_name: name.trim() });
     }

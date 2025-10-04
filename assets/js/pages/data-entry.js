@@ -47,7 +47,7 @@ const setStatus = (t) => { const el = $('#status'); if (el) el.textContent = t||
   ]);
 
   // dept select
-  selDept.innerHTML = `<option value="">ការិយាល័យទាំងអស់</option>` +
+  selDept.innerHTML = `<option value="">ជំពូកទាំងអស់</option>` +
     DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
   // unit select (depends on dept)
   const rebuildUnits = () => {

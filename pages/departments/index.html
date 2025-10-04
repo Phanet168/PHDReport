@@ -5,7 +5,7 @@
     <!-- Page head -->
     <div class="page-head">
       <div class="d-flex align-items-center gap-2">
-        <h1 class="kh-head h4 m-0">ការិយាល័យ</h1>
+        <h1 class="kh-head h4 m-0">ជំពូក</h1>
         <nav aria-label="breadcrumb" class="small">
           <ol class="breadcrumb m-0">
             <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
@@ -24,7 +24,7 @@
 
           <!-- Toolbar -->
           <div class="toolbar mb-3">
-            <h4 class="card-title kh-head m-0">បញ្ជីការិយាល័យ</h4>
+            <h4 class="card-title kh-head m-0">បញ្ជីជំពូក</h4>
             <div class="actions ms-auto">
               <div class="input-group input-group-sm">
                 <input id="txtSearch" class="form-control" placeholder="ស្វែងរក...">
@@ -40,7 +40,7 @@
               <thead>
               <tr>
                 <th style="width:90px">ID</th>
-                <th>ឈ្មោះការិយាល័យ</th>
+                <th>ឈ្មោះជំពូក</th>
                 <th style="width:160px" class="text-end">សកម្មភាព</th>
               </tr>
               </thead>
@@ -61,15 +61,15 @@
   <div class="modal-dialog">
     <form class="modal-content" id="frmDepartment" novalidate>
       <div class="modal-header">
-        <h5 class="modal-title kh-head">ព័ត៌មានការិយាល័យ</h5>
+        <h5 class="modal-title kh-head">ព័ត៌មានជំពូក</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="department_id" />
         <div class="mb-3">
-          <label for="department_name" class="form-label">ឈ្មោះការិយាល័យ <span class="text-danger">*</span></label>
+          <label for="department_name" class="form-label">ឈ្មោះជំពូក <span class="text-danger">*</span></label>
           <input id="department_name" class="form-control" required />
-          <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះការិយាល័យ</div>
+          <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះជំពូក</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -155,7 +155,7 @@
     CACHE.departments = depts;
     console.log('👉 departments length:', depts.length, depts);
     renderTable();
-    $status(`បានផ្ទុក ${depts.length} ការិយាល័យ`);
+    $status(`បានផ្ទុក ${depts.length} ជំពូក`);
   }
 
   function renderTable(){

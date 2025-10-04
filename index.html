@@ -125,7 +125,7 @@
         </li>
 
         <li class="nav-item" data-item="depts">
-          <a class="nav-item-hold" href="#"><i class="nav-icon i-Library"></i><span class="nav-text">ការិយាល័យ</span></a><div class="triangle"></div>
+          <a class="nav-item-hold" href="#"><i class="nav-icon i-Library"></i><span class="nav-text">ជំពូក</span></a><div class="triangle"></div>
         </li>
         <li class="nav-item" data-item="reports">
           <a class="nav-item-hold" href="#"><i class="nav-icon i-File-Clipboard-File--Text"></i><span class="nav-text">របាយការណ៍</span></a><div class="triangle"></div>
@@ -529,7 +529,7 @@ async function initDataEntry(){
 
   /* ---------- UI helpers ---------- */
   function fillDept(){
-    selDept.innerHTML = `<option value="">ការិយាល័យទាំងអស់</option>`+
+    selDept.innerHTML = `<option value="">ជំពូកទាំងអស់</option>`+
       DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
   }
   function fillUnit(depId){
@@ -1464,7 +1464,7 @@ async function initReports(){
         curDept=dId;curUnit=null;deptIndex++;
         const trD=document.createElement('tr');
         trD.className='row-dept';
-        trD.innerHTML=`<td colspan="5">${khNum(deptIndex)}. ${r.department_name||('ការិយាល័យ #'+dId)}</td>`;
+        trD.innerHTML=`<td colspan="5">${khNum(deptIndex)}. ${r.department_name||('ជំពូក #'+dId)}</td>`;
         frag.appendChild(trD);
       }
       if(curUnit!==uId){
@@ -1602,7 +1602,7 @@ window.initReports=initReports;
     }
 
     async function fillDeptSelect(selected){
-      selDept.innerHTML=`<option value="">— ជ្រើសការិយាល័យ —</option>`+
+      selDept.innerHTML=`<option value="">— ជ្រើសជំពូក —</option>`+
         CACHE.departments.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
       if(selected) selDept.value=selected;
       selDept.disabled=!SUPER;
@@ -1791,7 +1791,7 @@ window.initReports=initReports;
     }
 
     function fillDeptSelect(selected){
-      selDept.innerHTML = `<option value="">— ជ្រើសការិយាល័យ —</option>`+
+      selDept.innerHTML = `<option value="">— ជ្រើសជំពូក —</option>`+
         DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
       if (selected) selDept.value = selected;
       selDept.disabled = !SUPER;
@@ -1974,7 +1974,7 @@ window.initReports=initReports;
     try{
       ROWS = await gasList('departments');
       render();
-      $status(`បានផ្ទុក ${ROWS.length} នាយកដ្ឋាន`);
+      $status(`បានផ្ទុក ${ROWS.length} ជំពូក`);
     }catch(e){
       console.error(e);
       tbody.innerHTML = `<tr><td colspan="3" class="text-danger text-center py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
@@ -2139,7 +2139,7 @@ window.initReports=initReports;
     }
 
     function fillDeptSelect(selected){
-      selDept.innerHTML = `<option value="">— ជ្រើសការិយាល័យ —</option>`+
+      selDept.innerHTML = `<option value="">— ជ្រើសជំពូក —</option>`+
         depts.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
       selDept.disabled = !SUPER;
       if (selected) selDept.value = selected; else if(!SUPER) selDept.value = auth?.department_id || '';
@@ -2185,7 +2185,7 @@ window.initReports=initReports;
       e.preventDefault();
       const name=nameEl.value.trim(); nameEl.classList.toggle('is-invalid', !name); if(!name) return;
       const dep = SUPER ? selDept.value : (auth?.department_id || '');
-      if (!dep){ alert('សូមជ្រើសការិយាល័យ'); return; }
+      if (!dep){ alert('សូមជ្រើសជំពូក'); return; }
       const payload = idEl.value ? { unit_id:Number(idEl.value), unit_name:name, department_id:dep }
                                  : { unit_name:name, department_id:dep };
       const btn = document.getElementById('btnSaveUnit'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='កំពុងរក្សាទុក…';

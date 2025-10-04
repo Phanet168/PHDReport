@@ -42,7 +42,7 @@
                             <tr>
                                 <th style="width:90px">ID</th>
                                 <th>ឈ្មោះផ្នែក</th>
-                                <th style="width:220px">នាយកដ្ឋាន</th>
+                                <th style="width:220px">ជំពូក</th>
                                 <th style="width:160px">សកម្មភាព</th>
                             </tr>
                             </thead>
@@ -76,9 +76,9 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="department_id" class="form-label">នាយកដ្ឋាន <span class="text-danger">*</span></label>
+                    <label for="department_id" class="form-label">ជំពូក <span class="text-danger">*</span></label>
                     <select id="department_id" class="form-select"></select>
-                    <div class="form-text">ត្រូវជ្រើសនាយកដ្ឋានសម្រាប់ផ្នែកនេះ</div>
+                    <div class="form-text">ត្រូវជ្រើសជំពូកសម្រាប់ផ្នែកនេះ</div>
                 </div>
             </div>
 
@@ -187,7 +187,7 @@
 
     function fillDeptSelect(selected){
       selDept.innerHTML =
-        `<option value="">— ជ្រើសនាយកដ្ឋាន —</option>` +
+        `<option value="">— ជ្រើសជំពូក —</option>` +
         DEPTS.map(d => `<option value="${d.department_id}">${d.department_name}</option>`).join('');
       if (selected) selDept.value = selected;
       selDept.disabled = !SUPER;
@@ -295,7 +295,7 @@
       nameEl.classList.toggle('is-invalid', !payload.unit_name);
       if (!payload.unit_name) return;
 
-      if (!payload.department_id){ alert('សូមជ្រើសនាយកដ្ឋាន'); return; }
+      if (!payload.department_id){ alert('សូមជ្រើសជំពូក'); return; }
 
       const btn = document.getElementById('btnSaveUnit');
       const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'កំពុងរក្សាទុក…';

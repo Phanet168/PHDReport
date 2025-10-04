@@ -27,7 +27,7 @@
       </div>
       <nav id="menu" class="p-2">
         <a href="#" data-page="home" class="d-block py-2 px-3 rounded text-decoration-none text-white">ផ្ទាំងគ្រប់គ្រង</a>
-        <div class="mt-3 text-uppercase text-info" style="font-size:12px">ការិយាល័យ</div>
+        <div class="mt-3 text-uppercase text-info" style="font-size:12px">ជំពូក</div>
         <div id="deptMenu" class="mt-1"></div>
 
         <div class="mt-3 text-uppercase text-info" style="font-size:12px">របាយការណ៍</div>
@@ -36,7 +36,7 @@
         <div id="adminSection" style="display:none">
           <div class="mt-3 text-uppercase text-info" style="font-size:12px">គ្រប់គ្រង</div>
           <a href="#" data-page="users" class="d-block py-2 px-3 rounded text-decoration-none text-white">គ្រប់គ្រងអ្នកប្រើប្រាស់</a>
-          <a href="#" data-page="manage-dept" class="d-block py-2 px-3 rounded text-decoration-none text-white">គ្រប់គ្រងការិយាល័យ</a>
+          <a href="#" data-page="manage-dept" class="d-block py-2 px-3 rounded text-decoration-none text-white">គ្រប់គ្រងជំពូក</a>
           <a href="#" data-page="manage-unit" class="d-block py-2 px-3 rounded text-decoration-none text-white">គ្រប់គ្រងផ្នែក</a>
           <a href="#" data-page="manage-period" class="d-block py-2 px-3 rounded text-decoration-none text-white">គ្រប់គ្រងរយៈពេល</a>
         </div>
@@ -71,7 +71,7 @@
 
       <section id="page-reports" class="card k-card p-3" style="display:none">
         <h5 class="h-khmer mb-2">របាយការណ៍</h5>
-        <div>សូមជ្រើស​ការិយាល័យ/ផ្នែក ពីម៉ឺនុយខាងឆ្វេង។</div>
+        <div>សូមជ្រើស​ជំពូក/ផ្នែក ពីម៉ឺនុយខាងឆ្វេង។</div>
       </section>
 
       <section id="page-users" class="card k-card p-3" style="display:none">
@@ -82,13 +82,13 @@
       <!-- Manage sections kept same IDs; JS logic ដដែល -->
       <section id="page-manage-dept" class="card k-card p-3" style="display:none">
         <div class="d-flex justify-content-between align-items-center">
-          <h5 class="h-khmer m-0">គ្រប់គ្រងការិយាល័យ</h5>
-          <button class="k-btn k-btn-primary" id="btnAddDept">បន្ថែមការិយាល័យ</button>
+          <h5 class="h-khmer m-0">គ្រប់គ្រងជំពូក</h5>
+          <button class="k-btn k-btn-primary" id="btnAddDept">បន្ថែមជំពូក</button>
         </div>
         <div class="k-input my-2"><input id="qDept" placeholder="ស្វែងរក..."></div>
         <div class="table-responsive">
           <table class="table align-middle">
-            <thead><tr><th>ID</th><th>ឈ្មោះការិយាល័យ</th><th>សកម្មភាព</th></tr></thead>
+            <thead><tr><th>ID</th><th>ឈ្មោះជំពូក</th><th>សកម្មភាព</th></tr></thead>
             <tbody id="tbDept"></tbody>
           </table>
         </div>
@@ -101,11 +101,11 @@
         </div>
         <div class="row g-2 my-2">
           <div class="col-md-6"><div class="k-input"><input id="qUnit" placeholder="ស្វែងរក..."></div></div>
-          <div class="col-md-6"><select id="filterDept" class="form-select"><option value="">— ការិយាល័យទាំងអស់ —</option></select></div>
+          <div class="col-md-6"><select id="filterDept" class="form-select"><option value="">— ជំពូកទាំងអស់ —</option></select></div>
         </div>
         <div class="table-responsive">
           <table class="table align-middle">
-            <thead><tr><th>ID</th><th>ការិយាល័យ</th><th>ឈ្មោះផ្នែក</th><th>សកម្មភាព</th></tr></thead>
+            <thead><tr><th>ID</th><th>ជំពូក</th><th>ឈ្មោះផ្នែក</th><th>សកម្មភាព</th></tr></thead>
             <tbody id="tbUnit"></tbody>
           </table>
         </div>

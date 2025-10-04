@@ -106,9 +106,9 @@
 
                 <div class="row g-3 mt-1">
                     <div class="col-md-6">
-                        <label class="form-label">ការិយាល័យ</label>
+                        <label class="form-label">ជំពូក</label>
                         <select id="department_id" class="form-select"></select>
-                        <div class="form-text">មិនមែន SUPER ចាក់សោរ​ត្រឹមការិយាល័យខ្លួន</div>
+                        <div class="form-text">មិនមែន SUPER ចាក់សោរ​ត្រឹមជំពូកខ្លួន</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">ផ្នែក</label>
@@ -228,7 +228,7 @@
 
       // selects
       function fillDeptSelect(selected){
-        selDept.innerHTML = '<option value="">— ជ្រើសការិយាល័យ —</option>'+DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+        selDept.innerHTML = '<option value="">— ជ្រើសជំពូក —</option>'+DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
         if(selected) selDept.value=selected;
         selDept.disabled = !SUPER;
       }

@@ -65,7 +65,7 @@ const META = {
       {field:"user_pass", label:"ពាក្យសម្ងាត់", type:"password"}, // ទុកទទេពេលកែ ដើម្បីរក្សាទុកចាស់
       {field:"user_type", label:"ប្រភេទ", type:"select", options:["superuser","admin","user"]},
       {field:"user_root", label:"សិទ្ធិ", type:"select", options:["read","write","all"]},
-      {field:"department_id", label:"នាយកដ្ឋាន", type:"select-remote", from:"departments", valueField:"department_id", textField:"department_name"}
+      {field:"department_id", label:"ជំពូក", type:"select-remote", from:"departments", valueField:"department_id", textField:"department_name"}
     ]
   },
   departments: {
@@ -73,7 +73,7 @@ const META = {
     idField: "department_id",
     listCols: ["department_id","department_name"],
     fields: [
-      {field:"department_name", label:"ឈ្មោះនាយកដ្ឋាន", required:true}
+      {field:"department_name", label:"ឈ្មោះជំពូក", required:true}
     ]
   },
   units: {
@@ -81,7 +81,7 @@ const META = {
     idField: "unit_id",
     listCols: ["unit_id","unit_name","department_id"],
     fields: [
-      {field:"department_id", label:"នាយកដ្ឋាន", type:"select-remote", from:"departments", valueField:"department_id", textField:"department_name", required:true},
+      {field:"department_id", label:"ជំពូក", type:"select-remote", from:"departments", valueField:"department_id", textField:"department_name", required:true},
       {field:"unit_name", label:"ឈ្មោះផ្នែក/អង្គភាព", required:true}
     ]
   },
@@ -102,7 +102,7 @@ const META = {
     fields: [
       {field:"indicator_name", label:"ឈ្មោះសូចនាករ", required:true},
       {field:"indicator_type", label:"ប្រភេទ", placeholder:"Immunization/Hospital/..."},
-      {field:"department_id", label:"នាយកដ្ឋាន", type:"select-remote", from:"departments", valueField:"department_id", textField:"department_name"}
+      {field:"department_id", label:"ជំពូក", type:"select-remote", from:"departments", valueField:"department_id", textField:"department_name"}
     ]
   }
 };

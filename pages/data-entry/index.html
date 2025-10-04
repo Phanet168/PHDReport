@@ -42,7 +42,7 @@
 
                                 <div class="col-6 col-sm-auto">
                                     <select id="selDept" class="form-select form-select-sm">
-                                        <option value="">ការិយាល័យទាំងអស់</option>
+                                        <option value="">ជំពូកទាំងអស់</option>
                                     </select>
                                 </div>
                                 <div class="col-6 col-sm-auto">
@@ -84,7 +84,7 @@
                             <tr>
                                 <th style="width:90px">ID</th>
                                 <th>សូចនាករ</th>
-                                <th style="width:260px">ការិយាល័យ / ផ្នែក</th>
+                                <th style="width:260px">ជំពូក / ផ្នែក</th>
                                 <th style="width:140px">រយៈពេល</th>
                                 <th style="width:160px">តម្លៃ</th>
                                 <th style="width:170px" class="text-end">សកម្មភាព</th>
@@ -286,7 +286,7 @@
 
       // Fill selects
       function fillDept(){
-        selDept.innerHTML = `<option value="">ការិយាល័យទាំងអស់</option>`+
+        selDept.innerHTML = `<option value="">ជំពូកទាំងអស់</option>`+
           DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
       }
       function fillUnit(depId){

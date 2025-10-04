@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>គ្រប់គ្រងការិយាល័យ | PHD Report</title>
+  <title>គ្រប់គ្រងជំពូក | PHD Report</title>
 
   <!-- Gull / theme (ស្របនឹង project) -->
   <link href="../../dist-assets/css/themes/lite-purple.min.css" rel="stylesheet" />
@@ -21,9 +21,9 @@
 
 <div class="container my-3">
   <div class="d-flex align-items-center mb-3">
-    <h2 class="kh-head me-auto m-0">គ្រប់គ្រងការិយាល័យ</h2>
+    <h2 class="kh-head me-auto m-0">គ្រប់គ្រងជំពូក</h2>
     <a class="btn btn-outline-secondary me-2" href="../../index.html">⬅ ត្រឡប់ Dashboard</a>
-    <button id="btnAdd" class="btn btn-primary">បន្ថែមការិយាល័យ</button>
+    <button id="btnAdd" class="btn btn-primary">បន្ថែមជំពូក</button>
   </div>
 
   <div class="card">
@@ -31,7 +31,7 @@
       <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
         <div class="input-group" style="max-width:320px">
           <span class="input-group-text">ស្វែងរក</span>
-          <input id="q" type="text" class="form-control" placeholder="បញ្ចូលឈ្មោះការិយាល័យ...">
+          <input id="q" type="text" class="form-control" placeholder="បញ្ចូលឈ្មោះជំពូក...">
         </div>
         <span id="status" class="text-muted ms-auto"></span>
       </div>
@@ -41,7 +41,7 @@
           <thead class="thead-light">
             <tr>
               <th style="width:110px;">#ID</th>
-              <th>ឈ្មោះការិយាល័យ</th>
+              <th>ឈ្មោះជំពូក</th>
               <th style="width:160px;">សកម្មភាព</th>
             </tr>
           </thead>
@@ -60,13 +60,13 @@
     <div class="modal-content">
       <form id="depForm">
         <div class="modal-header">
-          <h5 class="modal-title kh-head" id="modalTitle">បន្ថែមការិយាល័យ</h5>
+          <h5 class="modal-title kh-head" id="modalTitle">បន្ថែមជំពូក</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
         </div>
         <div class="modal-body">
           <input type="hidden" id="department_id">
           <div class="mb-3">
-            <label class="form-label">ឈ្មោះការិយាល័យ</label>
+            <label class="form-label">ឈ្មោះជំពូក</label>
             <input id="department_name" class="form-control" required>
           </div>
         </div>
@@ -158,7 +158,7 @@
     tblBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">កំពុងទាញទិន្នន័យ...</td></tr>`;
     try{
       allRows = await gasList('departments');
-      status.textContent = `សរុប ${allRows.length} ការិយាល័យ`;
+      status.textContent = `សរុប ${allRows.length} ជំពូក`;
       render();
     }catch(err){
       status.textContent = 'បរាជ័យ: '+err.message;
@@ -197,7 +197,7 @@
 
   btnAdd.addEventListener('click', ()=>{
     if (!canWrite) return;
-    $('#modalTitle').textContent = 'បន្ថែមការិយាល័យ';
+    $('#modalTitle').textContent = 'បន្ថែមជំពូក';
     $('#department_id').value = '';
     $('#department_name').value = '';
     depModal.show();
@@ -213,13 +213,13 @@
 
     if (act === 'edit'){
       if (!canWrite) return;
-      $('#modalTitle').textContent = 'កែព័ត៌មានការិយាល័យ';
+      $('#modalTitle').textContent = 'កែព័ត៌មានជំពូក';
       $('#department_id').value = row.department_id;
       $('#department_name').value = row.department_name || '';
       depModal.show();
     } else if (act === 'del'){
       if (!canWrite) return;
-      if (!confirm('តើចង់លុបការិយាល័យ #'+id+' មែនទេ?')) return;
+      if (!confirm('តើចង់លុបជំពូក #'+id+' មែនទេ?')) return;
       try{
         await gasDelete('departments', 'department_id', id);
         await load();
@@ -236,7 +236,7 @@
       department_id: $('#department_id').value || undefined,
       department_name: $('#department_name').value.trim()
     };
-    if (!payload.department_name) { alert('សូមបញ្ចូលឈ្មោះការិយាល័យ'); return; }
+    if (!payload.department_name) { alert('សូមបញ្ចូលឈ្មោះជំពូក'); return; }
     try{
       await gasUpsert('departments', payload);
       depModal.hide();

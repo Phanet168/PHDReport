@@ -25,9 +25,9 @@
       <form id="f">
         <div class="row g-3">
           <div class="col-sm-4">
-            <label class="form-label">ការិយាល័យ (department_id)</label>
+            <label class="form-label">ជំពូក (department_id)</label>
             <input id="dep" class="form-control" placeholder="ឧ. 2" required>
-            <small class="text-muted">Data Entry នឹង lock ជា ការិយាល័យខ្លួន</small>
+            <small class="text-muted">Data Entry នឹង lock ជា ជំពូកខ្លួន</small>
           </div>
           <div class="col-sm-4">
             <label class="form-label">Indicator</label>
@@ -86,8 +86,8 @@
 
   // Role info
   document.getElementById('roleInfo').textContent =
-    isSuper(auth) ? 'Role: Super (អាចបញ្ចូលគ្រប់ការិយាល័យ)' :
-    isDataEntry(auth) ? `Role: Data Entry (ការិយាល័យ #${auth.department_id})` :
+    isSuper(auth) ? 'Role: Super (អាចបញ្ចូលគ្រប់ជំពូក)' :
+    isDataEntry(auth) ? `Role: Data Entry (ជំពូក #${auth.department_id})` :
     'Role: Viewer';
 
   // Department lock

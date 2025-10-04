@@ -43,7 +43,7 @@
                 <th style="width:80px">ID</th>
                 <th>ឈ្មោះសូចនាករ</th>
                 <th style="width:160px">ប្រភេទ</th>
-                <th style="width:200px">ការិយាល័យ</th>
+                <th style="width:200px">ជំពូក</th>
                 <th style="width:200px">ផ្នែក</th>
                 <th style="width:200px">ម្ចាស់ (Owner)</th>
                 <th style="width:160px" class="text-end">សកម្មភាព</th>
@@ -90,9 +90,9 @@
 
         <div class="row g-3">
           <div class="col-md-6">
-            <label class="form-label">ការិយាល័យ</label>
+            <label class="form-label">ជំពូក</label>
             <select id="department_id" class="form-select"></select>
-            <div class="form-text">មិនមែន SUPER ចាក់សោរ​ត្រឹមការិយាល័យខ្លួន</div>
+            <div class="form-text">មិនមែន SUPER ចាក់សោរ​ត្រឹមជំពូកខ្លួន</div>
           </div>
           <div class="col-md-6">
             <label class="form-label">ផ្នែក</label>
@@ -254,7 +254,7 @@
     }
 
     async function fillDeptSelect(selected){
-      selDept.innerHTML=`<option value="">— ជ្រើសការិយាល័យ —</option>`+
+      selDept.innerHTML=`<option value="">— ជ្រើសជំពូក —</option>`+
         CACHE.departments.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
       if(selected) selDept.value=selected;
       selDept.disabled=!SUPER;

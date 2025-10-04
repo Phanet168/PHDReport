@@ -5,7 +5,7 @@
         <!-- Page head -->
         <div class="page-head">
             <div class="d-flex align-items-center gap-2">
-                <h1 class="kh-head h4 m-0">ការិយាល័យ</h1>
+                <h1 class="kh-head h4 m-0">ជំពូក</h1>
                 <nav aria-label="breadcrumb" class="small">
                     <ol class="breadcrumb m-0">
                         <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
@@ -23,7 +23,7 @@
                 <div class="card-body">
 
                     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-                        <h4 class="card-title kh-head m-0">បញ្ជីការិយាល័យ</h4>
+                        <h4 class="card-title kh-head m-0">បញ្ជីជំពូក</h4>
                         <div class="d-flex gap-2">
                             <button id="btnAdd" class="btn btn-primary btn-sm">
                                 <i class="i-Add"></i> បន្ថែម
@@ -36,8 +36,8 @@
                             <thead>
                             <tr>
                                 <th style="width:90px">ID</th>
-                                <th>ឈ្មោះការិយាល័យ</th>
-                                <th style="width:260px">នាយកដ្ឋាន</th>
+                                <th>ឈ្មោះជំពូក</th>
+                                <th style="width:260px">ជំពូក</th>
                                 <th style="width:180px">ប្រភេទ</th>
                                 <th style="width:160px">សកម្មភាព</th>
                             </tr>
@@ -59,18 +59,18 @@
     <div class="modal-dialog">
         <form class="modal-content" id="frmUnit" novalidate>
             <div class="modal-header">
-                <h5 class="modal-title kh-head">ព័ត៌មានការិយាល័យ</h5>
+                <h5 class="modal-title kh-head">ព័ត៌មានជំពូក</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="unit_id" />
                 <div class="mb-3">
-                    <label for="unit_name" class="form-label">ឈ្មោះការិយាល័យ <span class="text-danger">*</span></label>
+                    <label for="unit_name" class="form-label">ឈ្មោះជំពូក <span class="text-danger">*</span></label>
                     <input id="unit_name" class="form-control" required />
-                    <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះការិយាល័យ</div>
+                    <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះជំពូក</div>
                 </div>
                 <div class="mb-3">
-                    <label for="department_id" class="form-label">នាយកដ្ឋាន</label>
+                    <label for="department_id" class="form-label">ជំពូក</label>
                     <select id="department_id" class="form-select"></select>
                 </div>
                 <div class="mb-3">
@@ -228,7 +228,7 @@
           CACHE.departments=depRes?.data||[]; CACHE.units=unitRes?.data||[];
           CACHE.depById = Object.fromEntries((CACHE.departments||[]).map(d=>[String(d[PK_DEP]), d.department_name||d.name||d[PK_DEP]]));
           fillDepartmentsSelect(); render();
-          setStatus(`បានផ្ទុកសរុប – នាយកដ្ឋាន: ${CACHE.departments.length} • ការិយាល័យ: ${CACHE.units.length}`);
+          setStatus(`បានផ្ទុកសរុប – ជំពូក: ${CACHE.departments.length} • ជំពូក: ${CACHE.units.length}`);
         }catch(err){ console.error(err); tbody.innerHTML=`<tr><td colspan="5" class="text-danger text-center py-4">បរាជ័យក្នុងការផ្ទុកទិន្នន័យ</td></tr>`; setStatus(err.message,false); }
       })();
     })();

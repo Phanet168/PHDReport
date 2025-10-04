@@ -228,7 +228,7 @@ export async function buildSettingsMenu(targetUlId = 'settingsMenu') {
       const itemsAll = [
         { key: 'users',       label: 'អ្នកប្រើប្រាស់', icon: 'i-Male',      href: '#/settings/users' },
         { key: 'indicators',  label: 'សូចនាករ',       icon: 'i-Bar-Chart', href: '#/settings/indicators' },
-        { key: 'departments', label: 'នាយកដ្ឋាន',     icon: 'i-Building',  href: '#/settings/departments' },
+        { key: 'departments', label: 'ជំពូក',     icon: 'i-Building',  href: '#/settings/departments' },
         { key: 'units',       label: 'ផ្នែក',         icon: 'i-Right',     href: '#/settings/units' },
         { key: 'periods',     label: 'រយៈពេល',       icon: 'i-Calendar',  href: '#/settings/periods' },
       ];

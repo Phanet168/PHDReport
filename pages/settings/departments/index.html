@@ -5,7 +5,7 @@
     <!-- Page head -->
     <div class="page-head">
       <div class="d-flex align-items-center gap-2">
-        <h1 class="kh-head h4 m-0">នាយកដ្ឋាន</h1>
+        <h1 class="kh-head h4 m-0">ជំពូក</h1>
         <nav aria-label="breadcrumb" class="small">
           <ol class="breadcrumb m-0">
             <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
@@ -24,7 +24,7 @@
 
           <!-- Toolbar -->
           <div class="toolbar mb-3">
-            <h4 class="card-title kh-head m-0">បញ្ជីនាយកដ្ឋាន</h4>
+            <h4 class="card-title kh-head m-0">បញ្ជីជំពូក</h4>
             <div class="ms-auto d-flex gap-2 flex-wrap">
               <input id="txtSearchDept" class="form-control form-control-sm" style="width:220px" placeholder="ស្វែងរក...">
               <button id="btnAddDept" class="btn btn-primary btn-sm">
@@ -64,7 +64,7 @@
   <div class="modal-dialog">
     <form class="modal-content" id="frmDept" novalidate>
       <div class="modal-header">
-        <h5 class="modal-title kh-head">ព័ត៌មាននាយកដ្ឋាន</h5>
+        <h5 class="modal-title kh-head">ព័ត៌មានជំពូក</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
       </div>
       <div class="modal-body">
@@ -151,7 +151,7 @@
   try{
     ROWS = await gasList('departments');
     render();
-    $status(`បានផ្ទុក ${ROWS.length} នាយកដ្ឋាន`);
+    $status(`បានផ្ទុក ${ROWS.length} ជំពូក`);
   }catch(e){
     console.error(e);
     tbody.innerHTML = `<tr><td colspan="3" class="text-danger text-center py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
