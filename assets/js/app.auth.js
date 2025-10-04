@@ -1,187 +1,248 @@
 // assets/js/app.auth.js
-// -------------------------------------------------------------
-// Auth helper for PHD Report (JSONP login + localStorage)
-// NOTE: អនុមានថា GAS_BASE ត្រូវបានកំណត់នៅ config.js
-// -------------------------------------------------------------
-import { GAS_BASE } from "./config.js";
+import { auth, db } from "./firebase.client.js";
+import {
+  onAuthStateChanged, signInWithEmailAndPassword, signOut, getIdToken
+} from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+import {
+  doc, getDoc, collection, query, where, getDocs
+} from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
+// (ជ្រើសរើស) Export API layer ផ្សេងៗ ប្រសិនបើមានប្រើ
+export {
+  gasList   as apiList,
+  gasSave   as apiSave,
+  gasDelete as apiDelete,
+  ID_FIELDS
+} from "./app.api.firebase.js";
+
+/* ---------------- Consts ---------------- */
 const AUTH_KEY = "phd_auth";
+const PSEUDO_DOMAIN = "dbreportphd.local";
 
-/* ======================== Storage ======================== */
-export function getAuth() {
-  try {
+/* ---------------- Utils ---------------- */
+const nowSec = () => Math.floor(Date.now()/1000);
+function b64urlToJson(b64){
+  try{
+    const pad='='.repeat((4-(b64.length%4))%4);
+    const s=atob((b64+pad).replace(/-/g,'+').replace(/_/g,'/'));
+    return JSON.parse(decodeURIComponent(escape(s)));
+  }catch{return {};}
+}
+// Try to resolve real email by username (lowercased) from Firestore
+async function resolveEmailByUsername(username){
+  const uname = String(username||'').trim().toLowerCase();
+  if (!uname) return '';
+
+  try{
+    // users where user_name == uname   (ត្រូវមាន index)
+    const s = await getDocs(query(collection(db,'users'), where('user_name','==', uname)));
+    if (!s.empty) {
+      const d = s.docs[0].data() || {};
+      const em = String(d.email||'').trim();
+      if (em) return em.toLowerCase();
+    }
+  }catch(e){
+    // ignore; rules might block unauth read
+  }
+  return '';
+}
+
+/* ---------------- Auth cache ---------------- */
+function saveAuth(a){
+  const out = { ...a };
+  if (out.role == null && out.user_type != null) out.role = out.user_type;
+  out.role = String(out.role || 'viewer').toLowerCase();
+  if (out.exp != null) out.exp = Number(out.exp);
+  localStorage.setItem(AUTH_KEY, JSON.stringify(out));
+  window.dispatchEvent(new Event('auth:changed'));
+}
+function loadAuth(){
+  try{
     const raw = localStorage.getItem(AUTH_KEY);
     if (!raw) return null;
     const a = JSON.parse(raw);
-    // normalize
-    if (a && a.role) a.role = String(a.role).trim().toLowerCase();
-    if (a && a.user_type && !a.role) a.role = String(a.user_type).trim().toLowerCase();
-    if (a && a.exp) a.exp = Number(a.exp);
+    if (a.exp != null) a.exp = Number(a.exp);
+    if (a.role != null) a.role = String(a.role).toLowerCase();
+    // require token + exp
+    if (!a.token || typeof a.exp !== 'number') return null;
     return a;
-  } catch {
-    return null;
-  }
+  }catch{ return null; }
 }
 
-export function setAuth(a) {
-  if (!a || typeof a !== "object") return;
-  const out = { ...a };
-  out.role = String(out.role ?? out.user_type ?? "").trim().toLowerCase();
-  if (out.exp != null) out.exp = Number(out.exp);
-  localStorage.setItem(AUTH_KEY, JSON.stringify(out));
-  dispatchAuthChanged();
-}
-
-export function clearAuth() {
+/* ---------------- Public getters/helpers ---------------- */
+export function getAuthLocal(){ return loadAuth(); }
+export const getAuth = getAuthLocal; // alias សម្រាប់កូដចាស់
+export function getSession(){ return getAuthLocal(); }
+export function clearAuth(){
   localStorage.removeItem(AUTH_KEY);
-  dispatchAuthChanged();
+  window.dispatchEvent(new Event('auth:changed'));
+}
+export function isLoggedIn(a=getAuthLocal()){
+  return !!(a?.token && typeof a.exp === 'number' && a.exp > (nowSec()+60));
+}
+export const isSuper = (a=getAuthLocal()) => String(a?.role||'') === 'super';
+export const isAdmin = (a=getAuthLocal()) => ['admin','super'].includes(String(a?.role||''));
+
+/* ---------------- Ready gate ---------------- */
+let __resolveReady;
+export const authReady = new Promise(res => (__resolveReady = res));
+export async function whenAuthReady(){
+  if (getAuthLocal()) return; // cached auth OK
+  return authReady;
 }
 
-/* ===================== State helpers ===================== */
-export function isLoggedIn(a = getAuth()) {
-  if (!a || !a.token) return false;
-  // tolerate clock-skew 60s
-  const now = Math.floor(Date.now() / 1000) + 60;
-  if (a.exp && Number(a.exp) <= now) return false;
-  return true;
-}
-
-export function isSuper(a = getAuth()) {
-  const r = String(a?.role || a?.user_type || "").toLowerCase();
-  return r === "super"; // ✅ strict: តែ "super" ប៉ុណ្ណោះ
-}
-
-
-/* ===================== Router helpers ==================== */
-const currentReturn = () =>
-  location.pathname + (location.search || "") + (location.hash || "");
-
-export function ensureLoggedIn(loginUrl = "login.html") {
-  if (!isLoggedIn()) {
-    location.replace(
-      `${loginUrl}?return=${encodeURIComponent(currentReturn() || "index.html")}`
-    );
+/* ---------------- Router helpers ---------------- */
+const currentReturn = () => location.pathname + (location.search||'') + (location.hash||'');
+export function ensureLoggedIn(loginUrl='login.html'){
+  if (!isLoggedIn()){
+    location.replace(`${loginUrl}?return=${encodeURIComponent(currentReturn()||'index.html')}`);
   }
 }
 
-/* ===================== UI convenience ==================== */
-/** ប្ដូរប៊ូតុង Login/Logout (ជាជម្រើស) */
-export function applyLoginButton(btn) {
-  const el = btn || document.getElementById("btnLogin");
+/* ---------------- Login button wiring ---------------- */
+export function applyLoginButton(el){
   if (!el) return;
-
-  const apply = () => {
-    if (isLoggedIn()) {
-      el.classList.remove("btn-outline-primary");
-      el.classList.add("btn-outline-danger");
-      el.textContent = "ចាកចេញ";
-      el.href = "javascript:void(0)";
-      el.onclick = (e) => {
+  const wire = ()=>{
+    if (isLoggedIn()){
+      el.classList.remove('btn-outline-primary');
+      el.classList.add('btn-outline-danger');
+      el.textContent = 'ចាកចេញ';
+      el.href = 'javascript:void(0)';
+      el.onclick = async (e)=>{
         e.preventDefault();
+        try{ await signOut(auth); }catch{}
         clearAuth();
-        // ត្រឡប់ទៅទំព័រ login (រក្សា return)
         location.replace(`login.html?return=${encodeURIComponent(currentReturn())}`);
       };
     } else {
-      el.classList.remove("btn-outline-danger");
-      el.classList.add("btn-outline-primary");
-      el.textContent = "ចូលប្រើប្រាស់";
+      el.classList.remove('btn-outline-danger');
+      el.classList.add('btn-outline-primary');
+      el.textContent = 'ចូលប្រើប្រាស់';
       el.href = `login.html?return=${encodeURIComponent(currentReturn())}`;
       el.onclick = null;
     }
   };
-
-  // apply ភ្លាម និង subscribe ប្រែប្រួល
-  apply();
-  window.addEventListener("auth:changed", apply);
+  wire();
+  window.addEventListener('auth:changed', wire);
 }
 
-/* ======================= JSONP core ====================== */
-/** JSONP helper (ចៀស CORS); server ត្រូវឆ្លើយ callback({...}) */
-function jsonp(url, params = {}, timeoutMs = 12000) {
-  return new Promise((resolve, reject) => {
-    const cb = "__gs_cb_" + Date.now() + "_" + Math.random().toString(36).slice(2);
-    const qs = new URLSearchParams({ ...params, callback: cb });
-    const src = url + (url.includes("?") ? "&" : "?") + qs.toString();
+/* ---------------- Profile loader ---------------- */
+async function loadProfile(uid, email){
+  try{
+    const p1 = await getDoc(doc(db,'profiles', uid));
+    if (p1.exists()) return { id:uid, ...p1.data() };
+  }catch(e){}
+  try{
+    let q1 = query(collection(db,'users'), where('auth_uid','==', uid));
+    let s1 = await getDocs(q1);
+    if (!s1.empty) return s1.docs[0].data();
+  }catch(e){}
+  if (email){
+    try{
+      const em = String(email).toLowerCase();
+      let q2 = query(collection(db,'users'), where('email','==', em));
+      let s2 = await getDocs(q2);
+      if (!s2.empty) return s2.docs[0].data();
+    }catch(e){}
+  }
+  return { full_name: email || uid, role: 'viewer' };
+}
 
-    const s = document.createElement("script");
-    let done = false;
+/* ---------------- Token with exp ---------------- */
+async function tokenWithExp(force=false){
+  const tok = await getIdToken(auth.currentUser, !!force);
+  const payload = tok.split('.')[1] || '';
+  const { exp = 0 } = b64urlToJson(payload);
+  return { token: tok, exp: Number(exp||0) };
+}
 
-    const cleanup = () => {
-      try { delete window[cb]; } catch {}
-      try { s.remove(); } catch {}
-    };
+/* ---------------- Email/password login ---------------- */
+export async function loginEmailPassword(email, password){
+  if (!email || !password) throw new Error('សូមបំពេញអ៊ីមែល និង ពាក្យសម្ងាត់');
+  const { user } = await signInWithEmailAndPassword(auth, email, password);
+  const { token, exp } = await tokenWithExp(true);
+  const prof = await loadProfile(user.uid, user.email || email);
 
-    const t = setTimeout(() => {
-      if (!done) { cleanup(); reject(new Error("JSONP timeout")); }
-    }, timeoutMs);
-
-    window[cb] = (data) => {
-      done = true;
-      clearTimeout(t);
-      cleanup();
-      resolve(data);
-    };
-
-    s.onerror = () => {
-      clearTimeout(t);
-      cleanup();
-      reject(new Error("JSONP failed"));
-    };
-
-    s.src = src;
-    document.head.appendChild(s);
+  saveAuth({
+    uid: user.uid, email: user.email, token, exp,
+    role: String(prof.role || 'viewer').toLowerCase(),
+    user_type: String(prof.role || 'viewer').toLowerCase(),
+    full_name: prof.full_name || user.displayName || user.email,
+    department_id: prof.department_id || '',
+    unit_id: prof.unit_id || '',
+    user_id: prof.user_id || '',
+    user_name: prof.user_name || ''
   });
+  return getAuthLocal();
 }
 
-/* ================== Public auth actions ================== */
-/** 🔐 Login via JSONP → persist token on success */
-export async function loginJsonp(username, password) {
-  if (!username || !password) {
-    throw new Error("សូមបំពេញឈ្មោះ និង ពាក្យសម្ងាត់");
+/* ---------------- Keep cache synced with Firebase Auth ---------------- */
+onAuthStateChanged(auth, async (user)=>{
+  if (!user){
+    clearAuth();
+    if (__resolveReady){ __resolveReady(); __resolveReady=null; }
+    return;
   }
-  const res = await jsonp(GAS_BASE, {
-    api: 1,
-    route: "auth",
-    op: "login",
-    username,
-    password,
+  const cur = getAuthLocal();
+  const near = nowSec() + 60;
+  if (cur?.uid === user.uid && cur?.exp && cur.exp > near){
+    window.dispatchEvent(new Event('auth:changed'));
+    if (__resolveReady){ __resolveReady(); __resolveReady = null; }
+    return;
+  }
+  const { token, exp } = await tokenWithExp(false);
+  const prof = await loadProfile(user.uid, user.email || '');
+  saveAuth({
+    ...(cur||{}),
+    uid: user.uid,
+    email: user.email,
+    token, exp,
+    role: String(prof.role || cur?.role || 'viewer').toLowerCase(),
+    user_type: String(prof.role || cur?.role || 'viewer').toLowerCase(),
+    full_name: prof.full_name || cur?.full_name || user.displayName || user.email,
+    department_id: prof.department_id ?? cur?.department_id ?? '',
+    unit_id: prof.unit_id ?? cur?.unit_id ?? '',
+    user_id: prof.user_id ?? cur?.user_id ?? '',
+    user_name: prof.user_name ?? cur?.user_name ?? '',
   });
+  if (__resolveReady){ __resolveReady(); __resolveReady = null; }
+});
 
-  if (!res || res.ok === false) {
-    throw new Error(res?.error || "Login failed");
+/* ---------------- Username -> pseudo email ---------------- */
+export function mapUsernameToEmail(input){
+  const raw = String(input||'').trim();
+  if (!raw) return '';
+  if (raw.includes('@')) return raw;
+  const uname = raw.toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9._-]/g,'');
+  return `${uname}@${PSEUDO_DOMAIN}`;
+}
+export async function loginUsernamePassword(username, password){
+  const raw = String(username||'').trim();
+  if (!raw || !password) throw new Error('សូមបំពេញឈ្មោះអ្នកប្រើ និង ពាក្យសម្ងាត់');
+
+  const uname = raw.toLowerCase();
+  const pseudoEmail = raw.includes('@') ? raw : `${uname}@${PSEUDO_DOMAIN}`;
+
+  // 1) សាក sign-in ជាមួយ pseudo-domain / ឬអ៊ីមែលពេញ (បើអ្នកវាយមាន @)
+  try{
+    return await loginEmailPassword(pseudoEmail, password);
+  }catch(err){
+    const code = String(err?.code||'').toLowerCase();
+    // បើជាបញ្ហា "wrong-password" → ចេញភ្លាម (username ត្រឹមត្រូវហើយ)
+    if (code.includes('wrong-password')) throw err;
+    // បើ username មិនមាន @ ហើយមិនឃើញ user តាម pseudo-domain → សាក resolve ពី Firestore
+    if (!raw.includes('@') && (code.includes('user-not-found') || code.includes('invalid-email'))) {
+      const resolved = await resolveEmailByUsername(uname);
+      if (resolved && resolved !== pseudoEmail) {
+        // សាក sign-in ដោយអ៊ីមែលពិត
+        return await loginEmailPassword(resolved, password);
+      }
+    }
+    // else: បោះបន្តិចដដែល
+    throw err;
   }
-  if (!res.token) {
-    throw new Error("Token not returned");
-  }
-
-  setAuth(res);
-  return res;
 }
 
-/** 🚪 Logout (clear + event) */
-export function logout() {
-  clearAuth();
+export async function logout(){
+  try{ await signOut(auth); } finally { clearAuth(); }
 }
-
-/* =================== Small conveniences ================== */
-/** បន្ថែម token ទៅ params ដើម្បីប្រើជាមួយ URLSearchParams */
-export function withAuthParams(params = {}) {
-  const p = { ...params };
-  if (!("api" in p)) p.api = 1;
-  const tok = getAuth()?.token;
-  if (tok && !("token" in p)) p.token = tok;
-  return p;
-}
-
-/** បញ្ចេញព្រឹត្តិការណ៍ (internal) */
-function dispatchAuthChanged() {
-  try {
-    window.dispatchEvent(new Event("auth:changed"));
-  } catch {}
-}
-try {
-  window.getAuth  = getAuth;
-  window.isSuper  = isSuper;
-  window.clearAuth = clearAuth;
-} catch {}

@@ -1,154 +1,146 @@
-<!DOCTYPE html>
-<html lang="km">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PHD Report | Dashboard</title>
-
-  <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Khmer+Moul&family=Noto+Sans+Khmer:wght@300;400;600&display=swap" rel="stylesheet"/>
-
-  <style>
-    body { font-family:"Noto Sans Khmer",system-ui,sans-serif; background:#f5f7fb; }
-    .navbar-brand { font-family:"Khmer Moul","Noto Sans Khmer",sans-serif; }
-    .content { flex:1; padding:20px; }
-
-    .dashboard-page{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;}
-    .container-page{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;
-      width:100%;max-width:1280px;margin:0 auto;padding:12px 16px 8px;}
-    .g-kpi .card.kpi{border:1px solid #eef0f4;border-radius:14px;box-shadow:0 10px 22px rgba(0,0,0,.05)}
-    .g-kpi .display-6{line-height:1}
-    .charts-row{flex:1 1 auto;min-height:0;display:grid;gap:14px;grid-template-columns:1.25fr 1fr;align-items:stretch;}
-    .chart-card{padding:12px;display:flex;flex-direction:column;min-height:0;border:1px solid #eef0f4;border-radius:14px;box-shadow:0 10px 22px rgba(0,0,0,.05);background:#fff;}
-    .chart-box{flex:1 1 auto;min-height:420px;}
-    @media (max-width: 992px){.charts-row{grid-template-columns:1fr}.chart-box{min-height:340px}}
-  </style>
-</head>
-<body>
-<div class="d-flex" style="min-height:100dvh;">
-  <main class="content">
-    <div class="dashboard-page">
-      <div class="container-page">
-        <h4 class="kh-head mb-2">ផ្ទាំងសង្ខេប</h4>
-        <div class="separator-breadcrumb border-top mb-2"></div>
-      </div>
-
-      <span class="small text-muted" style="margin:0 auto 8px auto;">
-        (Powered by <a href="https://phanet168.github.io/PHDReport" target="_blank" rel="noopener">PHD Report</a>)
-      </span>
-
-      <div class="container-page" style="flex:1 1 auto;display:flex;flex-direction:column;min-height:0;">
-        <!-- KPI cards -->
-        <div class="row g-3 g-kpi">
-          <div class="col-md-3"><div class="card kpi p-3 text-center"><h6 class="text-muted mb-1">សូចនាករ</h6><div id="kpiIndicators" class="display-6">–</div></div></div>
-          <div class="col-md-3"><div class="card kpi p-3 text-center"><h6 class="text-muted mb-1">ជំពូក</h6><div id="kpiDepts" class="display-6">–</div></div></div>
-          <div class="col-md-3"><div class="card kpi p-3 text-center"><h6 class="text-muted mb-1">ជំពូក</h6><div id="kpiUnits" class="display-6">–</div></div></div>
-          <div class="col-md-3"><div class="card kpi p-3 text-center"><h6 class="text-muted mb-1">របាយការណ៍</h6><div id="kpiReports" class="display-6">–</div></div></div>
-        </div>
-
-        <!-- Charts -->
-        <div class="charts-row mt-2">
-          <div class="card chart-card">
-            <h6 class="mb-2 text-muted">របាយការណ៍តាមខែ</h6>
-            <div id="chartMonthly" class="chart-box"></div>
-          </div>
-          <div class="card chart-card">
-            <h6 class="mb-2 text-muted">តាមជំពូក</h6>
-            <div id="chartDept" class="chart-box"></div>
-          </div>
-        </div>
-
-        <div id="statusLine" class="small text-muted mt-2"></div>
-      </div>
-    </div>
-  </main>
-</div>
-
-<!-- ECharts -->
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
-
-<!-- App JS -->
-<script type="module">
-  import { ensureLoggedIn } from './assets/js/app.auth.js';
-  // ✅ កែ import: apiList នៅក្នុង app.api.js (ឬប្រើ gasList ពី app.menu.js)
-  import { apiList } from './assets/js/app.api.js';
-  // // ជម្រើសប្ដូរ:
-  // import { gasList as apiList } from './assets/js/app.menu.js';
-
-  ensureLoggedIn('login.html');
-
-  const $ = (id) => document.getElementById(id);
-  const setStatus = (m) => { const el = $('statusLine'); if (el) el.textContent = m || ''; };
-
-  async function loadDashboard(){
-    setStatus('កំពុងទាញទិន្នន័យ…');
-    try {
-      const [deps, units, inds, reps] = await Promise.all([
-        apiList('departments'),
-        apiList('units'),
-        apiList('indicators'),
-        apiList('reports')
-      ]);
-
-      $('kpiDepts').textContent      = deps.length;
-      $('kpiUnits').textContent      = units.length;
-      $('kpiIndicators').textContent = inds.length;
-      $('kpiReports').textContent    = reps.length;
-
-      // ----- Charts from real data -----
-      // Monthly count
-      const aggMonth = {};
-      for (const r of reps) {
-        const d = new Date(r.date || r._createdAt || Date.now());
-        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-        aggMonth[key] = (aggMonth[key] || 0) + 1;
-      }
-      const months = Object.keys(aggMonth).sort();
-      const series = months.map(m => aggMonth[m]);
-
-      const c1 = echarts.init($('chartMonthly'));
-      c1.setOption({
-        tooltip: {},
-        xAxis: { type: 'category', data: months },
-        yAxis: { type: 'value' },
-        series: [{ type:'bar', data: series }]
-      });
-
-      // By department
-      const nameByDept = Object.fromEntries(deps.map(d => [String(d.department_id), d.department_name]));
-      const aggDept = {};
-      for (const r of reps) {
-        const name = nameByDept[String(r.department_id)] || 'មិនបានកំណត់';
-        aggDept[name] = (aggDept[name] || 0) + 1;
-      }
-      const pieData = Object.entries(aggDept).map(([name, value]) => ({ name, value }));
-
-      const c2 = echarts.init($('chartDept'));
-      c2.setOption({
-        tooltip: { trigger:'item' },
-        series: [{ type:'pie', radius:'70%', data: pieData }]
-      });
-
-      // Resize observer
-      if (window.ResizeObserver){
-        const ro=new ResizeObserver(()=>[c1,c2].forEach(ch=>ch && ch.resize()));
-        ro.observe($('chartMonthly')); ro.observe($('chartDept'));
-      }
-
-      setStatus('រួចរាល់');
-    } catch (err) {
-      console.error(err);
-      setStatus('បរាជ័យទាញទិន្នន័យ: ' + (err?.message || err));
-    }
+<!-- pages/home.html -->
+<style>
+  :root{
+    --ink:#0f172a; --muted:#6b7280; --line:#e5e7eb; --soft:#f8fafc; --brand:#6d28d9;
+    --radius:14px; --boxH:38px;
   }
 
-  document.addEventListener('DOMContentLoaded', loadDashboard);
-</script>
+  /* Layout */
+  .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0; background:var(--soft);}
+  .container-page{max-width:1280px; margin:0 auto; padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+  /* Page head */
+  .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
+  .page-head .breadcrumb{color:var(--muted)}
+  .separator-breadcrumb{border-top:1px solid var(--line);}
+
+  /* Card */
+  .centered-card{max-width:1200px; border:1px solid #eef0f4; border-radius:var(--radius); background:#fff; margin:0 auto; width:100%;}
+  .centered-card .card-body{padding:16px;}
+  @media (min-width: 768px){ .centered-card .card-body{padding:20px;} }
+
+  /* Toolbar */
+  .reports-toolbar{
+    display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px;
+    padding:12px; background:#fff; border:1px solid var(--line); border-radius:10px;
+    margin-bottom:14px;
+  }
+  .form-chunk{display:flex; flex-direction:column; gap:4px; min-width:180px}
+  .form-chunk label{font-size:.8rem; color:var(--muted); margin:0 4px}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  .segbtn{background:#fff; border:0; height:var(--boxH); padding:0 .8rem; font-size:.9rem; cursor:pointer}
+  .segbtn + .segbtn{border-left:1px solid var(--line)}
+  .segbtn.active{background:#f3f4f6; font-weight:600}
+
+  .control{
+    height:var(--boxH); border-radius:8px; border:1px solid #d9e2f1; background:#fff;
+    padding:.35rem .65rem; font-size:.92rem; color:#334155; min-width:160px;
+  }
+  .control:focus{outline:none; border-color:#4f46e5; box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+
+  .btn-apply{background:#10b981; border:1px solid #10b981; color:#fff; height:var(--boxH); border-radius:8px; padding:0 .95rem; font-weight:600; cursor:pointer}
+  .btn-apply:hover{filter:brightness(.98)}
+  .btn-outline{background:#fff; border:1px solid #cfd8ea; color:#334155; height:var(--boxH); border-radius:8px; padding:0 .85rem; cursor:pointer}
+  .btn-outline:hover{background:#f2f5fb}
+
+  /* KPI cards (Issues) */
+  .kpi-wrap{margin-bottom:14px;}
+  .kpi-grid{display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px;}
+  .kpi-card{background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px 14px;}
+  .kpi-label{font-size:.82rem; color:var(--muted); margin-bottom:4px;}
+  .kpi-num{font-size:1.35rem; font-weight:700; color:var(--ink);}
+  .text-success{color:#16a34a;}
+  .text-warning{color:#d97706;}
+  @media (max-width: 640px){ .kpi-grid{grid-template-columns:1fr;} }
+
+  /* Chart */
+  #chartMain{height:380px}
+  #dashStatus{min-height:20px}
+
+  /* Minor utilities */
+  .mt-2{margin-top:.5rem;}
+  .mt-3{margin-top:.75rem;}
+  .mt-4{margin-top:1rem;}
+  .small{font-size:.875rem;}
+  .h4{font-size:1.125rem; font-weight:700; color:var(--ink);}
+</style>
+
+<div class="settings-page">
+  <div class="container-page">
+
+    <!-- Page head -->
+    <div class="page-head">
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="h4 m-0">ផ្ទាំងគ្រប់គ្រង</h1>
+        <nav aria-label="breadcrumb" class="small">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+            <li class="breadcrumb-item active">Overview</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="separator-breadcrumb"></div>
+    </div>
+
+    <!-- Body -->
+    <div class="page-body">
+      <div class="card centered-card shadow-sm">
+        <div class="card-body">
+
+          <!-- Issue KPI Cards -->
+          <section class="kpi-wrap" aria-label="Issue KPIs">
+            <div class="kpi-grid">
+              <div class="kpi-card" role="status" aria-live="polite">
+                <div class="kpi-label">បញ្ហាសរុប</div>
+                <div id="kpiIssueAll" class="kpi-num">—</div>
+              </div>
+              <div class="kpi-card" role="status" aria-live="polite">
+                <div class="kpi-label">ដោះស្រាយរួច</div>
+                <div id="kpiIssueSolved" class="kpi-num text-success">—</div>
+              </div>
+              <div class="kpi-card" role="status" aria-live="polite">
+                <div class="kpi-label">មិនទាន់ដោះស្រាយ</div>
+                <div id="kpiIssueOpen" class="kpi-num text-warning">—</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Toolbar (filters) -->
+          <section class="reports-toolbar" aria-label="Dashboard filters">
+            <div class="form-chunk">
+              <label>រយៈពេល</label>
+              <div class="seg" role="group" aria-label="Period type">
+                <button type="button" class="segbtn active" data-pt="M">ខែ</button>
+                <button type="button" class="segbtn" data-pt="Q">ត្រី</button>
+                <button type="button" class="segbtn" data-pt="H">ឆមាស</button>
+                <button type="button" class="segbtn" data-pt="N9">៩ខែ</button>
+                <button type="button" class="segbtn" data-pt="Y12">ឆ្នាំ</button>
+              </div>
+            </div>
+
+            <div class="form-chunk" style="min-width:120px">
+              <label for="dashYear">ឆ្នាំ</label>
+              <select id="dashYear" class="control" aria-label="ឆ្នាំ"></select>
+            </div>
+
+            <div class="form-chunk" style="flex:1 1 360px; min-width:280px">
+              <label for="dashInd">សូចនាករ (តាមជំពូក/ផ្នែក)</label>
+              <select id="dashInd" class="control" aria-label="សូចនាករ"></select>
+            </div>
+
+            <button id="dashApply" class="btn-apply" type="button" aria-label="Apply filters">Apply</button>
+          </section>
+
+          <!-- Chart -->
+          <section aria-label="Main chart">
+            <div id="chartMain"></div>
+          </section>
+
+          <!-- Small stats -->
+          <div id="dashStatus" class="small text-muted mt-2" aria-live="polite"></div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

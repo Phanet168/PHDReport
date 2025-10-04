@@ -1,234 +1,222 @@
-// assets/js/app.api.js
-// ===================== GAS API WRAPPER =====================
-import { GAS_BASE } from './config.js';
-import { getAuth }   from './app.auth.js';
+// assets/js/app.auth.js
+import { auth, db } from "./firebase.client.js";
+import {
+  onAuthStateChanged, signInWithEmailAndPassword, signOut, getIdToken
+} from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+import {
+  doc, getDoc, collection, query, where, getDocs
+} from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+export {
+  gasList   as apiList,
+  gasSave   as apiSave,
+  gasDelete as apiDelete,
+  ID_FIELDS
+} from "./app.api.firebase.js";
+/* ---------------- Consts ---------------- */
+const AUTH_KEY = "phd_auth";
+const PSEUDO_DOMAIN = "dbreportphd.local";
 
-/* --------------------------------------------------------- */
-/* Config / Debug                                            */
-/* --------------------------------------------------------- */
-const DEFAULT_TIMEOUT_MS = 15000; // 15s
+/* ---------------- Small utils ---------------- */
+const nowSec = () => Math.floor(Date.now()/1000);
+function b64urlToJson(b64){
+  try{
+    const pad='='.repeat((4-(b64.length%4))%4);
+    const s=atob((b64+pad).replace(/-/g,'+').replace(/_/g,'/'));
+    return JSON.parse(decodeURIComponent(escape(s)));
+  }catch{return {};}
+}
 
-export const ApiDebug = {
-  enabled: false,              // turn true if you want noisy logs
-  last: null,                  // { url, status, text, json }
-};
-const log = (...a) => { if (ApiDebug.enabled) console.log('[api]', ...a); };
+/* ---------------- Local storage (auth cache) ---------------- */
+function saveAuth(a){
+  const out = { ...a };
+  if (out.role == null && out.user_type != null) out.role = out.user_type;
+  out.role = String(out.role || 'viewer').toLowerCase();
+  if (out.exp != null) out.exp = Number(out.exp);
+  localStorage.setItem(AUTH_KEY, JSON.stringify(out));
+  window.dispatchEvent(new Event('auth:changed'));
+}
+function loadAuth(){
+  try{
+    const raw = localStorage.getItem(AUTH_KEY);
+    if (!raw) return null;
+    const a = JSON.parse(raw);
+    if (a.exp != null) a.exp = Number(a.exp);
+    if (a.role != null) a.role = String(a.role).toLowerCase();
+    // 🚫 បើគ្មាន token ឬ exp មិនសូវពេញលេញ → កុំប្រើ
+    if (!a.token || typeof a.exp !== 'number') return null;
+    return a;
+  }catch{ return null; }
+}
 
-/* --------------------------------------------------------- */
-/* URL helper: compose GAS URL safely                        */
-/* - accepts GAS_BASE of ".../exec" OR ".../exec?api=1"      */
-/* - adds api=1 if missing                                   */
-/* - appends params                                          */
-/* - auto-append ?token=... if available                     */
-/* --------------------------------------------------------- */
-function makeApiUrl(params = {}, { withAuthToken = true } = {}) {
-  const u = new URL(GAS_BASE); // do NOT use location.origin
-  if (!u.searchParams.has('api')) u.searchParams.set('api', '1');
 
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== '') {
-      u.searchParams.set(k, v);
+/* ---------------- Public getters/helpers ---------------- */
+export function getAuthLocal(){ return loadAuth(); }
+export function getSession(){ return getAuthLocal(); }
+export function clearAuth(){
+  localStorage.removeItem(AUTH_KEY);
+  window.dispatchEvent(new Event('auth:changed'));
+}
+export function isLoggedIn(a=getAuthLocal()){
+  return !!(a?.token && typeof a.exp === 'number' && a.exp > (nowSec()+60));
+}
+
+
+export const isSuper = (a=getAuthLocal()) => String(a?.role||'') === 'super';
+export const isAdmin = (a=getAuthLocal()) => ['admin','super'].includes(String(a?.role||''));
+
+/* Ready promise (resolve once) */
+let __resolveReady;
+export const authReady = new Promise(res => (__resolveReady = res));
+export async function whenAuthReady(){
+  if (getAuthLocal()) return; // already have cached auth, let UI proceed
+  return authReady;
+}
+
+/* ---------------- Router helpers ---------------- */
+const currentReturn = () => location.pathname + (location.search||'') + (location.hash||'');
+export function ensureLoggedIn(loginUrl='login.html'){
+  if (!isLoggedIn()){
+    location.replace(`${loginUrl}?return=${encodeURIComponent(currentReturn()||'index.html')}`);
+  }
+}
+
+
+/* ---------------- Login button wiring ---------------- */
+export function applyLoginButton(el){
+  if (!el) return;
+  const wire = ()=>{
+    if (isLoggedIn()){
+      el.classList.remove('btn-outline-primary');
+      el.classList.add('btn-outline-danger');
+      el.textContent = 'ចាកចេញ';
+      el.href = 'javascript:void(0)';
+      el.onclick = async (e)=>{
+        e.preventDefault();
+        try{ await signOut(auth); }catch{}
+        clearAuth();
+        location.replace(`login.html?return=${encodeURIComponent(currentReturn())}`);
+      };
+    } else {
+      el.classList.remove('btn-outline-danger');
+      el.classList.add('btn-outline-primary');
+      el.textContent = 'ចូលប្រើប្រាស់';
+      el.href = `login.html?return=${encodeURIComponent(currentReturn())}`;
+      el.onclick = null;
     }
-  }
-
-  // token in query (server may also accept in body)
-  if (withAuthToken) {
-    const tok = getAuth?.()?.token;
-    if (tok && !u.searchParams.has('token')) u.searchParams.set('token', tok);
-  }
-
-  return u.toString();
+  };
+  wire();
+  window.addEventListener('auth:changed', wire);
 }
 
-/* --------------------------------------------------------- */
-/* Low-level fetchers (timeout)                              */
-/* --------------------------------------------------------- */
-async function fetchWithTimeout(url, init = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
-  const ctrl = new AbortController();
-  const to = setTimeout(() => ctrl.abort(new Error('Timeout')), timeoutMs);
-  try {
-    const res = await fetch(url, { ...init, signal: ctrl.signal });
-    return res;
-  } finally {
-    clearTimeout(to);
+/* ---------------- Profile loader ---------------- */
+async function loadProfile(uid, email){
+  // 1) profiles/{uid}
+  try{
+    const p1 = await getDoc(doc(db,'profiles', uid));
+    if (p1.exists()) return { id:uid, ...p1.data() };
+  }catch(e){ /* ignore; rules may block if not defined */ }
+
+  // 2) users where auth_uid == uid
+  try{
+    let q1 = query(collection(db,'users'), where('auth_uid','==', uid));
+    let s1 = await getDocs(q1);
+    if (!s1.empty) return s1.docs[0].data();
+  }catch(e){}
+
+  // 3) users where email == email (lowercased)
+  if (email){
+    try{
+      const em = String(email).toLowerCase();
+      let q2 = query(collection(db,'users'), where('email','==', em));
+      let s2 = await getDocs(q2);
+      if (!s2.empty) return s2.docs[0].data();
+    }catch(e){}
   }
+
+  // 4) minimal default
+  return { full_name: email || uid, role: 'viewer' };
 }
 
-async function getJsonUrl(params = {}, extra = {}) {
-  const url = makeApiUrl(params, extra);
-  const res = await fetchWithTimeout(url, { cache: 'no-store' });
-  const text = await res.text();
-
-  ApiDebug.last = { url, status: res.status, text };
-
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${text || '(no body)'}`);
-
-  let json;
-  try { json = text ? JSON.parse(text) : {}; }
-  catch { throw new Error('Invalid JSON: ' + text); }
-
-  ApiDebug.last.json = json;
-  if (json && json.ok === false) throw new Error(json.error || 'API error');
-
-  log('GET OK:', url, json);
-  return json;
+/* ---------------- Token with exp ---------------- */
+async function tokenWithExp(force=false){
+  const tok = await getIdToken(auth.currentUser, !!force);
+  const payload = tok.split('.')[1] || '';
+  const { exp = 0 } = b64urlToJson(payload);
+  return { token: tok, exp: Number(exp||0) };
 }
 
-async function postJsonUrl(params = {}, bodyObj = {}, extra = {}) {
-  const url = makeApiUrl(params, extra);
+/* ---------------- Email/password login ---------------- */
+export async function loginEmailPassword(email, password){
+  if (!email || !password) throw new Error('សូមបំពេញអ៊ីមែល និង ពាក្យសម្ងាត់');
+  const { user } = await signInWithEmailAndPassword(auth, email, password);
+  const { token, exp } = await tokenWithExp(true);
+  const prof = await loadProfile(user.uid, user.email || email);
 
-  // put token in body too (backend may accept either)
-  const token = getAuth?.()?.token || '';
-  const body  = token && !('token' in bodyObj) ? { ...bodyObj, token } : bodyObj;
-
-  const res = await fetchWithTimeout(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoid CORS preflight for GAS
-    body: JSON.stringify(body || {}),
+  saveAuth({
+    uid: user.uid, email: user.email, token, exp,
+    role: String(prof.role || 'viewer').toLowerCase(),
+    user_type: String(prof.role || 'viewer').toLowerCase(), // back-compat
+    full_name: prof.full_name || user.displayName || user.email,
+    department_id: prof.department_id || '',
+    unit_id: prof.unit_id || '',
+    user_id: prof.user_id || '',
+    user_name: prof.user_name || ''
   });
-  const text = await res.text();
-
-  ApiDebug.last = { url, status: res.status, text };
-
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${text || '(no body)'}`);
-
-  let json;
-  try { json = text ? JSON.parse(text) : {}; }
-  catch { throw new Error('Invalid JSON: ' + text); }
-
-  ApiDebug.last.json = json;
-  if (json && json.ok === false) throw new Error(json.error || 'API error');
-
-  log('POST OK:', url, json);
-  return json;
+  return getAuthLocal();
 }
 
-/* --------------------------------------------------------- */
-/* Response normalizer                                       */
-/*  - Supports: {rows:[...]}, {data:[...]}, or raw arrays     */
-/* --------------------------------------------------------- */
-function toRows(resp) {
-  if (Array.isArray(resp)) return resp;
-  if (resp && Array.isArray(resp.rows)) return resp.rows;
-  if (resp && Array.isArray(resp.data)) return resp.data;
-  return [];
+export async function logout(){
+  try{ await signOut(auth); } finally { clearAuth(); }
 }
 
-/* --------------------------------------------------------- */
-/* AUTH                                                      */
-/* --------------------------------------------------------- */
-export async function apiLogin(username, password) {
-  return postJsonUrl({ route: 'auth', op: 'login' }, { username, password }, { withAuthToken: false });
-}
-
-/* --------------------------------------------------------- */
-/* LIST HELPERS (master data + reports)                      */
-/*  Notes:
-    - departments/units/periods are READ-any (token optional)
-    - indicators/reports may be scoped → token required       */
-/* --------------------------------------------------------- */
-export async function listDepartments(params = {}) {
-  const j = await getJsonUrl({ route: 'departments', op: 'list', ...params });
-  return toRows(j);
-}
-export async function listUnits(params = {}) {
-  const j = await getJsonUrl({ route: 'units', op: 'list', ...params });
-  return toRows(j);
-}
-export async function listIndicators(params = {}) {
-  const j = await getJsonUrl({ route: 'indicators', op: 'list', ...params });
-  return toRows(j);
-}
-export async function listPeriods(params = {}) {
-  const j = await getJsonUrl({ route: 'periods', op: 'list', ...params });
-  return toRows(j);
-}
-export async function listReports(params = {}) {
-  const j = await getJsonUrl({ route: 'reports', op: 'list', ...params });
-  return toRows(j);
-}
-
-/* --------------------------------------------------------- */
-/* Generic CRUD shortcuts (normalized)                       */
-/* --------------------------------------------------------- */
-export async function apiList(table, extraParams = {}) {
-  const j = await getJsonUrl({ route: table, op: 'list', ...extraParams });
-  return toRows(j);
-}
-export async function apiUpsert(table, row) {
-  // returns {row: {...}} or any server format; caller can use .row || the whole response
-  return postJsonUrl({ route: table, op: 'upsert' }, row);
-}
-export async function apiDelete(table, idField, idValue) {
-  return postJsonUrl({ route: table, op: 'delete' }, { [idField]: idValue });
-}
-
-/* Friendly aliases (backward compat) */
-export const gasList   = apiList;
-export const gasSave   = apiUpsert;
-export const gasDelete = apiDelete;
-
-/* --------------------------------------------------------- */
-/* Reports-specific CRUD (examples)                          */
-/* --------------------------------------------------------- */
-export async function upsertReport(payload = {}) {
-  return postJsonUrl({ route: 'reports', op: 'upsert' }, payload);
-}
-export async function deleteReport(report_id) {
-  return postJsonUrl({ route: 'reports', op: 'delete' }, { report_id });
-}
-
-/* --------------------------------------------------------- */
-/* Analytics                                                 */
-/* --------------------------------------------------------- */
-export async function summary(year, by = 'indicator_id') {
-  const j = await getJsonUrl({ route: 'analytics', op: 'summary', year, by });
-  return toRows(j); // -> [{key,value,plan,gap,count}]
-}
-
-/* --------------------------------------------------------- */
-/* Utilities                                                 */
-/* --------------------------------------------------------- */
-export function yFromPeriod(pid) {
-  const m = /^(\d{4})/.exec(String(pid || ''));
-  return m ? m[1] : String(new Date().getFullYear());
-}
-
-export function exportCsv(filename, rows) {
-  const cols = Object.keys(rows[0] || {});
-  const esc  = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const csv = [cols.join(',')]
-    .concat(rows.map(r => cols.map(c => esc(r[c])).join(',')))
-    .join('\n');
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename || 'export.csv';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
-export async function ping() {
-  try {
-    const j = await getJsonUrl({ route: 'settings', op: 'get' }, { withAuthToken: false });
-    return { ok: true, info: j };
-  } catch (e) {
-    return { ok: false, error: String(e) };
+/* ---------------- Keep cache synced with Firebase Auth ---------------- */
+onAuthStateChanged(auth, async (user)=>{
+  if (!user){
+    clearAuth();
+    if (__resolveReady){ __resolveReady(); __resolveReady=null; }
+    return;
   }
-}
 
-/* --------------------------------------------------------- */
-/* ID fields map (handy in UI pages)                         */
-/* --------------------------------------------------------- */
-export const ID_FIELDS = {
-  users:        'user_id',
-  departments:  'department_id',
-  units:        'unit_id',
-  periods:      'period_id',
-  indicators:   'indicator_id',
-  reports:      'report_id',
-  issues:       'issue_id',
-  actions:      'action_id',
-};
+  const cur = getAuthLocal();
+  const near = nowSec() + 60;
+  if (cur?.uid === user.uid && cur?.exp && cur.exp > near){
+    // token still fresh — just notify
+    window.dispatchEvent(new Event('auth:changed'));
+    if (__resolveReady){ __resolveReady(); __resolveReady = null; }
+    return;
+  }
+
+  // refresh token & profile silently
+  const { token, exp } = await tokenWithExp(false);
+  const prof = await loadProfile(user.uid, user.email || '');
+
+  saveAuth({
+    ...(cur||{}),
+    uid: user.uid,
+    email: user.email,
+    token, exp,
+    role: String(prof.role || cur?.role || 'viewer').toLowerCase(),
+    user_type: String(prof.role || cur?.role || 'viewer').toLowerCase(),
+    full_name: prof.full_name || cur?.full_name || user.displayName || user.email,
+    department_id: prof.department_id ?? cur?.department_id ?? '',
+    unit_id: prof.unit_id ?? cur?.unit_id ?? '',
+    user_id: prof.user_id ?? cur?.user_id ?? '',
+    user_name: prof.user_name ?? cur?.user_name ?? '',
+  });
+
+  if (__resolveReady){ __resolveReady(); __resolveReady = null; }
+});
+
+/* ---------------- Optional: username -> pseudo email ---------------- */
+export function mapUsernameToEmail(input){
+  const raw = String(input||'').trim();
+  if (!raw) return '';
+  if (raw.includes('@')) return raw;
+  const uname = raw.toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9._-]/g,'');
+  return `${uname}@dbreportphd.local`;
+}
+export async function loginUsernamePassword(username, password){
+  const email = mapUsernameToEmail(username);
+  // reuse flow loginEmailPassword ដែលមានស្រាប់ (getIdToken, exp, loadProfile, saveAuth)
+  return loginEmailPassword(email, password);
+}

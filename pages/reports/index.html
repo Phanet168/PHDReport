@@ -45,6 +45,14 @@
   .row-dept td{font-weight:700; color:#1e293b}
   .row-unit{background:#f6f8ff}
   .row-unit td{font-weight:600; color:#334155}
+  .ind-select optgroup {
+  font-weight: 700; color:#0f172a;
+  background:#f8fafc;
+}
+.ind-select option {
+  padding:4px 6px;
+}
+
 </style>
 
 <div class="settings-page">
@@ -86,6 +94,8 @@
             <button id="btnSearchReports" class="btn-apply">Apply</button>
             <button id="btnDownloadProvince" class="btn-outline">PDF ខេត្ត</button>
             <button id="btnDownloadMinistry" class="btn-outline">PDF ក្រសួង</button>
+
+
           </div>
 
           <!-- Table -->
@@ -93,9 +103,10 @@
             <table class="reports-table">
               <thead>
               <tr>
-                <th style="width:60px">ID</th>
+              <!--  <th style="width:60px">ID</th> -->
                 <th>សូចនាករ</th>
                 <th style="width:110px" class="text-center">តម្លៃ</th>
+                <th style="width:110px" class="text-center">គោលដៅ</th>
                 <th>បញ្ហាប្រឈម (Issues)</th>
                 <th>សកម្មភាព (Actions)</th>
               </tr>

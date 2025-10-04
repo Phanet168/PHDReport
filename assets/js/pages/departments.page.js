@@ -1,117 +1,213 @@
 // assets/js/pages/departments.page.js
 import { getAuth, isSuper } from '../app.auth.js';
-import { gasList, gasSave, gasDelete, ID_FIELDS } from '../app.menu.js';
+import { gasList, gasSave, gasDelete, ID_FIELDS } from '../app.api.firebase.js';
 
-export async function initDepartmentsPage(root = document) {
-  console.log('✅ initDepartmentsPage');
+/* ───────────────── Modal helper (uses Bootstrap if present, else fallback) ───────────────── */
+function makeModal(id){
+  const el = document.getElementById(id);
+  if (!el) return null;
 
-  // ---- element lookup (support old/new markup) ----
-  const tbl   = root.querySelector('#tblDepartments') || root.querySelector('table');
-  const tbody = (tbl && (tbl.querySelector('tbody') || root.querySelector('#tbody'))) || root.querySelector('#tbody');
-  const btnAdd    = root.querySelector('#btnAdd');
-  const txtSearch = root.querySelector('#txtSearch');
-  const statusEl  = root.querySelector('#statusLine') || root.querySelector('#status');
-
-  const setStatus = (m)=> { if (statusEl) statusEl.textContent = m || ''; };
-
-  if (!tbl || !tbody) {
-    console.warn('[departments] table/tbody not found in page');
-    setStatus('រកមិនឃើញតារាងក្នុងទំព័រ');
-    return;
+  if (window.bootstrap?.Modal){
+    let inst = bootstrap.Modal.getInstance ? bootstrap.Modal.getInstance(el) : null;
+    if (!inst) inst = new bootstrap.Modal(el, { backdrop:true, keyboard:true, focus:true });
+    return { show:()=>inst.show(), hide:()=>inst.hide() };
   }
+  // Lightweight fallback (no backdrop)
+  return {
+    show(){ el.classList.add('show'); el.style.display='block'; document.body.classList.add('modal-open'); },
+    hide(){ el.classList.remove('show'); el.style.display='none'; document.body.classList.remove('modal-open'); }
+  };
+}
 
-  // skeleton row
-  tbody.innerHTML = '<tr><td colspan="3" class="skel"></td></tr>'.repeat(3);
-
+/* ───────────────── Page init ───────────────── */
+async function initDepartments(root){
   const auth  = getAuth();
   const SUPER = isSuper(auth);
-  let CACHE   = { rows: [] };
-  let FILTER_Q = '';
+  const modal = makeModal('mdlDept');
 
-  async function load() {
-    try{
-      setStatus('កំពុងផ្ទុកទិន្នន័យ…');
-      let rows = await gasList('departments');
-      // scope non-super
-      if (!SUPER && auth?.department_id) {
-        rows = rows.filter(d => String(d.department_id) === String(auth.department_id));
-      }
-      CACHE.rows = rows;
-      render();
-      setStatus(`បានផ្ទុក ${rows.length} ជំពូក`);
-    }catch(e){
-      console.error('[departments] load failed:', e);
-      setStatus('បរាជ័យផ្ទុកទិន្នន័យ');
-      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger py-4">${e?.message||e}</td></tr>`;
-    }
+  // DOM refs (match your HTML ids)
+  const tbl    = root.querySelector('#tblDepts');
+  const tbody  = tbl?.querySelector('tbody');
+  const btnAdd = root.querySelector('#btnAddDept');
+  const frm    = root.querySelector('#frmDept');
+  const idEl   = root.querySelector('#department_id');
+  const nameEl = root.querySelector('#department_name');
+  const txtQ   = root.querySelector('#txtSearchDept');
+  const statusEl = root.querySelector('#statusDept');
+  const setStatus = (m)=>{ if (statusEl) statusEl.textContent = m || ''; };
+
+  if (!tbl || !tbody || !btnAdd || !frm || !idEl || !nameEl) return;
+
+  // State
+  let ROWS = [];
+  let FILTER_Q = '';
+  let SORT = { key: 'department_id', dir: 1 }; // 1=asc, -1=desc
+
+  // Initial skeleton already in HTML
+
+  // Load data
+  try{
+    ROWS = await gasList('departments');
+    render();
+    setStatus(`បានផ្ទុក ${ROWS.length} ជំពូក`);
+  }catch(err){
+    console.error('[departments] load failed:', err);
+    tbody.innerHTML = `<tr><td colspan="3" class="text-danger text-center py-4">បរាជ័យទាញទិន្នន័យ</td></tr>`;
+    setStatus('បរាជ័យទាញទិន្នន័យ');
   }
 
-  function render() {
-    const rows = CACHE.rows.filter(r =>
-      !FILTER_Q || JSON.stringify(r).toLowerCase().includes(FILTER_Q)
-    );
-    if (!rows.length) {
+  /* ───────────────── Render ───────────────── */
+  function render(){
+    let list = ROWS.slice();
+
+    // filter
+    if (FILTER_Q){
+      const q = FILTER_Q;
+      list = list.filter(r =>
+        String(r.department_id ?? '').toLowerCase().includes(q) ||
+        String(r.department_name ?? '').toLowerCase().includes(q)
+      );
+    }
+
+    // sort
+    const k = SORT.key;
+    list.sort((a,b)=>{
+      const av = (a?.[k] ?? '').toString().toLowerCase();
+      const bv = (b?.[k] ?? '').toString().toLowerCase();
+      return av.localeCompare(bv, undefined, {numeric:true}) * SORT.dir;
+    });
+
+    if (!list.length){
       tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`;
       return;
     }
+
     const frag = document.createDocumentFragment();
-    for (const d of rows) {
+    for (const r of list){
       const tr = document.createElement('tr');
+      tr.dataset.id = String(r.department_id ?? ''); // keep as string
       tr.innerHTML = `
-        <td style="width:90px">${d.department_id}</td>
-        <td>${d.department_name || ''}</td>
-        <td class="td-actions" style="text-align:right;width:160px">
-          <button class="btn btn-sm btn-warning" data-act="edit" data-id="${d.department_id}">កែ</button>
-          <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${d.department_id}">លុប</button>
+        <td style="width:110px"><span class="badge text-bg-light border">#${r.department_id}</span></td>
+        <td>${r.department_name ?? ''}</td>
+        <td class="td-actions">
+          <div class="actions-right">
+            ${SUPER
+              ? `<button class="btn btn-sm btn-warning" data-act="edit">កែ</button>
+                 <button class="btn btn-sm btn-danger"  data-act="del">លុប</button>`
+              : `<span class="text-muted">—</span>`}
+          </div>
         </td>`;
       frag.appendChild(tr);
     }
     tbody.innerHTML = '';
     tbody.appendChild(frag);
+
+    // update sort icons
+    tbl.querySelectorAll('th.th-sort').forEach(th=>{
+      th.classList.remove('asc','desc');
+      if (th.dataset.sort === SORT.key) th.classList.add(SORT.dir===1?'asc':'desc');
+    });
   }
 
+  /* ───────────────── Events ───────────────── */
+
   // search
-  txtSearch?.addEventListener('input', (e)=>{
-    FILTER_Q = String(e.target.value||'').trim().toLowerCase();
+  txtQ?.addEventListener('input', (e)=>{
+    FILTER_Q = String(e.target.value || '').trim().toLowerCase();
     render();
   });
 
-  // add
-  btnAdd?.addEventListener('click', async ()=>{
-    const name = prompt('ឈ្មោះជំពូក:');
-    if (!name) return;
-    await saveDepartment({ department_name: name.trim() });
+  // sort
+  tbl.querySelectorAll('th.th-sort').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const key = th.dataset.sort;
+      if (!key) return;
+      if (SORT.key === key) SORT.dir *= -1;
+      else { SORT.key = key; SORT.dir = 1; }
+      render();
+    });
   });
 
-  // delegate actions
+  // add
+  btnAdd.addEventListener('click', ()=>{
+    if (!SUPER) return alert('ត្រូវការ SUPER');
+    frm.reset();
+    idEl.value   = '';           // empty => create
+    nameEl.value = '';
+    nameEl.classList.remove('is-invalid');
+    modal?.show();
+  });
+
+  // row actions
   tbody.addEventListener('click', async (e)=>{
     const btn = e.target.closest('button[data-act]');
     if (!btn) return;
-    const id  = btn.getAttribute('data-id');
-    const row = CACHE.rows.find(x => String(x.department_id) === String(id));
+    if (!SUPER) return alert('ត្រូវការ SUPER');
+
+    const id  = btn.closest('tr')?.dataset?.id || '';
+    const row = ROWS.find(x => String(x.department_id) === String(id));
     if (!row) return;
 
-    if (btn.dataset.act === 'del') {
-      if (!confirm('លុបមែនទេ?')) return;
-      await gasDelete('departments', ID_FIELDS.departments, row.department_id);
-      CACHE.rows = CACHE.rows.filter(x => String(x.department_id) !== String(id));
-      render(); setStatus('លុបរួចរាល់');
+    if (btn.dataset.act === 'edit'){
+      // Fill form for update (keep id as string!)
+      idEl.value   = String(row.department_id ?? '');
+      nameEl.value = row.department_name ?? '';
+      nameEl.classList.remove('is-invalid');
+      modal?.show();
+      return;
     }
-    if (btn.dataset.act === 'edit') {
-      const name = prompt('កែឈ្មោះជំពូក:', row.department_name || '');
-      if (!name) return;
-      await saveDepartment({ department_id: row.department_id, department_name: name.trim() });
+
+    if (btn.dataset.act === 'del'){
+      if (!confirm('តើចង់លុបធាតុនេះមែនទេ?')) return;
+      try{
+        await gasDelete('departments', ID_FIELDS.departments, row.department_id);
+        ROWS = ROWS.filter(x=> String(x.department_id) !== String(id));
+        render();
+        setStatus('លុបរួចរាល់');
+      }catch(err){
+        console.error('[departments] delete failed:', err);
+        alert('បរាជ័យលុប: ' + (err?.message || err));
+      }
     }
   });
 
-  async function saveDepartment(payload){
-    setStatus('កំពុងរក្សាទុក…');
-    const saved = await gasSave('departments', payload);
-    const row   = saved.row || saved;
-    const i     = CACHE.rows.findIndex(x => String(x.department_id) === String(row.department_id));
-    if (i>=0) CACHE.rows[i] = row; else CACHE.rows.push(row);
-    render(); setStatus('រក្សាទុករួចរាល់');
-  }
+  // save (update vs create fixed)
+  frm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if (!SUPER) return alert('ត្រូវការ SUPER');
 
-  await load();
+    const name = (nameEl.value || '').trim();
+    nameEl.classList.toggle('is-invalid', !name);
+    if (!name) return;
+
+    const idVal = String(idEl.value || '').trim(); // keep string to ensure update
+    const payload = idVal
+      ? { department_id: idVal, department_name: name } // update existing
+      : { department_name: name };                      // create new
+
+    const btn = root.querySelector('#btnSaveDept');
+    const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'កំពុងរក្សាទុក…';
+    try{
+      const res = await gasSave('departments', payload);
+      const row = res.row || res;
+
+      // merge cache by string id
+      const i = ROWS.findIndex(x => String(x.department_id) === String(row.department_id));
+      if (i >= 0) ROWS[i] = row; else ROWS.push(row);
+
+      render();
+      modal?.hide();
+      setStatus('រក្សាទុករួចរាល់');
+    }catch(err){
+      console.error('[departments] save failed:', err);
+      alert('បរាជ័យរក្សាទុក: ' + (err?.message || err));
+    }finally{
+      btn.disabled = false; btn.innerHTML = old;
+    }
+  });
+}
+
+/* ───────────────── export for router ───────────────── */
+export default async function hydrate(root){
+  await initDepartments(root);
 }

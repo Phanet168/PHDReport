@@ -82,7 +82,7 @@ const META = {
     listCols: ["unit_id","unit_name","department_id"],
     fields: [
       {field:"department_id", label:"ជំពូក", type:"select-remote", from:"departments", valueField:"department_id", textField:"department_name", required:true},
-      {field:"unit_name", label:"ឈ្មោះផ្នែក/អង្គភាព", required:true}
+      {field:"unit_name", label:"ឈ្មោះផ្នែក/ជំពូករង", required:true}
     ]
   },
   periods: {

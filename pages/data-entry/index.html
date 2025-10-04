@@ -1,12 +1,20 @@
-<!-- pages/data-entry/index.html.html -->
-<div class="settings-page">
+<!-- pages/data-entry/index.html -->
+
+<!-- SheetJS (Excel) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
+
+<!-- jsPDF + AutoTable (PDF) -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+
+<div class="settings-page" data-page="data-entry">
     <div class="container-page">
 
         <!-- Page head -->
-        <div class="page-head">
-            <div class="d-flex align-items-center gap-2">
+        <header class="page-head">
+            <div class="d-flex align-items-center gap-1 flex-wrap">
                 <h1 class="kh-head h4 m-0">បញ្ចូលទិន្នន័យរបាយការណ៍</h1>
-                <nav aria-label="breadcrumb" class="small">
+                <nav aria-label="breadcrumb" class="small ms-auto">
                     <ol class="breadcrumb m-0">
                         <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
                         <li class="breadcrumb-item">Data</li>
@@ -15,62 +23,88 @@
                 </nav>
             </div>
             <div class="separator-breadcrumb border-top"></div>
-        </div>
+        </header>
 
         <!-- Body -->
-        <div class="page-body">
-            <div class="card shadow-sm centered-card w-100">
+        <main class="page-body">
+            <section class="card shadow-sm centered-card w-100">
                 <div class="card-body">
 
                     <!-- Toolbar -->
-                    <div class="toolbar mb-3">
-                        <h4 class="card-title kh-head m-0">បញ្ជីសូចនាករ</h4>
+                    <div class="toolbar mb-3" role="region" aria-label="Filters">
+                        <h2 class="card-title kh-head h6 m-0 me-2">បញ្ជីសូចនាករ</h2>
 
-                        <div class="actions ms-auto">
+                        <div class="actions ms-auto w-100">
                             <div class="row g-2 align-items-center">
                                 <div class="col-12 col-sm-auto">
-                                    <input id="inpSearch" class="form-control form-control-sm" placeholder="ស្វែងរក…">
+                                    <button id="btnExportXlsx" class="btn btn-outline-secondary btn-sm">Export Excel</button>
+                                </div>
+                                <div class="col-12 col-sm-auto">
+                                    <button id="btnExportPdf" class="btn btn-outline-secondary btn-sm">Export PDF</button>
+                                </div>
+
+                                <!-- Search -->
+                                <div class="col-12 col-md-auto">
+                                    <label for="inpSearch" class="visually-hidden">ស្វែងរក</label>
+                                    <input id="inpSearch" class="form-control form-control-sm" placeholder="ស្វែងរក…"
+                                           inputmode="search" autocomplete="off" aria-label="ស្វែងរកសូចនាករ">
                                 </div>
 
                                 <!-- Year + Period -->
                                 <div class="col-6 col-sm-auto">
-                                    <select id="selYear" class="form-select form-select-sm" aria-label="Year"></select>
+                                    <label for="selYear" class="visually-hidden">ឆ្នាំ</label>
+                                    <select id="selYear" class="form-select form-select-sm" aria-label="ឆ្នាំ"></select>
                                 </div>
                                 <div class="col-12 col-sm-auto">
-                                    <select id="selPeriod" class="form-select form-select-sm" aria-label="Period"></select>
+                                    <label for="selPeriod" class="visually-hidden">រយៈពេល</label>
+                                    <select id="selPeriod" class="form-select form-select-sm" aria-label="រយៈពេល"></select>
                                 </div>
 
+                                <!-- Dept / Unit / Owner -->
                                 <div class="col-6 col-sm-auto">
-                                    <select id="selDept" class="form-select form-select-sm">
+                                    <label for="selDept" class="visually-hidden">ជំពូក</label>
+                                    <select id="selDept" class="form-select form-select-sm" aria-label="ជំពូក">
                                         <option value="">ជំពូកទាំងអស់</option>
                                     </select>
                                 </div>
-                                <div class="col-6 col-sm-auto">
-                                    <select id="selUnit" class="form-select form-select-sm">
-                                        <option value="">ផ្នែកទាំងអស់</option>
-                                    </select>
+
+                                <div class="col-6 col-sm-auto d-flex gap-2">
+                                    <div class="flex-fill">
+                                        <label for="selUnit" class="visually-hidden">ផ្នែក</label>
+                                        <select id="selUnit" class="form-select form-select-sm" aria-label="ផ្នែក">
+                                            <option value="">ផ្នែកទាំងអស់</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex-fill">
+                                        <!-- Hidden by JS for non-SUPER -->
+                                        <label for="selOwner" class="visually-hidden">Owner</label>
+                                        <select id="selOwner" class="form-select form-select-sm" aria-label="Owner">
+                                            <option value="">Owner ទាំងអស់</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="col-6 col-sm-auto">
+
+                                <!-- Only my / Only empty -->
+                                <div class="col-12 col-sm-auto d-flex align-items-center gap-3">
                                     <div class="form-check form-switch small m-0">
                                         <input class="form-check-input" type="checkbox" id="swOnlyMy">
                                         <label class="form-check-label" for="swOnlyMy">តែផ្នែកខ្ញុំ</label>
                                     </div>
-                                </div>
-
-                                <div class="col-12 col-sm-auto d-flex align-items-center gap-2">
-                                    <span id="completeInfo" class="badge text-bg-light">0 / 0</span>
                                     <div class="form-check small m-0">
                                         <input class="form-check-input" type="checkbox" id="onlyEmpty">
-                                        <label class="form-check-label" for="onlyEmpty">បង្ហាញតែ “មិនទាន់”</label>
+                                        <label class="form-check-label" for="onlyEmpty">បង្ហាញតែ “មិនទាន់បញ្ចូល”</label>
                                     </div>
                                 </div>
 
-                                <div class="col-12 col-sm-auto">
-                                    <button id="btnCopyPrev" class="btn btn-outline-secondary btn-sm">យកតម្លៃរយៈពេលមុន</button>
-                                </div>
-                                <div class="col-12 col-sm-auto">
-                                    <button id="btnSaveAll" class="btn btn-primary btn-sm">
-                                        រក្សាទុកទាំងអស់ <span class="badge text-bg-light ms-1" id="dirtyCount">0</span>
+                                <!-- Counters + Actions -->
+                                <div class="col-12 col-md-auto d-flex align-items-center gap-2">
+                                    <span id="completeInfo" class="badge text-bg-light" aria-live="polite">0 / 0</span>
+                                    <span class="vr d-none d-md-inline"></span>
+                                    <button id="btnCopyPrev" class="btn btn-outline-secondary btn-sm" type="button"
+                                            title="យកតម្លៃពីរយៈពេលមុន">យកតម្លៃរយៈពេលមុន</button>
+                                    <button id="btnSaveAll" class="btn btn-primary btn-sm" type="button" title="រក្សាទុកទាំងអស់">
+                                        រក្សាទុកទាំងអស់
+                                        <span class="badge text-bg-light ms-1" id="dirtyCount" aria-live="polite">0</span>
                                     </button>
                                 </div>
                             </div>
@@ -80,25 +114,48 @@
                     <!-- Table -->
                     <div class="table-responsive">
                         <table id="tblReports" class="table table-striped align-middle mb-0">
-                            <thead>
+                            <thead class="table-light sticky-head">
                             <tr>
+                                <th style="width:70px">លេខ</th>
                                 <th style="width:90px">ID</th>
-                                <th>សូចនាករ</th>
-                                <th style="width:260px">ជំពូក / ផ្នែក</th>
+                                <th style="width:500px">សូចនាករ</th>
                                 <th style="width:140px">រយៈពេល</th>
-                                <th style="width:160px">តម្លៃ</th>
+                                <th style="width:150px">តម្លៃ</th>
+                                <th style="width:150px">ផែនការ</th>
                                 <th style="width:170px" class="text-end">សកម្មភាព</th>
                             </tr>
                             </thead>
-                            <tbody><!-- JS render --></tbody>
+                            <tbody>
+                            <tr><td colspan="7" class="skel"></td></tr>
+                            <tr><td colspan="7" class="skel"></td></tr>
+                            <tr><td colspan="7" class="skel"></td></tr>
+                            </tbody>
                         </table>
                     </div>
 
                     <div class="small text-muted mt-2 d-flex flex-wrap gap-3">
-                        <span id="countInfo">0</span>
-                        <span id="status"></span>
-                        <span id="offlineBadge" class="badge bg-warning text-dark" style="display:none">JSONP mode</span>
+                        <span id="countInfo" aria-live="polite">0</span>
+                        <span id="status" aria-live="polite"></span>
+                        <span id="offlineBadge" class="badge bg-warning text-dark d-none">JSONP mode</span>
                     </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Floating Save Dock -->
+        <div id="saveDock" class="save-dock" aria-live="polite" aria-hidden="true">
+            <div class="save-dock-inner">
+                <div class="save-info">
+                    <span class="kh-head">មានការផ្លាស់ប្ដូរ</span>
+                    <span class="badge text-bg-light" id="dirtyCountDock">0</span>
+                    <small class="text-muted ms-2" id="statusDock"></small>
+                </div>
+                <div class="save-actions">
+                    <button id="btnSaveAllDock" class="btn btn-primary btn-sm">
+                        រក្សាទុកទាំងអស់
+                        <span class="badge text-bg-light ms-1" id="dirtyCountDockBtn">0</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTop">ឡើងលើ</button>
                 </div>
             </div>
         </div>
@@ -107,11 +164,11 @@
 </div>
 
 <!-- Issue / Action modal -->
-<div class="modal fade" id="mdlIssue" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade" id="mdlIssue" tabindex="-1" aria-labelledby="mdlIssueTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form class="modal-content" id="frmIssue" novalidate>
             <div class="modal-header">
-                <h5 class="modal-title kh-head">Issue & Action</h5>
+                <h5 class="modal-title kh-head" id="mdlIssueTitle">Issue &amp; Action</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
             </div>
             <div class="modal-body">
@@ -131,17 +188,17 @@
 
                     <div class="col-12">
                         <label for="f_issue_text" class="form-label">Issue</label>
-                        <textarea id="f_issue_text" class="form-control" rows="2" placeholder="ពិពណ៌នាបញ្ហា…"></textarea>
+                        <textarea id="f_issue_text" class="form-control" rows="2" placeholder="ពិពណ៌នាបញ្ហា…" spellcheck="false"></textarea>
                     </div>
 
                     <div class="col-12">
                         <label for="f_action_text" class="form-label">Action</label>
-                        <textarea id="f_action_text" class="form-control" rows="2" placeholder="ផែនការសកម្មភាព…"></textarea>
+                        <textarea id="f_action_text" class="form-control" rows="2" placeholder="ផែនការសកម្មភាព…" spellcheck="false"></textarea>
                     </div>
 
                     <div class="col-md-5">
                         <label for="f_action_owner" class="form-label">អ្នកទទួលខុសត្រូវ</label>
-                        <input id="f_action_owner" class="form-control" placeholder="ឈ្មោះ/ក្រុម">
+                        <input id="f_action_owner" class="form-control" placeholder="ឈ្មោះ/ក្រុម" autocomplete="off">
                     </div>
                     <div class="col-md-4">
                         <label for="f_action_due" class="form-label">កាលកំណត់</label>
@@ -159,7 +216,7 @@
                     </div>
                 </div>
 
-                <div id="editStatus" class="small text-muted mt-2"></div>
+                <div id="editStatus" class="small text-muted mt-2" aria-live="polite"></div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
@@ -169,351 +226,63 @@
     </div>
 </div>
 
+<!-- Styles -->
 <style>
     .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
     .container-page{width:100%; max-width:1280px; margin:0 auto; padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
     .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
+    .separator-breadcrumb{margin-top:6px;}
     .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
     .centered-card{max-width:1200px; border:1px solid #eef0f4; border-radius:14px;}
-    .table thead th{white-space:nowrap;}
+
     .toolbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
     .toolbar .actions{min-width:260px;}
-    @media (max-width:576px){ .toolbar{gap:8px;} .toolbar .actions{min-width:0; width:100%;} }
-    .skel{position:relative; overflow:hidden; background:#f3f4f6; height:44px;}
+    @media (max-width:576px){
+      .toolbar{gap:8px;}
+      .toolbar .actions{min-width:0; width:100%;}
+    }
+
+    .table thead th{white-space:nowrap;}
+    .sticky-head{position:sticky; top:0; z-index:1;}
+    .skel{position:relative; overflow:hidden; background:#f3f4f6; height:44px; border-radius:8px;}
     .skel::after{content:""; position:absolute; inset:0; transform:translateX(-100%);
-      background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent); animation:shimmer 1.1s infinite}
-    @keyframes shimmer{100%{transform:translateX(100%);}}
-    #tblReports td.td-actions .actions-right{display:flex; justify-content:flex-end; gap:.45rem;}
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent);
+      animation:shimmer 1.1s infinite}
+    @keyframes shimmer{100%{transform:translateX(100%);} }
+
     .inp-val{max-width:160px;}
-    #selYear{min-width:120px} #selPeriod{min-width:220px}
+    #selYear{min-width:120px}
+    #selPeriod{min-width:220px}
+
+    /* Group rows */
+    tr.group-dept > td{ background:#eef5ff; font-weight:700; border-top:2px solid #cfe2ff; }
+    tr.group-unit > td{ background:#f6f8fc; font-weight:600; }
+
+    /* Row states */
     tr.row-missing td { background: #fff9e6; }
     .badge-missing { background:#ffd966; color:#212529; }
     .badge-done { background:#e7f7e7; color:#0f5132; border:1px solid #b7e4c7; }
+
+    /* Minor UI */
+    .vr{width:1px; background:#e9ecef; height:24px;}
+    .visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
+    .d-none{display:none!important;}
+
+    /* Floating Save Dock */
+    .save-dock{ position:fixed; left:0; right:0; bottom:0; z-index:1040; pointer-events:none; display:none; }
+    .save-dock-inner{
+      pointer-events:auto; margin:0 auto 14px; max-width:1200px; background:#fff;
+      border:1px solid #e9ecef; border-radius:12px; padding:10px 12px;
+      box-shadow:0 8px 28px rgba(0,0,0,.18); display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    .save-info{ display:flex; align-items:center; gap:8px; }
+    .save-actions{ display:flex; align-items:center; gap:8px; }
+    @media (max-width:576px){ .save-dock-inner{ margin:0 10px 10px; } }
 </style>
 
+<!-- hydrate -->
 <script type="module">
-    import { gasList, gasSave } from '../../assets/js/config.js';
-    import { getAuth } from '../../assets/js/app.auth.js';
-
-    /* ========== Minimal period helper (self-contained) ========== */
-    function buildPeriodSelectors(selYear, selPeriod, onChange){
-      const months = ['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
-      const nowY = new Date().getFullYear();
-      // Years ±3
-      if (!selYear.options.length){
-        for (let y=nowY-3;y<=nowY+3;y++){
-          const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===nowY) o.selected=true; selYear.appendChild(o);
-        }
-      }
-      const fillPeriods = (y)=>{
-        const opts=[];
-        for(let m=1;m<=12;m++){ const mm=String(m).padStart(2,'0'); opts.push({v:`${y}M${mm}`, t:`${months[m-1]} ${y}`}); }
-        for(let q=1;q<=4;q++)  opts.push({v:`${y}Q${q}`, t:`ត្រីមាស ${q} • ${y}`});
-        opts.push({v:`${y}H1`, t:`ឆមាស 1 • ${y}`}, {v:`${y}H2`, t:`ឆមាស 2 • ${y}`});
-        opts.push({v:`${y}N9`, t:`៩ខែ • ${y}`}, {v:`${y}Y12`, t:`១២ខែ • ${y}`});
-        selPeriod.innerHTML = opts.map(o=>`<option value="${o.v}">${o.t}</option>`).join('');
-        // default select this month
-        const d=new Date(); const prefer = (y===d.getFullYear()) ? `${y}M${String(d.getMonth()+1).padStart(2,'0')}` : `${y}M01`;
-        selPeriod.value = prefer;
-      };
-      fillPeriods(+selYear.value||nowY);
-      selYear.addEventListener('change',()=>{ fillPeriods(+selYear.value); onChange?.(); });
-      selPeriod.addEventListener('change',()=> onChange?.());
-    }
-
-    // period utils
-    const parsePid = (pid)=>{
-      const y=+String(pid).slice(0,4)||new Date().getFullYear();
-      const tag=String(pid).slice(4);
-      const type = tag.startsWith('M')?'month': tag.startsWith('Q')?'quarter': tag.startsWith('H')?'half': (tag==='N9'?'nine':'year');
-      const month = tag.startsWith('M')? +tag.slice(1) : null;
-      return {year:y, tag, type, month};
-    };
-    const prettyPid = (pid)=>{
-      const khMonths=['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
-      const {year, tag, type, month} = parsePid(pid);
-      if (type==='month')   return `${khMonths[month-1]} ${year}`;
-      if (type==='quarter') return `ត្រីមាស ${tag.slice(1)} • ${year}`;
-      if (type==='half')    return `ឆមាស ${tag.slice(1)} • ${year}`;
-      if (tag==='N9')       return `៩ខែ • ${year}`;
-      if (tag==='Y12')      return `១២ខែ • ${year}`;
-      return `ឆ្នាំ ${year}`;
-    };
-    const prevPid = (pid)=>{
-      const p=parsePid(pid);
-      if (p.type==='month'){ let y=p.year,m=p.month-1; if(m<1){y--; m=12;} return `${y}M${String(m).padStart(2,'0')}`; }
-      if (p.type==='quarter'){ let y=p.year,q=+p.tag.slice(1)-1; if(q<1){y--; q=4;} return `${y}Q${q}`; }
-      if (p.type==='half'){ let y=p.year,h=(+p.tag.slice(1)===2)?1:2; if(+p.tag.slice(1)===1){y--; h=2;} return `${y}H${h}`; }
-      if (p.tag==='N9') return `${p.year}H1`;
-      if (p.tag==='Y12') return `${p.year}N9`;
-      return `${p.year-1}Y12`;
-    };
-
-    /* ========== initDataEntry (full) ========== */
-    async function initDataEntry(){
-      // DOM
-      const $ = (s,r=document)=>r.querySelector(s);
-      const selYear=$('#selYear'), selPeriod=$('#selPeriod');
-      const selDept=$('#selDept'), selUnit=$('#selUnit');
-      const inpSearch=$('#inpSearch'), swOnlyMy=$('#swOnlyMy');
-      const onlyEmpty=$('#onlyEmpty'), completeInfo=$('#completeInfo');
-      const tbl=$('#tblReports'), tbody=tbl?.querySelector('tbody');
-      const btnCopy=$('#btnCopyPrev'), btnSaveAll=$('#btnSaveAll');
-      const statusEl=$('#status'), countInfo=$('#countInfo'), dirtyBadge=$('#dirtyCount');
-      const mdlEl=$('#mdlIssue'), frm=$('#frmIssue');
-      const f_aid=$('#f_action_id'), f_iid=$('#f_indicator_id'), f_uid=$('#f_unit_id');
-      const f_iname=$('#f_indicator_name'), f_plbl=$('#f_period_label');
-      const f_issue=$('#f_issue_text'), f_act=$('#f_action_text');
-      const f_owner=$('#f_action_owner'), f_due=$('#f_action_due'), f_stat=$('#f_action_status');
-      const Modal=window.bootstrap?.Modal; const mdl=(Modal&&mdlEl)?new Modal(mdlEl):null;
-
-      const auth = getAuth() || {};
-      const toArr = (x)=> Array.isArray(x) ? x : (x?.rows||x?.content||[]);
-      const setStatus = m=>{ if(statusEl) statusEl.textContent=m||''; };
-      const setDirty  = ()=>{ if(dirtyBadge) dirtyBadge.textContent=String(DIRTY.size); };
-      const curPeriod = ()=>{ const pid=selPeriod?.value||''; const {year,tag,month,type}=parsePid(pid); return {pid,year,monthTag:tag,monthNum:month,type}; };
-
-      let DEPTS=[], UNITS=[], IND=[], VALUES=[], ACTIONS=[];
-      let ROWS=[]; let FILTER_Q=''; let ONLY_MY=false; let SHOW_ONLY_EMPTY=false;
-      const DIRTY=new Map();
-
-      // Build selectors
-      buildPeriodSelectors(selYear, selPeriod, ()=>reloadPeriod());
-
-      // Load masters
-      const [deps, units, inds] = await Promise.all([ gasList('departments'), gasList('units'), gasList('indicators') ]);
-      DEPTS=toArr(deps); UNITS=toArr(units); IND=toArr(inds);
-
-      // Fill selects
-      function fillDept(){
-        selDept.innerHTML = `<option value="">ជំពូកទាំងអស់</option>`+
-          DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
-      }
-      function fillUnit(depId){
-        const list = depId ? UNITS.filter(u=>String(u.department_id)===String(depId)) : UNITS;
-        selUnit.innerHTML = `<option value="">ផ្នែកទាំងអស់</option>`+
-          list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
-      }
-      fillDept(); fillUnit('');
-
-      // Render helpers
-      function applyFilters(list){
-        const dep=selDept.value||'', unit=selUnit.value||'';
-        let out=list.slice();
-        if (dep)  out = out.filter(r=>String(r.department_id)===String(dep));
-        if (unit) out = out.filter(r=>String(r.unit_id)===String(unit));
-        if (ONLY_MY){ const uid=auth?.unit_id; if(uid!=null) out=out.filter(r=>String(r.unit_id)===String(uid)); }
-        if (FILTER_Q){
-          const q=FILTER_Q.toLowerCase();
-          out = out.filter(r =>
-            String(r.indicator_id).includes(q) ||
-            (r.indicator_name||'').toLowerCase().includes(q) ||
-            (r.unit_name||'').toLowerCase().includes(q) ||
-            (r.department_name||'').toLowerCase().includes(q)
-          );
-        }
-        if (SHOW_ONLY_EMPTY){
-          out = out.filter(r => r.value==='' || r.value==null || String(r.value).trim()==='');
-        }
-        return out;
-      }
-      function render(){
-        const rowsAll=ROWS.slice();
-        const filledCount = rowsAll.reduce((n,r)=>{
-          const v = (DIRTY.get(`${r.indicator_id}|${r.unit_id}`)?.value ?? r.value);
-          return n + ((v!=='' && v!=null && String(v).trim()!=='') ? 1 : 0);
-        },0);
-        if (completeInfo) completeInfo.textContent = `${filledCount} / ${rowsAll.length}`;
-
-        const rows = applyFilters(ROWS);
-        if (countInfo) countInfo.textContent=String(rows.length);
-        if (!tbody) return;
-        if (!rows.length){ tbody.innerHTML=`<tr><td colspan="6" class="text-center text-muted py-4">គ្មានទិន្នន័យ</td></tr>`; return; }
-
-        const frag=document.createDocumentFragment();
-        for (const r of rows){
-          const key = `${r.indicator_id}|${r.unit_id}`;
-          const val = (DIRTY.get(key)?.value ?? r.value ?? '');
-          const missing = (val==='' || val==null || String(val).trim()==='');
-          const tr=document.createElement('tr');
-          if (missing) tr.classList.add('row-missing');
-          tr.innerHTML = `
-            <td>${r.indicator_id}</td>
-            <td>
-              <div class="fw-semibold">${r.indicator_name||''}</div>
-              <div class="small mt-1">${missing?'<span class="badge badge-missing">មិនទាន់</span>':'<span class="badge badge-done">បានបំពេញ</span>'}</div>
-            </td>
-            <td>${r.department_name||''}${r.unit_name?` / ${r.unit_name}`:''}</td>
-            <td>${prettyPid(`${r.year}${r.month}`)}</td>
-            <td>
-              <input
-                type="number" inputmode="decimal" pattern="^[0-9]+(\\.[0-9]*)?$"
-                step="any" min="0"
-                class="form-control form-control-sm inp-val"
-                data-key="${key}" value="${missing?'':val}" placeholder="0"
-              />
-            </td>
-            <td class="text-end">
-              <button class="btn btn-sm btn-outline-primary" data-act="issue" data-key="${key}">Issue / Action</button>
-            </td>`;
-          frag.appendChild(tr);
-        }
-        tbody.innerHTML=''; tbody.appendChild(frag);
-      }
-
-      // Reload by period
-      async function reloadPeriod(){
-        const P=curPeriod();
-        setStatus('កំពុងផ្ទុកទិន្នន័យរយៈពេល…');
-        const [values, actions] = await Promise.all([
-          gasList('reports', { year:P.year, month:P.monthTag }),
-          gasList('actions', { year:P.year, month:P.monthTag }),
-        ]).catch(()=>[[],[]]);
-
-        VALUES=toArr(values); ACTIONS=toArr(actions);
-        const depName=Object.fromEntries(DEPTS.map(d=>[String(d.department_id), d.department_name]));
-        const unitName=Object.fromEntries(UNITS.map(u=>[String(u.unit_id), u.unit_name]));
-        const vMap=new Map(VALUES.map(v=>[`${v.indicator_id}|${v.unit_id}`, v]));
-        const aMap=new Map(ACTIONS.map(a=>[`${a.indicator_id}|${a.unit_id}`, a]));
-        const myUnit=String(auth?.unit_id||'');
-
-        ROWS = IND.map(ind=>{
-          const key=`${ind.indicator_id}|${ind.unit_id}`;
-          const v=vMap.get(key)||{}, a=aMap.get(key)||{};
-          return {
-            indicator_id:ind.indicator_id,
-            indicator_name:ind.indicator_name,
-            department_id:ind.department_id,
-            department_name:depName[String(ind.department_id)]||'',
-            unit_id:ind.unit_id,
-            unit_name:unitName[String(ind.unit_id)]||'',
-            assigned_to_me:String(ind.unit_id)===myUnit,
-            year:P.year, month:P.monthTag,
-            value:v.value ?? null,
-            report_id:v.report_id || null,
-            action_id:a.action_id || null,
-            issue_text:a.issue_text||'',
-            action_text:a.action_text||'',
-            action_owner:a.action_owner||'',
-            action_due:a.action_due||'',
-            action_status:a.action_status||'',
-          };
-        });
-
-        DIRTY.clear(); setDirty(); setStatus(''); render();
-      }
-      await reloadPeriod();
-
-      // Events
-      selDept?.addEventListener('change', ()=>{ fillUnit(selDept.value); render(); });
-      selUnit?.addEventListener('change', ()=>render());
-      inpSearch?.addEventListener('input', e=>{ FILTER_Q=String(e.target.value||'').trim().toLowerCase(); render(); });
-      swOnlyMy?.addEventListener('change', e=>{ ONLY_MY=!!e.target.checked; render(); });
-      onlyEmpty?.addEventListener('change', e=>{ SHOW_ONLY_EMPTY=!!e.target.checked; render(); });
-
-      // Number-only enforcement
-      function cleanDecimal(s){
-        s=String(s||''); s=s.replace(/[^0-9.]/g,'');
-        const i=s.indexOf('.'); if(i!==-1) s=s.slice(0,i+1)+s.slice(i+1).replace(/\./g,'');
-        if (s==='.') s=''; return s;
-      }
-      function markDirtyFromInput(inp){
-        const key=inp.dataset.key; const [indicator_id,unit_id]=key.split('|'); const P=curPeriod();
-        const base=ROWS.find(r=>String(r.indicator_id)===indicator_id && String(r.unit_id)===unit_id) || {};
-        DIRTY.set(key,{ indicator_id:+indicator_id, unit_id:+unit_id, year:P.year, month:P.monthTag, value:inp.value, report_id:base.report_id||null });
-        setDirty();
-      }
-      async function saveOne(key){
-        const row=DIRTY.get(key); if(!row) return;
-        try{
-          const res=await gasSave('reports', row);
-          const saved=res?.row||res||{};
-          const i=ROWS.findIndex(r=>`${r.indicator_id}|${r.unit_id}`===key);
-          if(i>=0){ ROWS[i].value=row.value; ROWS[i].report_id=saved.report_id||ROWS[i].report_id||null; }
-          DIRTY.delete(key); setDirty(); setStatus('បានរក្សាទុក');
-        }catch(err){ console.error(err); setStatus('បរាជ័យរក្សាទុក ('+key+')'); }
-      }
-
-      tbody?.addEventListener('keydown',(e)=>{
-        const inp=e.target.closest('.inp-val'); if(!inp) return;
-        const ctrl=['Backspace','Delete','Tab','Escape','Enter','ArrowLeft','ArrowRight','Home','End'];
-        if (ctrl.includes(e.key)){ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } return; }
-        if (e.key === '.'){ if (inp.value.includes('.')) e.preventDefault(); return; }
-        if (!/^[0-9]$/.test(e.key)) e.preventDefault();
-      });
-      tbody?.addEventListener('input',(e)=>{
-        const inp=e.target.closest('.inp-val'); if(!inp) return;
-        const cleaned=cleanDecimal(inp.value); if(inp.value!==cleaned) inp.value=cleaned; markDirtyFromInput(inp);
-      });
-      tbody?.addEventListener('paste',(e)=>{
-        const inp=e.target.closest('.inp-val'); if(!inp) return;
-        e.preventDefault();
-        const t=(e.clipboardData||window.clipboardData).getData('text');
-        const cleaned=cleanDecimal(t);
-        const {selectionStart:s, selectionEnd:t2, value:v}=inp;
-        inp.value=cleanDecimal(v.slice(0,s)+cleaned+v.slice(t2)); markDirtyFromInput(inp);
-      });
-      tbody?.addEventListener('blur',async(e)=>{
-        const inp=e.target.closest('.inp-val'); if(!inp) return;
-        const key=inp.dataset.key; if(!DIRTY.has(key)) return; await saveOne(key);
-      },true);
-
-      btnSaveAll?.addEventListener('click', async ()=>{
-        const keys=Array.from(DIRTY.keys()); if(!keys.length){ setStatus('គ្មានអ្វីត្រូវរក្សាទុក'); return; }
-        setStatus('កំពុងរក្សាទុកទាំងអស់…'); for(const k of keys){ await saveOne(k); } render(); setStatus('រក្សាទុករួចរាល់');
-      });
-
-      btnCopy?.addEventListener('click', async ()=>{
-        const cur=curPeriod(); const prev=prevPid(cur.pid); setStatus('កំពុងយកតម្លៃរយៈពេលមុន…');
-        try{
-          const pp=parsePid(prev);
-          const prevVals=toArr(await gasList('reports',{year:pp.year,month:pp.tag}));
-          const mapPrev=new Map(prevVals.map(r=>[`${r.indicator_id}|${r.unit_id}`, r.value]));
-          let changed=0;
-          for (const r of ROWS){
-            const key=`${r.indicator_id}|${r.unit_id}`;
-            if((r.value==null||r.value==='') && mapPrev.has(key)){
-              DIRTY.set(key,{ indicator_id:r.indicator_id, unit_id:r.unit_id, year:cur.year, month:cur.monthTag, value:mapPrev.get(key), report_id:r.report_id||null });
-              changed++;
-            }
-          }
-          setDirty(); render(); setStatus(`បានបំពេញពីរយៈពេលមុន ${changed} ជួរ (សូមចុច "រក្សាទុកទាំងអស់")`);
-        }catch(err){ console.error(err); setStatus('បរាជ័យយករយៈពេលមុន'); }
-      });
-
-      // Issue/Action
-      tbody?.addEventListener('click',(e)=>{
-        const btn=e.target.closest('button[data-act="issue"]'); if(!btn) return;
-        const key=btn.dataset.key; const row=ROWS.find(r=>`${r.indicator_id}|${r.unit_id}`===key); if(!row) return;
-        const P=curPeriod();
-        f_aid.value=row.action_id||''; f_iid.value=row.indicator_id; f_uid.value=row.unit_id;
-        f_iname.textContent=row.indicator_name||''; f_plbl.textContent=prettyPid(P.pid);
-        f_issue.value=row.issue_text||''; f_act.value=row.action_text||''; f_owner.value=row.action_owner||'';
-        f_due.value=row.action_due||''; f_stat.value=row.action_status||''; document.getElementById('editStatus').textContent='';
-        mdl?.show();
-      });
-      frm?.addEventListener('submit', async (e)=>{
-        e.preventDefault();
-        const P=curPeriod();
-        const payload={ action_id:f_aid.value||null, indicator_id:+f_iid.value, unit_id:+f_uid.value,
-          year:P.year, month:P.monthTag, issue_text:f_issue.value.trim(), action_text:f_act.value.trim(),
-          action_owner:f_owner.value.trim(), action_due:f_due.value||'', action_status:f_stat.value||'' };
-        const btn=document.getElementById('btnSaveIssue'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='កំពុងរក្សាទុក…';
-        try{
-          const res=await gasSave('actions', payload); const saved=res?.row||res||{};
-          const i=ROWS.findIndex(r=>r.indicator_id===payload.indicator_id && r.unit_id===payload.unit_id);
-          if(i>=0){ ROWS[i]={...ROWS[i], action_id:saved.action_id||ROWS[i].action_id||null,
-            issue_text:payload.issue_text, action_text:payload.action_text, action_owner:payload.action_owner,
-            action_due:payload.action_due, action_status:payload.action_status }; }
-          mdl?.hide(); setStatus('រក្សាទុក Issue/Action រួចរាល់');
-        }catch(err){ console.error(err); document.getElementById('editStatus').textContent='បរាជ័យរក្សាទុក: '+(err?.message||err); }
-        finally{ btn.disabled=false; btn.innerHTML=old; }
-      });
-
-      // Expose for router that calls it
-      return true;
-    }
-
-    // Export to window so router in main index can call it
-    window.initDataEntry = initDataEntry;
+    import hydrate from '../../assets/js/pages/data-entry.page.js';
+    const container = document.currentScript.closest('.settings-page') || document.body;
+    try { await hydrate(container); } catch (e) { console.error(e); }
 </script>
