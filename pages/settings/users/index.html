@@ -93,11 +93,13 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="user_id" />
+
                 <div class="mb-3">
                     <label class="form-label">ឈ្មោះពេញ <span class="text-danger">*</span></label>
                     <input id="full_name" class="form-control" required />
                     <div class="invalid-feedback">សូមបញ្ចូលឈ្មោះ</div>
                 </div>
+
                 <div class="row g-3">
                     <div class="col-md-7">
                         <label class="form-label">អ៊ីមែល <span class="text-danger">*</span></label>
@@ -138,6 +140,16 @@
                         <label class="form-label">ផ្នែក</label>
                         <select id="unit_id" class="form-select"><option value="">— ជ្រើសផ្នែក —</option></select>
                     </div>
+                </div>
+
+                <!-- Firebase Auth UID -->
+                <div class="mt-3">
+                    <label class="form-label">Firebase Auth UID</label>
+                    <div class="input-group">
+                        <input id="auth_uid" class="form-control" placeholder="Paste UID ពី Firebase Auth">
+                        <button class="btn btn-outline-secondary" type="button" id="btnCopyUid">Copy</button>
+                    </div>
+                    <div class="form-text">បង្កើត user ក្នុង Firebase Auth មុន → ចម្លង UID → paste ទីនេះ</div>
                 </div>
 
                 <div class="form-check mt-2">

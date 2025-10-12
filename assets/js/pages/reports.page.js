@@ -3,6 +3,7 @@
 // និងបញ្ជូន PDF ទៅ Google Apps Script Web App (ខេត្ត/ក្រសួង)
 
 import { gasList } from '../app.api.firebase.js';
+import { isSuper } from '../app.auth.js';       // ✅ ADD: ដើម្បីពិនិត្យ SUPER
 
 export default async function reportsPage(root, ctx){
   /* ===== GAS Web App ===== */
@@ -23,8 +24,11 @@ export default async function reportsPage(root, ctx){
   const statusEl = $('#status');
   if (!bodyEl) return;
 
+  /* ===== Auth ===== */
+  const SUPER = isSuper();       // ✅ បញ្ជាក់តួនាទី
+
   /* ===== Utils ===== */
-  const KH_MONTHS = ['មកਰਾ','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+  const KH_MONTHS = ['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
   const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const pretty = (y,t)=>!y||!t?''
     : /^M\d{2}$/.test(t) ? `${KH_MONTHS[+t.slice(1)-1]} ${y}` : (t==='Y12' ? `ឆ្នាំ ${y}` : `${y} ${t}`);
@@ -81,8 +85,8 @@ export default async function reportsPage(root, ctx){
   let REP_MAP  = new Map();      // indicator+period → {value,target,...}
   let YEARS    = new Set();      // years from reports/actions
   let LATEST_BY_IND = new Map(); // indicator → latest {year, tag, ...}
-  let BASE_ROWS = [];            // ← NEW: indicator meta rows (dept/unit/name) from indicators
-  let ACTIONS_IDX = new Map();   // ← NEW: (indicator_id|year|tag) → {issues[], actions[]}
+  let BASE_ROWS = [];            // indicator meta rows
+  let ACTIONS_IDX = new Map();   // (indicator_id|year|tag) → {issues[], actions[]}
 
   /* ===== Skeleton ===== */
   (function skel(n=6){
@@ -109,7 +113,7 @@ export default async function reportsPage(root, ctx){
   const unitMeta = new Map((units||[]).map(u=>[String(u.unit_id), {name:u.unit_name, dept:String(u.department_id||'')}]));
   const deptName = Object.fromEntries((depts||[]).map(d=>[String(d.department_id), d.department_name]));
 
-  // --- Build BASE_ROWS from indicators (always available for any month) ---
+  // Build BASE_ROWS
   BASE_ROWS = (indicators||[]).map(ind=>{
     const id  = String(ind.indicator_id);
     const uid = String(ind.unit_id || '');
@@ -124,7 +128,7 @@ export default async function reportsPage(root, ctx){
     };
   });
 
-  // --- Build ACTIONS_IDX for (id,year,tag) ---
+  // ACTIONS_IDX
   ACTIONS_IDX = new Map();
   (actions||[]).forEach(a=>{
     const {year, tag} = normPeriod(a);
@@ -138,7 +142,7 @@ export default async function reportsPage(root, ctx){
     ACTIONS_IDX.set(k, cur);
   });
 
-  // --- Build REP_MAP, LATEST_BY_IND, YEARS ---
+  // REP_MAP + LATEST_BY_IND
   REP_MAP = new Map();
   LATEST_BY_IND = new Map();
   (reports||[]).forEach(r=>{
@@ -170,7 +174,6 @@ export default async function reportsPage(root, ctx){
   function buildTagOptions(){
     const t = MODE;
     const opts = [];
-    // include '@last'
     opts.push(`<option value="@last">ចុងក្រោយ</option>`);
     if (t==='M'){
       for (let m=1;m<=12;m++){ const mm = 'M'+String(m).padStart(2,'0'); opts.push(`<option value="${mm}">${mm}</option>`); }
@@ -226,8 +229,6 @@ export default async function reportsPage(root, ctx){
     const tagChosen = String(tagSel.value||'').toUpperCase();
     const q   = String(txtQ?.value||'').trim().toLowerCase();
 
-    // បង្កើត rows ពី BASE_ROWS (សូចនាករទាំងអស់) — មិនពឹង actions ទៀត
-    // បើ REP_MAP គ្មានតម្លៃសម្រាប់ tag/ឆ្នាំ នោះវានឹងបង្ហាញ '—'
     const rows = BASE_ROWS.map(b=>{
       const vt = getVT(b.indicator_id, ySel, tagChosen);
       const ia = getIA(b.indicator_id, vt.year || ySel, vt.tag || tagChosen);
@@ -287,7 +288,6 @@ export default async function reportsPage(root, ctx){
         trU.innerHTML = `<td colspan="5" class="ps-3">${dIdx+1}.${uIdx+1} ${esc(uName)}</td>`;
         frag.appendChild(trU);
 
-        // sort indicators by name
         const list = (byUnit.get(uId)||[]).slice().sort((a,b)=>{
           return String(a.indicator_name||'').localeCompare(String(b.indicator_name||''), 'km-KH', {numeric:true});
         });
@@ -340,7 +340,6 @@ export default async function reportsPage(root, ctx){
     const tag  = String(tagSel.value||'').toUpperCase();
     const mode = MODE;
 
-    // build rows from BASE_ROWS with same logic as render
     const rowsForPdf = [];
     const ySel = year, tagChosen = tag;
 
@@ -416,20 +415,26 @@ export default async function reportsPage(root, ctx){
   yearSel?.addEventListener('change', ()=>{ buildTagOptions(); render(); });
   tagSel?.addEventListener('change', render);
 
-  // PDF buttons
-  if (btnPDFP && !btnPDFP.dataset.bound){
-    btnPDFP.dataset.bound = '1';
-    btnPDFP.addEventListener('click', ()=>{
-      const old = btnPDFP.textContent; btnPDFP.disabled = true; btnPDFP.textContent = 'កំពុងបង្កើត…';
-      try { postPdf('province'); } finally { setTimeout(()=>{ btnPDFP.disabled=false; btnPDFP.textContent=old; }, 800); }
-    }, {passive:true});
-  }
-  if (btnPDFM && !btnPDFM.dataset.bound){
-    btnPDFM.dataset.bound = '1';
-    btnPDFM.addEventListener('click', ()=>{
-      const old = btnPDFM.textContent; btnPDFM.disabled = true; btnPDFM.textContent = 'កំពុងបង្កើត…';
-      try { postPdf('ministry'); } finally { setTimeout(()=>{ btnPDFM.disabled=false; btnPDFM.textContent=old; }, 800); }
-    }, {passive:true});
+  // ✅ PDF buttons: visible & active only for SUPER
+  if (!SUPER){
+    // លាក់ប៊ូតុង (UI) និងកុំភ្ជាប់ event listeners (logic)
+    btnPDFP?.classList.add('d-none');
+    btnPDFM?.classList.add('d-none');
+  } else {
+    if (btnPDFP && !btnPDFP.dataset.bound){
+      btnPDFP.dataset.bound = '1';
+      btnPDFP.addEventListener('click', ()=>{
+        const old = btnPDFP.textContent; btnPDFP.disabled = true; btnPDFP.textContent = 'កំពុងបង្កើត…';
+        try { postPdf('province'); } finally { setTimeout(()=>{ btnPDFP.disabled=false; btnPDFP.textContent=old; }, 800); }
+      }, {passive:true});
+    }
+    if (btnPDFM && !btnPDFM.dataset.bound){
+      btnPDFM.dataset.bound = '1';
+      btnPDFM.addEventListener('click', ()=>{
+        const old = btnPDFM.textContent; btnPDFM.disabled = true; btnPDFM.textContent = 'កំពុងបង្កើត…';
+        try { postPdf('ministry'); } finally { setTimeout(()=>{ btnPDFM.disabled=false; btnPDFM.textContent=old; }, 800); }
+      }, {passive:true});
+    }
   }
 
   // First paint
@@ -441,8 +446,10 @@ export default async function reportsPage(root, ctx){
     txtQ?.removeEventListener('keydown', onSearchEnter);
     yearSel?.removeEventListener('change', render);
     tagSel?.removeEventListener('change', render);
-    btnPDFP?.replaceWith(btnPDFP.cloneNode(true));
-    btnPDFM?.replaceWith(btnPDFM.cloneNode(true));
+    if (SUPER){
+      btnPDFP?.replaceWith(btnPDFP.cloneNode(true));
+      btnPDFM?.replaceWith(btnPDFM.cloneNode(true));
+    }
   };
 }
 
