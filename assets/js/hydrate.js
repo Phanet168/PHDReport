@@ -8,6 +8,7 @@ const ROUTE_TO_PAGE = {
   'data-entry':           'data-entry',
   'reports':              'reports',
   'issues':               'issues',        // <-- អាចមាន issues.page.js ឬ issues.init.js
+  'super' :               'super-dashboard',
   'settings/indicators':  'indicators',
   'settings/departments': 'departments',
   'settings/units':       'units',
@@ -19,6 +20,7 @@ const ROUTE_TO_PAGE = {
 const GUARDS = {
   'data-entry':           () => (isAdmin() || isSuper()),
   'settings/indicators':  () => (isAdmin() || isSuper()),
+  'super-dashboard' :      ()=> isSuper(),
   'settings/departments': () => isSuper(),
   'settings/units':       () => isSuper(),
   'settings/periods':     () => isSuper(),
