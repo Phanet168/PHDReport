@@ -1,7 +1,6 @@
 // assets/js/app.menu.js
 import { getAuth, isSuper } from './app.auth.js';
-import { gasList, gasSave, gasDelete, ID_FIELDS } from './app.api.firebase.js'; // ✅ ប្តូរទៅ firebase api
-
+import { gasList, gasSave, gasDelete, ID_FIELDS } from './app.api.firebase.js'; // Firebase API
 
 /* ============================== */
 /* Shared (ID fields passthrough) */
@@ -48,6 +47,7 @@ export function isDataEntry(auth){
 /* ============================== */
 /* Indicators helper              */
 /* ============================== */
+// use owner_uid + scope by dept/unit when not SUPER
 export async function listMyIndicators(){
   const auth  = getAuth();
   const SUPER = isSuper(auth);
@@ -55,7 +55,7 @@ export async function listMyIndicators(){
   if (!SUPER){
     if (auth?.department_id) rows = rows.filter(r => String(r.department_id) === String(auth.department_id));
     if (auth?.unit_id)       rows = rows.filter(r => String(r.unit_id || '') === String(auth.unit_id));
-    if (auth?.user_id)       rows = rows.filter(r => String(r.owner_id || '') === String(auth.user_id));
+    if (auth?.uid)           rows = rows.filter(r => String(r.owner_uid || '') === String(auth.uid));
   }
   return rows;
 }
@@ -69,37 +69,52 @@ const menuSkeleton = (n=3)=>
     .join('');
 
 /* ============================== */
-/* Depts submenu → now single link */
+/* Main group (Dashboard area)    */
+/* - Super Dashboard is placed here (outside Settings) */
 /* ============================== */
 export async function buildDeptMenu(targetUlId='deptMenu'){
   const box = document.getElementById(targetUlId);
   if (!box) return;
-  box.innerHTML = menuSkeleton(1);
+  box.innerHTML = menuSkeleton(2);
 
   try{
     const auth   = getAuth();
     const viewer = isViewer(auth);
+    const SUPER  = isSuper(auth);
 
-    const link = viewer
+    const primary = viewer
       ? { href:'#/reports', icon:'i-Bar-Chart', text:'មើលរបាយការណ៍' }
       : { href:'#/data-entry', icon:'i-File-Clipboard-File--Text', text:'បញ្ចូលរបាយការណ៍' };
 
-    box.innerHTML = `
-      <li class="nav-item">
-        <a href="${link.href}" data-menu-link>
-          <i class="nav-icon ${link.icon}"></i>
-          <span class="item-name">${link.text}</span>
-        </a>
-      </li>`;
+    const items = [
+      // Uncomment if you want an explicit Dashboard item:
+      // { href:'#/', icon:'i-Dashboard', text:'Dashboard' },
+      primary,
+      ...(SUPER ? [{ href:'#/super', icon:'i-Crown', text:'Super Dashboard', badge:'SUPER' }] : []),
+    ];
 
-    // active state
-    const setActive = ()=>{
-      const a = box.querySelector('[data-menu-link]');
-      if (!a) return;
-      a.classList.toggle('active', a.getAttribute('href') === (location.hash || '#/'));
-    };
-    setActive();
-    window.addEventListener('hashchange', setActive);
+    box.innerHTML = items.map(it=>`
+      <li class="nav-item">
+        <a href="${it.href}" data-menu-link>
+          <i class="nav-icon ${it.icon}"></i>
+          <span class="item-name">${it.text}</span>
+          ${it.badge ? `<span class="badge bg-warning ms-auto">${it.badge}</span>` : ''}
+        </a>
+      </li>`).join('');
+
+    // active state + guard duplicate listeners
+    if (!box.__boundDept) {
+      const setActive = ()=>{
+        const cur  = location.hash || '#/';
+        box.querySelectorAll('[data-menu-link]').forEach(a=>{
+          const href = a.getAttribute('href') || '';
+          a.classList.toggle('active', cur.startsWith(href));
+        });
+      };
+      setActive();
+      window.addEventListener('hashchange', setActive, { passive:true });
+      box.__boundDept = setActive;
+    }
 
   }catch(err){
     console.error('buildDeptMenu failed:', err);
@@ -117,6 +132,7 @@ export async function buildDeptMenu(targetUlId='deptMenu'){
 
 /* ============================== */
 /* Settings submenu (role-based)  */
+/* - Super Dashboard is NOT here  */
 /* ============================== */
 export async function buildSettingsMenu(targetUlId='settingsMenu'){
   const box = document.getElementById(targetUlId);
@@ -166,14 +182,19 @@ export async function buildSettingsMenu(targetUlId='settingsMenu'){
         </li>`;
     }
 
-    // active state for settings
-    const setActive = ()=>{
-      box.querySelectorAll('[data-menu-link]').forEach(a=>{
-        a.classList.toggle('active', a.getAttribute('href') === (location.hash || '#/'));
-      });
-    };
-    setActive();
-    window.addEventListener('hashchange', setActive);
+    // active state + guard duplicate listeners
+    if (!box.__boundSettings) {
+      const setActive = ()=>{
+        const cur = location.hash || '#/';
+        box.querySelectorAll('[data-menu-link]').forEach(a=>{
+          const href = a.getAttribute('href') || '';
+          a.classList.toggle('active', cur.startsWith(href));
+        });
+      };
+      setActive();
+      window.addEventListener('hashchange', setActive, { passive:true });
+      box.__boundSettings = setActive;
+    }
 
   }catch(err){
     console.error('buildSettingsMenu failed:', err);
@@ -198,4 +219,9 @@ export async function initMenus(){
     buildSettingsMenu('settingsMenu'),
   ]);
 }
-export function clearMenuCache(){ /* no-op */ }
+
+export function clearMenuCache(){
+  // If needed later:
+  // window.removeEventListener('hashchange', element.__boundDept)
+  // window.removeEventListener('hashchange', element.__boundSettings)
+}

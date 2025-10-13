@@ -1,0 +1,110 @@
+<!-- pages/super/index.html -->
+<div class="settings-page">
+    <div class="container-page">
+        <div class="page-head">
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="kh-head h4 m-0">SUPER Data Collator</h1>
+                <nav aria-label="breadcrumb" class="small">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Super</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="separator-breadcrumb border-top"></div>
+        </div>
+
+        <div class="page-body">
+            <div id="superOnly" class="alert alert-warning d-none">
+                <strong>គ្មានសិទ្ធិ</strong> — សម្រាប់ SUPER ប៉ុណ្ណោះ។
+            </div>
+
+            <div class="card shadow-sm centered-card w-100">
+                <div class="card-body">
+                    <!-- Toolbar -->
+                    <div class="toolbar mb-3 d-flex flex-wrap align-items-center gap-2">
+                        <div class="d-flex flex-wrap gap-2">
+                            <select id="entitySel"  class="form-select form-select-sm" style="width:auto">
+                                <option value="reports">Reports</option>
+                                <option value="actions">Actions</option>
+                                <option value="indicators">Indicators</option>
+                                <option value="users">Users</option>
+                            </select>
+
+                            <select id="modeSel" class="form-select form-select-sm" style="width:auto">
+                                <option value="M" selected>M</option><option value="Q">Q</option>
+                                <option value="H">H</option><option value="N9">N9</option><option value="Y12">Y12</option>
+                            </select>
+
+                            <select id="yearSel" class="form-select form-select-sm" style="width:auto"></select>
+                            <select id="tagSel"  class="form-select form-select-sm" style="width:auto"></select>
+
+                            <select id="deptSel" class="form-select form-select-sm" style="width:auto"></select>
+                            <select id="unitSel" class="form-select form-select-sm" style="width:auto"></select>
+
+                            <input id="txtQ" class="form-control form-control-sm" placeholder="ស្វែងរក..." style="width:220px">
+                            <button id="btnRun" class="btn btn-sm btn-primary">Run</button>
+                            <button id="btnCSV" class="btn btn-sm btn-outline-secondary">CSV</button>
+                        </div>
+
+                        <div class="ms-auto d-flex flex-wrap gap-2">
+                            <select id="groupSel"  class="form-select form-select-sm" style="width:auto">
+                                <option value="">— Group —</option>
+                                <option value="department_name">Department</option>
+                                <option value="unit_name">Unit</option>
+                                <option value="indicator_name">Indicator</option>
+                                <option value="owner_name">Owner</option>
+                                <option value="role">Role</option>
+                                <option value="status">Status</option>
+                            </select>
+                            <select id="groupSel2" class="form-select form-select-sm" style="width:auto">
+                                <option value="">— Sub group —</option>
+                                <option value="unit_name">Unit</option>
+                                <option value="owner_name">Owner</option>
+                                <option value="role">Role</option>
+                                <option value="status">Status</option>
+                            </select>
+                            <select id="metricSel" class="form-select form-select-sm" style="width:auto">
+                                <option value="count">COUNT</option>
+                                <option value="sum">SUM</option>
+                                <option value="avg">AVG</option>
+                                <option value="min">MIN</option>
+                                <option value="max">MAX</option>
+                            </select>
+
+                            <select id="pageSizeSel" class="form-select form-select-sm" style="width:auto">
+                                <option>10</option><option>20</option><option>50</option><option>100</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover align-middle mb-0">
+                            <thead><tr id="dataHead"></tr></thead>
+                            <tbody id="dataBody">
+                            <tr><td class="skel" colspan="6"></td></tr>
+                            <tr><td class="skel" colspan="6"></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pager & status -->
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                        <div id="pager" class="ms-auto"></div>
+                    </div>
+                    <div id="statusLine" class="small text-muted mt-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .centered-card{max-width:1200px;border:1px solid #eef0f4;border-radius:14px}
+    .toolbar .form-select,.toolbar .form-control{min-width:110px}
+    .skel{position:relative;overflow:hidden;background:#f3f4f6;height:44px}
+    .skel::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);animation:shimmer 1.1s infinite}
+    @keyframes shimmer{100%{transform:translateX(100%)}}
+</style>
