@@ -1,0 +1,66 @@
+/* assets/css/import-mapping.css */
+.import-mapping .card { border-radius: 14px; }
+.import-mapping .table thead th { position: sticky; top: 0; z-index: 1; }
+.import-mapping .table-responsive { max-height: 560px; }
+.import-mapping #statusLine { min-height: 1.25rem; }
+.import-mapping .btn-sm { border-radius: 10px; }
+.import-mapping input[list]::placeholder { color: #999; }
+/* ---- top offset for pages with a fixed header ---- */
+:root{
+  --topbar-h: 64px;            /* កម្ពស់ header របស់បង (បើធំជាង កែលេខនេះ) */
+}
+
+.import-mapping .container-page{
+  margin-top: var(--topbar-h); /* ⬇️ ផ្លាស់ទីទំព័រចុះក្រោម leader */
+}
+
+/* ជាជម្រើស: បើមាន sticky sub-headers ឲ្យគេចពី header ខាងលើ */
+.import-mapping .table thead th,
+.import-mapping .page-head{
+  position: sticky;
+  top: calc(0px + 0px);        /* បើ page-body មាន overflow ស្រួល, កុំឲ្យជាន់ header */
+  z-index: 5;
+  background: #fff;
+}
+
+/* កែspacing បន្តិចឲ្យ UI soft */
+.import-mapping .page-head{ padding-top: .25rem; }
+
+/* ================================
+   FIX TABLE HEADER COLOR & STYLE
+   ================================ */
+table.table thead th {
+  background: #f8f9fa !important;  /* white/light */
+  color: #333 !important;          /* dark text */
+  font-weight: 600 !important;
+  vertical-align: middle !important;
+  white-space: nowrap;
+  border-bottom: 2px solid #dee2e6 !important;
+}
+
+/* ================================
+   FIX COLUMN WIDTH
+   ================================ */
+table.table th:nth-child(1) { width: 60px; }     /* ID */
+table.table th:nth-child(2) { width: 240px; }    /* Name */
+table.table th:nth-child(3) { width: 100px; }    /* HC Sheet */
+table.table th:nth-child(4) { width: 140px; }    /* HC Cell */
+table.table th:nth-child(5) { width: 100px; }    /* HOSP Sheet */
+table.table th:nth-child(6) { width: 140px; }    /* HOSP Cell */
+table.table th:nth-child(7) { width: 70px; }     /* Active */
+table.table th:nth-child(8) { width: 220px; }    /* Result Formula */
+table.table th:nth-child(9) { width: 200px; }    /* Actions */
+
+/* Fix inputs height */
+table.table input.form-control {
+  padding: 2px 6px !important;
+  height: 28px !important;
+  font-size: 13px;
+}
+
+/* Fix small buttons inside table */
+table.table .btn-sm {
+  padding: 2px 6px !important;
+  font-size: 12px !important;
+}
+

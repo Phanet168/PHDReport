@@ -39,7 +39,7 @@ export function isDataEntry(auth){
   const role = String(auth?.role || '').toLowerCase();
   if (role === 'dataentry' || role === 'data_entry') return true;
   if (Array.isArray(auth?.roles)) {
-    return auth.roles.map(r => String(r).toLowerCase()).includes('dataentry');
+    return auth.roles.some(r => String(r||'').toLowerCase() === 'dataentry');
   }
   return false;
 }
@@ -47,7 +47,6 @@ export function isDataEntry(auth){
 /* ============================== */
 /* Indicators helper              */
 /* ============================== */
-// use owner_uid + scope by dept/unit when not SUPER
 export async function listMyIndicators(){
   const auth  = getAuth();
   const SUPER = isSuper(auth);
@@ -70,7 +69,6 @@ const menuSkeleton = (n=3)=>
 
 /* ============================== */
 /* Main group (Dashboard area)    */
-/* - Super Dashboard is placed here (outside Settings) */
 /* ============================== */
 export async function buildDeptMenu(targetUlId='deptMenu'){
   const box = document.getElementById(targetUlId);
@@ -87,10 +85,9 @@ export async function buildDeptMenu(targetUlId='deptMenu'){
       : { href:'#/data-entry', icon:'i-File-Clipboard-File--Text', text:'បញ្ចូលរបាយការណ៍' };
 
     const items = [
-      // Uncomment if you want an explicit Dashboard item:
       // { href:'#/', icon:'i-Dashboard', text:'Dashboard' },
       primary,
-      ...(SUPER ? [{ href:'#/super', icon:'i-Crown', text:'Super Dashboard', badge:'SUPER' }] : []),
+      ...(SUPER ? [{ href:'#/super-dashboard', icon:'i-Crown', text:'Super Dashboard', badge:'SUPER' }] : []),
     ];
 
     box.innerHTML = items.map(it=>`
@@ -102,13 +99,12 @@ export async function buildDeptMenu(targetUlId='deptMenu'){
         </a>
       </li>`).join('');
 
-    // active state + guard duplicate listeners
     if (!box.__boundDept) {
       const setActive = ()=>{
         const cur  = location.hash || '#/';
         box.querySelectorAll('[data-menu-link]').forEach(a=>{
           const href = a.getAttribute('href') || '';
-          a.classList.toggle('active', cur.startsWith(href));
+          a.classList.toggle('active', cur === href || cur.startsWith(href + '/'));
         });
       };
       setActive();
@@ -131,8 +127,7 @@ export async function buildDeptMenu(targetUlId='deptMenu'){
 }
 
 /* ============================== */
-/* Settings submenu (role-based)  */
-/* - Super Dashboard is NOT here  */
+/* Settings submenu               */
 /* ============================== */
 export async function buildSettingsMenu(targetUlId='settingsMenu'){
   const box = document.getElementById(targetUlId);
@@ -143,11 +138,9 @@ export async function buildSettingsMenu(targetUlId='settingsMenu'){
     const auth   = getAuth();
     const SUPER  = isSuper(auth);
     const viewer = isViewer(auth);
+    console.log('DEBUG buildSettingsMenu:', { auth, SUPER, viewer });
 
-    if (viewer){
-      box.innerHTML = '';
-      return;
-    }
+    if (viewer){ box.innerHTML = ''; return; }
 
     if (SUPER){
       const items = [
@@ -156,6 +149,8 @@ export async function buildSettingsMenu(targetUlId='settingsMenu'){
         { label:'ជំពូក',        icon:'i-Library',       href:'#/settings/departments' },
         { label:'ផ្នែក',        icon:'i-Network',       href:'#/settings/units' },
         { label:'រយៈពេល',      icon:'i-Calendar-4',    href:'#/settings/periods' },
+        { label:'Import Mapping', icon:'i-Link',         href:'#/settings/import-mapping' },  // NEW
+        { label:'Import Excel',   icon:'i-Data-Download',href:'#/settings/import-excel' },
       ];
       box.innerHTML = [
         `<li class="nav-item mt-2 mb-1">
@@ -169,7 +164,7 @@ export async function buildSettingsMenu(targetUlId='settingsMenu'){
             </a>
           </li>`),
       ].join('');
-    }else{
+    } else {
       box.innerHTML = `
         <li class="nav-item mt-2 mb-1">
           <span class="text-uppercase text-muted small ps-3">ការកំណត់ (Settings)</span>
@@ -182,13 +177,12 @@ export async function buildSettingsMenu(targetUlId='settingsMenu'){
         </li>`;
     }
 
-    // active state + guard duplicate listeners
     if (!box.__boundSettings) {
       const setActive = ()=>{
         const cur = location.hash || '#/';
         box.querySelectorAll('[data-menu-link]').forEach(a=>{
           const href = a.getAttribute('href') || '';
-          a.classList.toggle('active', cur.startsWith(href));
+          a.classList.toggle('active', cur === href || cur.startsWith(href + '/'));
         });
       };
       setActive();
@@ -211,17 +205,10 @@ export async function buildSettingsMenu(targetUlId='settingsMenu'){
 }
 
 /* ============================== */
-/* Optional helpers               */
-/* ============================== */
 export async function initMenus(){
   await Promise.allSettled([
     buildDeptMenu('deptMenu'),
     buildSettingsMenu('settingsMenu'),
   ]);
 }
-
-export function clearMenuCache(){
-  // If needed later:
-  // window.removeEventListener('hashchange', element.__boundDept)
-  // window.removeEventListener('hashchange', element.__boundSettings)
-}
+export function clearMenuCache(){}

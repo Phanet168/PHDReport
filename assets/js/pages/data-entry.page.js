@@ -1,12 +1,24 @@
 // assets/js/pages/data-entry.page.js
+// Data Entry — PHDReport
+// - Transactional upsert for 'reports' using composite docId: period__indicator__unit
+// - No-duplicate guarantee, race-safe
+// - Filters, grouping, Save Dock, Copy Previous, Export (XLSX/PDF), Issue/Action modal
+
 import { getAuth, isSuper } from '../app.auth.js';
 import { gasList, gasSave } from '../app.api.firebase.js';
+import { db } from '../firebase.client.js';
+import {
+  doc, runTransaction, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-/* ========== Helpers (declare once) ========== */
+/* ========== Tiny helpers ========== */
 const toArr = (x)=> Array.isArray(x) ? x : (x && (x.rows||x.content)) ? (x.rows||x.content) : [];
 const KH_MONTHS=['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
 const KH_DIG={'0':'០','1':'១','2':'២','3':'៣','4':'៤','5':'៥','6':'៦','7':'៧','8':'៨','9':'៩'};
 const khDigits = s => String(s).replace(/[0-9]/g,d=>KH_DIG[d]);
+const _toStr = (x)=> String(x ?? '').trim();
+const composeReportId = (period_id, indicator_id, unit_id) =>
+  `${_toStr(period_id)}__${_toStr(indicator_id)}__${_toStr(unit_id)}`;
 
 function parsePid(pid){
   const s=String(pid||'').trim();
@@ -106,27 +118,30 @@ export default async function hydrate(root){
   const R = root || document;
   const $ = (s)=> R.querySelector(s);
 
-  // DOM
-  const selYear=$('#selYear'), selPeriod=$('#selPeriod');
-  const selDept=$('#selDept'), selUnit=$('#selUnit'), selOwner=$('#selOwner'); // optional in HTML
-  const inpSearch=$('#inpSearch'), swOnlyMy=$('#swOnlyMy'), onlyEmpty=$('#onlyEmpty');
-  const tbl=$('#tblReports'), tbody=tbl?.querySelector('tbody');
-  const btnCopy=$('#btnCopyPrev'), btnSaveAll=$('#btnSaveAll');
-  const statusEl=$('#status'), countInfo=$('#countInfo'), dirtyBadge=$('#dirtyCount');
+  // DOM refs
+  const selYear   = $('#selYear');
+  const selPeriod = $('#selPeriod');
+  const selDept   = $('#selDept');
+  const selUnit   = $('#selUnit');
+  const selOwner  = $('#selOwner');
+  const inpSearch = $('#inpSearch');
+  const swOnlyMy  = $('#swOnlyMy');
+  const onlyEmpty = $('#onlyEmpty');
+
+  const tbl       = $('#tblReports');
+  const tbody     = tbl?.querySelector('tbody');
+  const btnCopy   = $('#btnCopyPrev');
+  const btnSaveAll= $('#btnSaveAll');
+
+  const statusEl  = $('#status');
+  const countInfo = $('#countInfo');
+  const dirtyBadge= $('#dirtyCount');
+
   const setStatus = m=>{ if(statusEl) statusEl.textContent=m||''; };
-  const setDirty  = ()=>{
-    const n = DIRTY.size;
-    if (dirtyBadge) dirtyBadge.textContent = String(n);
-    // show/hide floating dock
-    ensureSaveDock();
-    if (saveDockBadge) saveDockBadge.textContent = String(n);
-    if (saveDock) saveDock.style.display = n>0 ? 'block' : 'none';
-  };
-  const curPid    = ()=> selPeriod?.value || '';
 
   // Auth
-  const auth=getAuth()||{};
-  const SUPER=isSuper(auth);
+  const auth = getAuth()||{};
+  const SUPER = isSuper(auth);
   const MY_UID  = String(auth.uid||'');
   const MY_UNIT = String(auth.unit_id || auth.token?.unit_id || '');
   const MY_DEPT = String(auth.department_id || auth.token?.department_id || '');
@@ -134,13 +149,23 @@ export default async function hydrate(root){
   // State
   let DEPTS=[], UNITS=[], IND_ALL=[], IND=[], USERS=[];
   let ROWS=[];
-  const DIRTY=new Map(); // key "indicator_id|unit_id" => pending {indicator_id,unit_id,period_id,value,target,report_id}
+  const DIRTY = new Map(); // "indicator_id|unit_id" -> {indicator_id,unit_id,period_id,value,target,report_id}
   let FILTER_Q='', ONLY_MY=false, SHOW_ONLY_EMPTY=false, MASTERS=false;
 
-  // REPORT index (for UPSERT)
-  let REPORT_INDEX = new Map(); // key = `${period_id}|${indicator_id}|${unit_id}` → id
+  // REPORT index: `${period}|${indicator}|${unit}` -> composite id
+  const REPORT_INDEX = new Map();
 
-  /* ---------- Fill helpers ---------- */
+  const curPid = ()=> selPeriod?.value || '';
+
+  const setDirty = ()=>{
+    const n = DIRTY.size;
+    if (dirtyBadge) dirtyBadge.textContent = String(n);
+    ensureSaveDock();
+    if (saveDockBadge) saveDockBadge.textContent = String(n);
+    if (saveDock) saveDock.style.display = n>0 ? 'block' : 'none';
+  };
+
+  /* ---------- fill helpers ---------- */
   function fillDept(){
     if (!selDept) return;
     selDept.innerHTML = `<option value="">ជំពូកទាំងអស់</option>`+
@@ -174,7 +199,7 @@ export default async function hydrate(root){
     selOwner.innerHTML = `<option value="">អ្នកទាំងអស់</option>` + owners.map(opt).join('');
   }
 
-  // --- Save Dock (floating, Save + Go-Top buttons) ---
+  /* ---------- Save Dock ---------- */
   let saveDock, saveDockBadge, saveDockBtn, saveDockGoTopBtn;
   function scrollToTableHead(){
     const head = document.querySelector('#tblReports thead');
@@ -207,12 +232,9 @@ export default async function hydrate(root){
     saveDockBadge    = document.getElementById('saveDockBadge');
     saveDockBtn      = document.getElementById('saveDockBtn');
     saveDockGoTopBtn = document.getElementById('saveDockGoTopBtn');
-    // reuse existing Save All behavior (avoid touching save logic)
     saveDockBtn?.addEventListener('click', ()=> document.querySelector('#btnSaveAll')?.click());
-    // go-top button -> scroll to table head
     saveDockGoTopBtn?.addEventListener('click', scrollToTableHead);
   }
-  // prepare dock early so it exists before first setDirty()
   ensureSaveDock();
 
   /* ---------- Filters ---------- */
@@ -234,13 +256,12 @@ export default async function hydrate(root){
       );
     }
     if (SHOW_ONLY_EMPTY){
-      // “empty” គិតតាម **DB value** ប៉ុណ្ណោះ
       out=out.filter(r=> isEmptyVal(r.value));
     }
     return out;
   }
 
-  /* ---------- Render (with groups & Khmer numbering) ---------- */
+  /* ---------- Render ---------- */
   function render(){
     const pid = curPid();
     if (!tbody){
@@ -253,7 +274,6 @@ export default async function hydrate(root){
       return;
     }
 
-    // Filter & sort (dept → unit → indicator)
     const base = applyFilters(ROWS);
     const rows = base.slice().sort((a,b)=>{
       if (a.department_id!==b.department_id) return naturalCmp(a.department_id,b.department_id);
@@ -261,7 +281,6 @@ export default async function hydrate(root){
       return naturalCmp(String(a.indicator_id), String(b.indicator_id));
     });
 
-    // Summary (badge count uses DB only)
     const filled = rows.reduce((n,r)=> n + (isEmptyVal(r.value)?0:1), 0);
     const total  = rows.length;
     countInfo && (countInfo.textContent = String(total));
@@ -277,25 +296,22 @@ export default async function hydrate(root){
     let deptIndex=0, unitIndex=0, rowIndex=0;
 
     for (const r of rows){
-      // Group: Department
       if (r.department_id !== curDept){
         curDept = r.department_id; curUnit='';
         deptIndex++; unitIndex=0; rowIndex=0;
         const trD = document.createElement('tr');
-        trD.className='group-dept';
+        trD.className='group-dept'; // styled by index.css
         trD.innerHTML = `<td colspan="7">${khDigits(deptIndex)}. ${r.department_name || r.department_id || '—'}</td>`;
         frag.appendChild(trD);
       }
-      // Group: Unit
       if (r.unit_id !== curUnit){
         curUnit = r.unit_id; unitIndex++; rowIndex=0;
         const trU = document.createElement('tr');
-        trU.className='group-unit';
+        trU.className='group-unit'; // styled by index.css
         trU.innerHTML = `<td colspan="7">${khDigits(deptIndex)}.${khDigits(unitIndex)} ${r.unit_name || r.unit_id || '—'}</td>`;
         frag.appendChild(trU);
       }
 
-      // Row numbering
       rowIndex++;
       const rowNum = `${khDigits(deptIndex)}.${khDigits(unitIndex)}.${khDigits(rowIndex)}`;
 
@@ -307,7 +323,7 @@ export default async function hydrate(root){
       const showValue = pending ? pending.value  : dbValue;
       const showTarget= pending ? pending.target : dbTarget;
 
-      const missingDB = isEmptyVal(dbValue); // badge ពឹងលើ DB-value ប៉ុណ្ណោះ
+      const missingDB = isEmptyVal(dbValue);
 
       const tr = document.createElement('tr');
       if (missingDB) tr.classList.add('row-missing');
@@ -348,7 +364,7 @@ export default async function hydrate(root){
     tbody.innerHTML=''; tbody.appendChild(frag);
   }
 
-  /* ---------- Reload by PID (STRICT) ---------- */
+  /* ---------- Reload by PID ---------- */
   async function reloadPeriod(){
     const period_id = curPid();
     if (!period_id){ setStatus('សូមជ្រើសរើសរយៈពេល'); ROWS=[]; render(); return; }
@@ -361,22 +377,16 @@ export default async function hydrate(root){
     vals = vals.filter(v=>String(v.period_id)===String(period_id));
     acts = acts.filter(a=>String(a.period_id)===String(period_id));
 
-    // rebuild REPORT_INDEX (latest doc per key)
+    // rebuild REPORT_INDEX
     REPORT_INDEX.clear();
-    const latest = new Map();
     for (const v of vals){
       const k = `${String(v.period_id)}|${String(v.indicator_id)}|${String(v.unit_id)}`;
-      const cur = latest.get(k);
-      const tNew = Date.parse(v.updated_at||0);
-      const tCur = cur ? Date.parse(cur.updated_at||0) : -1;
-      if (!cur || tNew>=tCur) latest.set(k, v);
-    }
-    for (const [k,v] of latest){
-      REPORT_INDEX.set(k, String(v.id || v.report_id || ''));
+      const cid = v.id || v.report_id || composeReportId(v.period_id, v.indicator_id, v.unit_id);
+      REPORT_INDEX.set(k, String(cid));
     }
 
-    const depName=Object.fromEntries(DEPTS.map(d=>[String(d.department_id), d.department_name]));
-    const unitName=Object.fromEntries(UNITS.map(u=>[String(u.unit_id), u.unit_name]));
+    const depName=Object.fromEntries(toArr(DEPTS).map(d=>[String(d.department_id), d.department_name]));
+    const unitName=Object.fromEntries(toArr(UNITS).map(u=>[String(u.unit_id), u.unit_name]));
     const vMap=new Map(vals.map(v=>[`${String(v.indicator_id)}|${String(v.unit_id)}`, v]));
     const aMap=new Map(acts.map(a=>[`${String(a.indicator_id)}|${String(a.unit_id)}`, a]));
 
@@ -414,7 +424,7 @@ export default async function hydrate(root){
     setDirty(); setStatus(''); render();
   }
 
-  /* ---------- Init sequence ---------- */
+  /* ---------- Init ---------- */
   await buildPeriodSelectorsFromDB(selYear, selPeriod, ()=>{ if(MASTERS) reloadPeriod(); });
 
   try{
@@ -440,7 +450,7 @@ export default async function hydrate(root){
     if (tbody) tbody.innerHTML=`<tr><td colspan="7" class="text-danger text-center py-4">មិនអាចទាញទិន្នន័យបាន</td></tr>`;
   }
 
-  /* ---------- Input typing (no rerender, no autosave) ---------- */
+  /* ---------- Input typing ---------- */
   const cleanDecimalFree = s=>{
     s=String(s||'').replace(/[^\d.]/g,'');
     const i=s.indexOf('.'); if(i!==-1) s=s.slice(0,i+1)+s.slice(i+1).replace(/\./g,'');
@@ -457,7 +467,7 @@ export default async function hydrate(root){
       value: base.value ?? null, target: base.target ?? null,
       report_id: base.report_id || null
     };
-    prev[field] = inp.value; // keep raw; convert at SAVE
+    prev[field] = inp.value; // raw; convert at SAVE
     DIRTY.set(key, prev); setDirty();
   }
   if (tbody){
@@ -470,7 +480,7 @@ export default async function hydrate(root){
     });
   }
 
-  /* ---------- UPSERT (update if exists else add) ---------- */
+  /* ---------- Transactional saveOrUpdate ---------- */
   async function saveOrUpdate(key){
     const row = DIRTY.get(key);
     if (!row) return;
@@ -478,49 +488,59 @@ export default async function hydrate(root){
     const period_id    = String(row.period_id);
     const indicator_id = String(row.indicator_id);
     const unit_id      = String(row.unit_id);
-    const indexKey     = `${period_id}|${indicator_id}|${unit_id}`;
 
-    // 1) try from REPORT_INDEX
-    let docId = REPORT_INDEX.get(indexKey) || null;
-
-    // 2) fallback query (strict)
-    if (!docId){
-      try{
-        const res = await gasList('reports', { period_id, indicator_id, unit_id, _ts: Date.now() });
-        const arr = toArr(res).filter(r =>
-          String(r.period_id)===period_id &&
-          String(r.indicator_id)===indicator_id &&
-          String(r.unit_id)===unit_id
-        );
-        if (arr.length){
-          arr.sort((a,b)=> Date.parse(b.updated_at||0) - Date.parse(a.updated_at||0));
-          docId = String(arr[0].id || arr[0].report_id || '');
-        }
-      }catch{}
+    if (!period_id || !indicator_id || !unit_id){
+      setStatus('បរាជ័យ: ខ្វះ period_id / indicator_id / unit_id');
+      return;
     }
 
-    // 3) payload
-    const payload = {
-      period_id, indicator_id, unit_id,
-      value : nOrNull(row.value),
-      target: nOrNull(row.target),
-      updated_at: new Date().toISOString()
+    const docId = composeReportId(period_id, indicator_id, unit_id);
+    const ref   = doc(db, 'reports', docId);
+
+    const toNumber = (v)=> {
+      if (v==null) return null;
+      const s = String(v).trim();
+      if (!s) return null;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
     };
-    if (docId) payload.id = docId; // UPDATE when present
 
-    const res   = await gasSave('reports', payload);
-    const saved = res?.row || res || {};
-    const savedId = String(saved.id || saved.report_id || docId || '');
+    try{
+      const saved = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        const exists = snap.exists();
+        const base = exists ? (snap.data() || {}) : {};
 
-    // 4) reflect to client state
-    const i = ROWS.findIndex(r => `${r.indicator_id}|${r.unit_id}`===key);
-    if (i>=0){
-      ROWS[i].value     = payload.value;
-      ROWS[i].target    = payload.target;
-      ROWS[i].report_id = savedId || ROWS[i].report_id || null;
+        const next = {
+          ...base,
+          id: docId,
+          period_id, indicator_id, unit_id,
+          value : toNumber(row.value),
+          target: toNumber(row.target),
+          updated_at: serverTimestamp(),
+          ...(exists ? {} : { created_at: serverTimestamp() })
+        };
+
+        tx.set(ref, next, { merge: true });
+        return { next, exists };
+      });
+
+      // reflect state
+      const payload = saved.next;
+      const i = ROWS.findIndex(r => `${r.indicator_id}|${r.unit_id}`===key);
+      if (i>=0){
+        ROWS[i].value     = payload.value ?? null;
+        ROWS[i].target    = payload.target ?? null;
+        ROWS[i].report_id = docId;
+      }
+      REPORT_INDEX.set(`${period_id}|${indicator_id}|${unit_id}`, docId);
+      DIRTY.delete(key); setDirty();
+
+      setStatus(saved.exists ? 'បានកែប្រែទិន្នន័យ (update)' : 'បានបង្កើតថ្មី (insert)');
+    }catch(err){
+      console.error(err);
+      setStatus('បរាជ័យរក្សាទុក: ' + (err?.message || err));
     }
-    REPORT_INDEX.set(indexKey, savedId);
-    DIRTY.delete(key); setDirty();
   }
 
   /* ---------- Save All ---------- */
@@ -529,11 +549,11 @@ export default async function hydrate(root){
     if (!keys.length){ setStatus('គ្មានអ្វីត្រូវរក្សាទុក'); return; }
     setStatus('កំពុងរក្សាទុកទាំងអស់…');
     for (const k of keys){ /* eslint-disable no-await-in-loop */ await saveOrUpdate(k); }
-    await reloadPeriod(); // badge sync with DB
+    await reloadPeriod(); // refresh badge based on DB
     setStatus('រក្សាទុករួចរាល់');
   });
 
-  /* ---------- Copy previous (fill only DB-empties; keep badge) ---------- */
+  /* ---------- Copy previous ---------- */
   btnCopy?.addEventListener('click', async ()=>{
     const pid = curPid(); if(!pid){ setStatus('សូមជ្រើសរើសរយៈពេល'); return; }
     const prev = prevPid(pid);
@@ -558,12 +578,12 @@ export default async function hydrate(root){
           DIRTY.set(key, pending); changed++;
         }
       }
-      setDirty(); render(); // badge still DB-based → remains “មិនទាន់បញ្ចូល”
+      setDirty(); render();
       setStatus(`បានយកពីរយៈពេលមុន ${changed} ជួរ (សូមចុច "រក្សាទុកទាំងអស់")`);
     }catch(e){ console.error(e); setStatus('បរាជ័យយករយៈពេលមុន'); }
   });
 
-  /* ---------- Issue/Action modal (indicator_id as string) ---------- */
+  /* ---------- Issue/Action modal ---------- */
   const mdlEl = R.querySelector('#mdlIssue');
   const frm   = R.querySelector('#frmIssue');
   const Modal = window.bootstrap?.Modal;
@@ -587,7 +607,7 @@ export default async function hydrate(root){
     const row=ROWS.find(r=>`${r.indicator_id}|${r.unit_id}`===key); if(!row) return;
     const pid=curPid();
     f.aid&&(f.aid.value=row.action_id||'');
-    f.iid&&(f.iid.value=row.indicator_id);  // string
+    f.iid&&(f.iid.value=row.indicator_id);
     f.uid&&(f.uid.value=row.unit_id);
     f.iname&&(f.iname.textContent=row.indicator_name||'');
     f.plbl&&(f.plbl.textContent=prettyPid(pid));
@@ -636,15 +656,7 @@ export default async function hydrate(root){
     }finally{ if (btn){ btn.disabled=false; btn.innerHTML=old||'រក្សាទុក'; } }
   });
 
-  /* ---------- Filter events (re-render) ---------- */
-  selDept?.addEventListener('change', ()=>{ fillUnit(selDept.value); render(); });
-  selUnit?.addEventListener('change', ()=> render());
-  selOwner?.addEventListener('change', ()=> render());
-  inpSearch?.addEventListener('input', e=>{ FILTER_Q=(e.target.value||'').trim().toLowerCase(); render(); });
-  swOnlyMy?.addEventListener('change', e=>{ ONLY_MY=!!e.target.checked; render(); });
-  onlyEmpty?.addEventListener('change', e=>{ SHOW_ONLY_EMPTY=!!e.target.checked; render(); });
-
-  /* ---------- Export (XLSX/PDF with fallback) ---------- */
+  /* ---------- Export (XLSX/PDF) ---------- */
   function getCurrentViewRows(){ try{ return applyFilters(ROWS); }catch{ return ROWS.slice(); } }
   function rowsForExport(rows, periodLabel){
     return rows.map(r=>({
@@ -720,4 +732,12 @@ export default async function hydrate(root){
   }
   $('#btnExportXlsx')?.addEventListener('click', exportExcel);
   $('#btnExportPdf')?.addEventListener('click', exportPdf);
+
+  /* ---------- Filter events ---------- */
+  selDept?.addEventListener('change', ()=>{ fillUnit(selDept.value); render(); });
+  selUnit?.addEventListener('change', ()=> render());
+  selOwner?.addEventListener('change', ()=> render());
+  inpSearch?.addEventListener('input', e=>{ FILTER_Q=(e.target.value||'').trim().toLowerCase(); render(); });
+  swOnlyMy?.addEventListener('change', e=>{ ONLY_MY=!!e.target.checked; render(); });
+  onlyEmpty?.addEventListener('change', e=>{ SHOW_ONLY_EMPTY=!!e.target.checked; render(); });
 }

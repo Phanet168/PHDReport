@@ -11,6 +11,7 @@ const ROUTES = {
   'settings/units':      'pages/settings/units/index.html',
   'settings/users':      'pages/settings/users/index.html',
   'settings/periods':    'pages/settings/periods/index.html',
+  'settings/import-excel': 'pages/settings/import-excel/index.html',
   'data-entry':          'pages/data-entry/index.html',
 };
 

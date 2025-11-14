@@ -1,0 +1,163 @@
+<div class="settings-page">
+  <div class="container-page">
+    <!-- Page head -->
+    <div class="page-head">
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="kh-head h4 m-0">នាំចូលទិន្នន័យពី Excel</h1>
+        <nav aria-label="breadcrumb" class="small">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+            <li class="breadcrumb-item">Settings</li>
+            <li class="breadcrumb-item active" aria-current="page">Import Excel</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="separator-breadcrumb border-top mt-2"></div>
+    </div>
+
+    <div class="page-body">
+      <div class="card shadow-sm centered-card w-100">
+        <div class="card-body">
+
+          <!-- Toolbar: Year + Period -->
+          <div class="row g-2 mb-3">
+            <div class="col-md-2 col-6">
+              <label for="impYear" class="form-label kh-label">ឆ្នាំ</label>
+              <select id="impYear" class="form-select form-select-sm"></select>
+            </div>
+            <div class="col-md-3 col-6">
+              <label for="perType" class="form-label kh-label">ប្រភេទរយៈពេល</label>
+              <select id="perType" class="form-select form-select-sm">
+                <option value="month">ខែ</option>
+                <option value="quarter">ត្រីមាស</option>
+                <option value="semester">ឆមាស</option>
+                <option value="nine">៩ ខែ</option>
+                <option value="year">ឆ្នាំ</option>
+              </select>
+            </div>
+            <div class="col-md-3 col-6">
+              <label for="perValue" class="form-label kh-label">រយៈពេល</label>
+              <select id="perValue" class="form-select form-select-sm"></select>
+            </div>
+          </div>
+
+          <!-- Mode selector -->
+          <div class="mb-3">
+            <label class="form-label kh-label d-block mb-1">របៀបនាំចូល</label>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="impMode"
+                     id="impModeMapping" value="mapping" checked>
+              <label class="form-check-label kh-label" for="impModeMapping">
+                ប្រើ Mapping (HC + HOSP Excel ដាច់ដោយឡែក)
+              </label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="impMode"
+                     id="impModeSummary" value="summary">
+              <label class="form-check-label kh-label" for="impModeSummary">
+                Summary Excel (គណនារួចក្នុង file តែមួយ)
+              </label>
+            </div>
+          </div>
+
+          <!-- Mode: Mapping -->
+          <div class="card mb-3">
+            <div class="card-header py-2">
+              <strong class="kh-head small">Mode 1: Mapping HC/HOSP</strong>
+            </div>
+            <div class="card-body">
+              <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                  <label for="fileHC" class="form-label kh-label">File Excel មណ្ឌលសុខភាព (HC)</label>
+                  <input type="file" id="fileHC" accept=".xlsx,.xls"
+                         class="form-control form-control-sm">
+                </div>
+                <div class="col-md-4">
+                  <label for="fileHOSP" class="form-label kh-label">File Excel មន្ទីរពេទ្យ (HOSP)</label>
+                  <input type="file" id="fileHOSP" accept=".xlsx,.xls"
+                         class="form-control form-control-sm">
+                </div>
+                <div class="col-md-4">
+                  <small class="text-muted">
+                    Mode នេះប្រើ <code>import_mappings</code> ដែលបានកំណត់ក្នុង Settings &gt; Import Mapping។
+                    អាចប្រើ OUT_HC / OUT_HOSP sheet សង្ខេបបានផងដែរ។
+                  </small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mode: Summary Excel -->
+          <div class="card mb-3">
+            <div class="card-header py-2">
+              <strong class="kh-head small">Mode 2: Summary Excel (Pre-calculated)</strong>
+            </div>
+            <div class="card-body">
+              <div class="row g-2 align-items-end">
+                <div class="col-md-5">
+                  <label for="fileSummary" class="form-label kh-label">
+                    Summary Excel (មាន indicator_id, name, hc, hosp, total)
+                  </label>
+                  <input type="file" id="fileSummary" accept=".xlsx,.xls"
+                         class="form-control form-control-sm">
+                </div>
+                <div class="col-md-7">
+                  <small class="text-muted">
+                    Sheet ទី១ មានជួរឈរ header ជួរដេកទី១៖
+                    <code>indicator_id</code>, <code>name</code>, <code>hc</code>,
+                    <code>hosp</code>, <code>total</code>។<br>
+                    ឧទាហរណ៍៖ HC និង HOSP បានគណនារួច (បូក, មធ្យមភាគ, %...) ក្នុង Excel
+                    បន្ទាប់មកខ្លះនេះ Import តែតម្លៃចុងក្រោយ។
+                  </small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <button id="btnPreview" class="btn btn-sm btn-primary">
+              Preview
+            </button>
+            <button id="btnImport" class="btn btn-sm btn-success" disabled>
+              Import ទៅ Firebase
+            </button>
+            <button id="btnExportPdf" class="btn btn-sm btn-outline-secondary" disabled>
+              Export PDF
+            </button>
+            <button id="btnExportExcel" class="btn btn-sm btn-outline-secondary" disabled>
+              Export Excel
+            </button>
+            <div id="statusLine"
+                 class="ms-auto small text-muted"
+                 style="min-height:1.5rem;"></div>
+          </div>
+
+          <!-- Preview table -->
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 80px;">លេខសូចនាករ</th>
+                  <th>ឈ្មោះសូចនាករ</th>
+                  <th style="width: 120px;" class="text-end">HC</th>
+                  <th style="width: 120px;" class="text-end">HOSP</th>
+                  <th style="width: 120px;" class="text-end">សរុប</th>
+                  <th style="width: 160px;">ស្ថានភាព</th>
+                </tr>
+              </thead>
+              <tbody id="impTbody">
+                <tr>
+                  <td colspan="6" class="text-center text-muted py-4">
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div> <!-- card-body -->
+      </div> <!-- card -->
+    </div> <!-- page-body -->
+  </div> <!-- container-page -->
+</div> <!-- settings-page -->

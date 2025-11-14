@@ -1,0 +1,150 @@
+<!-- pages/settings/import-mapping/index.html -->
+<div class="settings-page">
+  <div class="container-page">
+    <!-- ======= Page Head ======= -->
+    <div class="page-head">
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="kh-head h4 m-0">Import Mapping (HC/HOSP → Indicator)</h1>
+        <nav aria-label="breadcrumb" class="small">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+            <li class="breadcrumb-item">Settings</li>
+            <li class="breadcrumb-item active" aria-current="page">Import Mapping</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="separator-breadcrumb border-top"></div>
+    </div>
+
+    <!-- ======= Toolbar (Global test area) ======= -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label mb-1">HC Excel</label>
+            <input id="testFileHC" type="file" accept=".xlsx,.xls" class="form-control form-control-sm">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label mb-1">HOSP Excel</label>
+            <input id="testFileHOSP" type="file" accept=".xlsx,.xls" class="form-control form-control-sm">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label mb-1">HC Global Sheet</label>
+            <select id="hcSheetGlobal" class="form-select form-select-sm"></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label mb-1">HOSP Global Sheet</label>
+            <select id="hospSheetGlobal" class="form-select form-select-sm"></select>
+          </div>
+        </div>
+        <div class="mt-2 small text-muted">
+          💡 ជ្រើស HC/HOSP files ដើម្បី Test រូបមន្តនៅខាងក្រោម (ប៊ូតុង “Test”)។ “Use Global” នឹងបញ្ចូល Sheet name ចូលជួររបស់ HC/HOSP ដោយស្វ័យប្រវត្តិ។
+        </div>
+      </div>
+    </div>
+
+    <!-- ======= Syntax Help ======= -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between">
+          <h5 class="m-0">📘 Formula Syntax (សម្រាប់ Textbox 3 កន្លែង)</h5>
+          <button id="btnShowHelp" type="button" class="btn btn-sm btn-outline-secondary">Toggle Help</button>
+        </div>
+        <div id="helpBody" class="mt-3">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="border rounded p-2 small">
+                <div class="fw-semibold mb-1">Reference functions</div>
+                <ul class="mb-2">
+                  <li><code>HC("Sheet!A1")</code> — អានតម្លៃពី file HC</li>
+                  <li><code>HOSP("Sheet!B2")</code> — អានតម្លៃពី file HOSP</li>
+                </ul>
+                <div class="fw-semibold mb-1">Operators</div>
+                <div><code>+</code> <code>-</code> <code>*</code> <code>/</code> និង​ក្រចក <code>( )</code></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="border rounded p-2 small">
+                <div class="fw-semibold mb-1">Aggregate functions</div>
+                <ul class="mb-2">
+                  <li><code>SUM(x, y, ...)</code></li>
+                  <li><code>AVG(x, y, ...)</code></li>
+                  <li><code>MIN(x, y, ...)</code>, <code>MAX(x, y, ...)</code></li>
+                </ul>
+                <div class="small">Args អាចជា លេខ ឬ <code>HC("S!A1")</code>/<code>HOSP("S!B2")</code>។</div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-2 small">
+            <b>ឧទាហរណ៍:</b>
+            <div><code>(HC("Page3!C5") + HOSP("Page3!S4")) * 100</code></div>
+            <div><code>SUM(HC("A!C2"), HOSP("B!D8")) / 2</code></div>
+            <div><code>(HC("S!C5")+HOSP("S!C5")) ? (HC("S!Q5")*100)/HC("S!W5") : 0</code> (ចំណាំ: ternary មិនគាំទ្រ; ប្រើការគណនាធម្មតា)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======= Filters ======= -->
+    <div class="row g-2 mb-2">
+      <div class="col-md-5">
+        <input id="filterTxt" class="form-control form-control-sm" placeholder="ស្វែងរកតាម Indicator ID ឬ Name...">
+      </div>
+      <div class="col-md-7 text-end">
+        <button id="btnNewRow" class="btn btn-sm btn-outline-primary">Add Mapping</button>
+        <button id="btnSaveAll" class="btn btn-sm btn-primary">Save All</button>
+        <button id="btnReload" class="btn btn-sm btn-outline-secondary">Reload</button>
+        <button id="btnDeleteAll" class="btn btn-sm btn-outline-danger">Delete All</button>
+      </div>
+    </div>
+
+    <!-- ======= Mapping Table ======= -->
+    <div class="card shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="min-width:90px">ID</th>
+              <th style="min-width:220px">Indicator</th>
+              <th>HC Sheet</th>
+              <th>HC Cell</th>
+              <th style="min-width:220px">HC Formula</th>
+              <th>HOSP Sheet</th>
+              <th>HOSP Cell</th>
+              <th style="min-width:220px">HOSP Formula</th>
+              <th style="min-width:260px">Result Formula</th>
+              <th>Active</th>
+              <th style="min-width:260px" class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="mapTbody"></tbody>
+        </table>
+      </div>
+      <div class="border-top p-2 small">
+        <span id="statusLine" class="text-muted">—</span>
+      </div>
+    </div>
+
+    <!-- ======= Indicators (unmapped helper) ======= -->
+    <div class="card shadow-sm mt-3">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <select id="indScope" class="form-select form-select-sm" style="width:auto">
+            <option value="unmapped">Unmapped only</option>
+            <option value="all">All</option>
+          </select>
+          <input id="indFilter" class="form-control form-control-sm" placeholder="Filter indicators...">
+          <div class="ms-auto small text-muted" id="indStats"></div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+              <tr><th>ID</th><th>Name</th><th class="text-center" style="width:120px">Add</th></tr>
+            </thead>
+            <tbody id="indTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,234 +1,29 @@
 <!-- pages/data-entry/index.html -->
+<!doctype html>
+<html lang="km">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PHDReport • Data Entry</title>
 
-<!-- SheetJS (Excel) -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
+  <!-- Bootstrap CSS (optional but recommended) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-<!-- jsPDF + AutoTable (PDF) -->
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+  <!-- SheetJS (Excel) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
 
-<div class="settings-page" data-page="data-entry">
-    <div class="container-page">
+  <!-- jsPDF + AutoTable (PDF) -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 
-        <!-- Page head -->
-        <header class="page-head">
-            <div class="d-flex align-items-center gap-1 flex-wrap">
-                <h1 class="kh-head h4 m-0">បញ្ចូលទិន្នន័យរបាយការណ៍</h1>
-                <nav aria-label="breadcrumb" class="small ms-auto">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
-                        <li class="breadcrumb-item">Data</li>
-                        <li class="breadcrumb-item active" aria-current="page">Data Entry</li>
-                    </ol>
-                </nav>
-            </div>
-            <div class="separator-breadcrumb border-top"></div>
-        </header>
+  <style>
+    :root{
+      /* ប្រសិនបើគ្រោងមាន Navbar/Header ខាងលើ សូមកំណត់ offset ខាងក្រោម */
+      --app-top-offset: 0px;   /* ឧ. 56px ប្រសិនបើមាន navbar ជាប់ខាងលើ */
+    }
 
-        <!-- Body -->
-        <main class="page-body">
-            <section class="card shadow-sm centered-card w-100">
-                <div class="card-body">
-
-                    <!-- Toolbar -->
-                    <div class="toolbar mb-3" role="region" aria-label="Filters">
-                        <h2 class="card-title kh-head h6 m-0 me-2">បញ្ជីសូចនាករ</h2>
-
-                        <div class="actions ms-auto w-100">
-                            <div class="row g-2 align-items-center">
-                                <div class="col-12 col-sm-auto">
-                                    <button id="btnExportXlsx" class="btn btn-outline-secondary btn-sm">Export Excel</button>
-                                </div>
-                                <div class="col-12 col-sm-auto">
-                                    <button id="btnExportPdf" class="btn btn-outline-secondary btn-sm">Export PDF</button>
-                                </div>
-
-                                <!-- Search -->
-                                <div class="col-12 col-md-auto">
-                                    <label for="inpSearch" class="visually-hidden">ស្វែងរក</label>
-                                    <input id="inpSearch" class="form-control form-control-sm" placeholder="ស្វែងរក…"
-                                           inputmode="search" autocomplete="off" aria-label="ស្វែងរកសូចនាករ">
-                                </div>
-
-                                <!-- Year + Period -->
-                                <div class="col-6 col-sm-auto">
-                                    <label for="selYear" class="visually-hidden">ឆ្នាំ</label>
-                                    <select id="selYear" class="form-select form-select-sm" aria-label="ឆ្នាំ"></select>
-                                </div>
-                                <div class="col-12 col-sm-auto">
-                                    <label for="selPeriod" class="visually-hidden">រយៈពេល</label>
-                                    <select id="selPeriod" class="form-select form-select-sm" aria-label="រយៈពេល"></select>
-                                </div>
-
-                                <!-- Dept / Unit / Owner -->
-                                <div class="col-6 col-sm-auto">
-                                    <label for="selDept" class="visually-hidden">ជំពូក</label>
-                                    <select id="selDept" class="form-select form-select-sm" aria-label="ជំពូក">
-                                        <option value="">ជំពូកទាំងអស់</option>
-                                    </select>
-                                </div>
-
-                                <div class="col-6 col-sm-auto d-flex gap-2">
-                                    <div class="flex-fill">
-                                        <label for="selUnit" class="visually-hidden">ផ្នែក</label>
-                                        <select id="selUnit" class="form-select form-select-sm" aria-label="ផ្នែក">
-                                            <option value="">ផ្នែកទាំងអស់</option>
-                                        </select>
-                                    </div>
-                                    <div class="flex-fill">
-                                        <!-- Hidden by JS for non-SUPER -->
-                                        <label for="selOwner" class="visually-hidden">Owner</label>
-                                        <select id="selOwner" class="form-select form-select-sm" aria-label="Owner">
-                                            <option value="">Owner ទាំងអស់</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- Only my / Only empty -->
-                                <div class="col-12 col-sm-auto d-flex align-items-center gap-3">
-                                    <div class="form-check form-switch small m-0">
-                                        <input class="form-check-input" type="checkbox" id="swOnlyMy">
-                                        <label class="form-check-label" for="swOnlyMy">តែផ្នែកខ្ញុំ</label>
-                                    </div>
-                                    <div class="form-check small m-0">
-                                        <input class="form-check-input" type="checkbox" id="onlyEmpty">
-                                        <label class="form-check-label" for="onlyEmpty">បង្ហាញតែ “មិនទាន់បញ្ចូល”</label>
-                                    </div>
-                                </div>
-
-                                <!-- Counters + Actions -->
-                                <div class="col-12 col-md-auto d-flex align-items-center gap-2">
-                                    <span id="completeInfo" class="badge text-bg-light" aria-live="polite">0 / 0</span>
-                                    <span class="vr d-none d-md-inline"></span>
-                                    <button id="btnCopyPrev" class="btn btn-outline-secondary btn-sm" type="button"
-                                            title="យកតម្លៃពីរយៈពេលមុន">យកតម្លៃរយៈពេលមុន</button>
-                                    <button id="btnSaveAll" class="btn btn-primary btn-sm" type="button" title="រក្សាទុកទាំងអស់">
-                                        រក្សាទុកទាំងអស់
-                                        <span class="badge text-bg-light ms-1" id="dirtyCount" aria-live="polite">0</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Table -->
-                    <div class="table-responsive">
-                        <table id="tblReports" class="table table-striped align-middle mb-0">
-                            <thead class="table-light sticky-head">
-                            <tr>
-                                <th style="width:70px">លេខ</th>
-                                <th style="width:90px">ID</th>
-                                <th style="width:500px">សូចនាករ</th>
-                                <th style="width:140px">រយៈពេល</th>
-                                <th style="width:150px">តម្លៃ</th>
-                                <th style="width:150px">ផែនការ</th>
-                                <th style="width:170px" class="text-end">សកម្មភាព</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr><td colspan="7" class="skel"></td></tr>
-                            <tr><td colspan="7" class="skel"></td></tr>
-                            <tr><td colspan="7" class="skel"></td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="small text-muted mt-2 d-flex flex-wrap gap-3">
-                        <span id="countInfo" aria-live="polite">0</span>
-                        <span id="status" aria-live="polite"></span>
-                        <span id="offlineBadge" class="badge bg-warning text-dark d-none">JSONP mode</span>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <!-- Floating Save Dock -->
-        <div id="saveDock" class="save-dock" aria-live="polite" aria-hidden="true">
-            <div class="save-dock-inner">
-                <div class="save-info">
-                    <span class="kh-head">មានការផ្លាស់ប្ដូរ</span>
-                    <span class="badge text-bg-light" id="dirtyCountDock">0</span>
-                    <small class="text-muted ms-2" id="statusDock"></small>
-                </div>
-                <div class="save-actions">
-                    <button id="btnSaveAllDock" class="btn btn-primary btn-sm">
-                        រក្សាទុកទាំងអស់
-                        <span class="badge text-bg-light ms-1" id="dirtyCountDockBtn">0</span>
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTop">ឡើងលើ</button>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-<!-- Issue / Action modal -->
-<div class="modal fade" id="mdlIssue" tabindex="-1" aria-labelledby="mdlIssueTitle" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <form class="modal-content" id="frmIssue" novalidate>
-            <div class="modal-header">
-                <h5 class="modal-title kh-head" id="mdlIssueTitle">Issue &amp; Action</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="f_action_id">
-                <input type="hidden" id="f_indicator_id">
-                <input type="hidden" id="f_unit_id">
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">សូចនាករ</label>
-                        <div id="f_indicator_name" class="form-control-plaintext"></div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">រយៈពេល</label>
-                        <div id="f_period_label" class="form-control-plaintext"></div>
-                    </div>
-
-                    <div class="col-12">
-                        <label for="f_issue_text" class="form-label">Issue</label>
-                        <textarea id="f_issue_text" class="form-control" rows="2" placeholder="ពិពណ៌នាបញ្ហា…" spellcheck="false"></textarea>
-                    </div>
-
-                    <div class="col-12">
-                        <label for="f_action_text" class="form-label">Action</label>
-                        <textarea id="f_action_text" class="form-control" rows="2" placeholder="ផែនការសកម្មភាព…" spellcheck="false"></textarea>
-                    </div>
-
-                    <div class="col-md-5">
-                        <label for="f_action_owner" class="form-label">អ្នកទទួលខុសត្រូវ</label>
-                        <input id="f_action_owner" class="form-control" placeholder="ឈ្មោះ/ក្រុម" autocomplete="off">
-                    </div>
-                    <div class="col-md-4">
-                        <label for="f_action_due" class="form-label">កាលកំណត់</label>
-                        <input id="f_action_due" type="date" class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="f_action_status" class="form-label">ស្ថានភាព</label>
-                        <select id="f_action_status" class="form-select">
-                            <option value="">— ជ្រើស —</option>
-                            <option value="planned">គ្រោង</option>
-                            <option value="ongoing">កំពុងដំណើរការ</option>
-                            <option value="done">បានបញ្ចប់</option>
-                            <option value="blocked">មានឧបសគ្គ</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="editStatus" class="small text-muted mt-2" aria-live="polite"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
-                <button class="btn btn-primary" type="submit" id="btnSaveIssue">រក្សាទុក</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Styles -->
-<style>
-    .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+    /* ===== Page layout ===== */
+    .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0; position:relative; z-index:0;}
     .container-page{width:100%; max-width:1280px; margin:0 auto; padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
     .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
     .separator-breadcrumb{margin-top:6px;}
@@ -242,33 +37,83 @@
       .toolbar .actions{min-width:0; width:100%;}
     }
 
+    /* ===== Table & sticky head ===== */
     .table thead th{white-space:nowrap;}
-    .sticky-head{position:sticky; top:0; z-index:1;}
+    .sticky-head{position:sticky; top:var(--app-top-offset); z-index:1;}
+
+    /* skeleton rows */
     .skel{position:relative; overflow:hidden; background:#f3f4f6; height:44px; border-radius:8px;}
     .skel::after{content:""; position:absolute; inset:0; transform:translateX(-100%);
       background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent);
       animation:shimmer 1.1s infinite}
     @keyframes shimmer{100%{transform:translateX(100%);} }
 
-    .inp-val{max-width:160px;}
-    #selYear{min-width:120px}
-    #selPeriod{min-width:220px}
+    /* Inputs */
+    .inp-val{ max-width:160px; transition: box-shadow .18s ease, border-color .18s ease; }
+    .inp-val:focus{ border-color:#86b7fe; box-shadow: 0 0 0 .15rem rgba(13,110,253,.15); }
 
-    /* Group rows */
-    tr.group-dept > td{ background:#eef5ff; font-weight:700; border-top:2px solid #cfe2ff; }
-    tr.group-unit > td{ background:#f6f8fc; font-weight:600; }
+    /* ===== Table head beautify ===== */
+    .table thead.sticky-head th{
+      background: linear-gradient(180deg,#f6f8fb 0%, #eef2f7 100%);
+      color:#223049;
+      border-bottom:1px solid #d8dde6;
+    }
 
-    /* Row states */
-    tr.row-missing td { background: #fff9e6; }
-    .badge-missing { background:#ffd966; color:#212529; }
-    .badge-done { background:#e7f7e7; color:#0f5132; border:1px solid #b7e4c7; }
+    /* ===== Striping & hover ===== */
+    .table-striped tbody tr:nth-of-type(odd)>*{ background-color:#fafbfc; }
+    .table tbody tr:hover>td{ background:#f1f5ff !important; }
+
+    /* ===== Department / Unit group rows ===== */
+    tr.group-dept > td,
+    tr.group-unit > td{
+      position: relative;
+      border-top: 2px solid #e0e7ff !important;
+      border-bottom: 1px solid #e6ebf5 !important;
+      font-weight: 700;
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+    /* Department: ខៀវបន្តិច */
+    tr.group-dept > td{
+      background: linear-gradient(90deg,#eaf1ff 0%, #f3f7ff 100%) !important;
+      color:#123c78;
+      box-shadow: inset 4px 0 0 #4e8df5; /* ribbon ខាងឆ្វេង */
+    }
+    /* Unit: ផ្ទៃស្រាល */
+    tr.group-unit > td{
+      background: linear-gradient(90deg,#f3f6ff 0%, #fafcff 100%) !important;
+      color:#2b3d59;
+      font-weight: 600;
+      box-shadow: inset 4px 0 0 #7aa6ff; /* ribbon ខាងឆ្វេង */
+    }
+    /* pill label (optional) */
+    .group-chip{
+      display:inline-flex; align-items:center; gap:8px;
+      background:#ffffffa8; border:1px solid #e6ebf5; padding:4px 10px;
+      border-radius:999px; font-weight:600; font-size:13px;
+    }
+    .group-chip .dot{
+      width:10px; height:10px; border-radius:3px; display:inline-block;
+    }
+
+    /* ===== Row states (filled / missing) ===== */
+    tr.row-missing td{
+      background:#fff7da !important;             /* លឿងស្រាល */
+      box-shadow: inset 3px 0 0 #ffcc66;
+    }
+    tr.row-filled td{
+      background:#f0fbf4 !important;             /* បៃតងស្រាល */
+      box-shadow: inset 3px 0 0 #46c37b;
+    }
+    .badge-missing{ background:#ffe08a; color:#7a5d00; border:1px solid #ffd35d; }
+    .badge-done{    background:#e6fbef; color:#0f5132; border:1px solid #b7e4c7; }
 
     /* Minor UI */
     .vr{width:1px; background:#e9ecef; height:24px;}
     .visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
     .d-none{display:none!important;}
 
-    /* Floating Save Dock */
+    /* ===== Floating Save Dock ===== */
     .save-dock{ position:fixed; left:0; right:0; bottom:0; z-index:1040; pointer-events:none; display:none; }
     .save-dock-inner{
       pointer-events:auto; margin:0 auto 14px; max-width:1200px; background:#fff;
@@ -278,11 +123,256 @@
     .save-info{ display:flex; align-items:center; gap:8px; }
     .save-actions{ display:flex; align-items:center; gap:8px; }
     @media (max-width:576px){ .save-dock-inner{ margin:0 10px 10px; } }
-</style>
+  </style>
+</head>
+<body>
+
+<div class="settings-page" data-page="data-entry">
+  <div class="container-page">
+
+    <!-- Page head -->
+    <header class="page-head">
+      <div class="d-flex align-items-center gap-1 flex-wrap">
+        <h1 class="kh-head h4 m-0">បញ្ចូលទិន្នន័យរបាយការណ៍</h1>
+        <nav aria-label="breadcrumb" class="small ms-auto">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+            <li class="breadcrumb-item">Data</li>
+            <li class="breadcrumb-item active" aria-current="page">Data Entry</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="separator-breadcrumb border-top"></div>
+    </header>
+
+    <!-- Body -->
+    <main class="page-body">
+      <section class="card shadow-sm centered-card w-100">
+        <div class="card-body">
+
+          <!-- Toolbar -->
+          <div class="toolbar mb-3" role="region" aria-label="Filters">
+            <h2 class="card-title kh-head h6 m-0 me-2">បញ្ជីសូចនាករ</h2>
+
+            <div class="actions ms-auto w-100">
+              <div class="row g-2 align-items-center">
+
+                <!-- Export buttons -->
+                <div class="col-12 col-sm-auto">
+                  <button id="btnExportXlsx" class="btn btn-outline-secondary btn-sm">Export Excel</button>
+                </div>
+                <div class="col-12 col-sm-auto">
+                  <button id="btnExportPdf" class="btn btn-outline-secondary btn-sm">Export PDF</button>
+                </div>
+
+                <!-- Search -->
+                <div class="col-12 col-md-auto">
+                  <label for="inpSearch" class="visually-hidden">ស្វែងរក</label>
+                  <input id="inpSearch" class="form-control form-control-sm" placeholder="ស្វែងរក…"
+                         inputmode="search" autocomplete="off" aria-label="ស្វែងរកសូចនាករ">
+                </div>
+
+                <!-- Year + Period -->
+                <div class="col-6 col-sm-auto">
+                  <label for="selYear" class="visually-hidden">ឆ្នាំ</label>
+                  <select id="selYear" class="form-select form-select-sm" aria-label="ឆ្នាំ"></select>
+                </div>
+                <div class="col-12 col-sm-auto">
+                  <label for="selPeriod" class="visually-hidden">រយៈពេល</label>
+                  <select id="selPeriod" class="form-select form-select-sm" aria-label="រយៈពេល"></select>
+                </div>
+
+                <!-- Dept / Unit / Owner -->
+                <div class="col-6 col-sm-auto">
+                  <label for="selDept" class="visually-hidden">ជំពូក</label>
+                  <select id="selDept" class="form-select form-select-sm" aria-label="ជំពូក">
+                    <option value="">ជំពូកទាំងអស់</option>
+                  </select>
+                </div>
+
+                <div class="col-6 col-sm-auto d-flex gap-2">
+                  <div class="flex-fill">
+                    <label for="selUnit" class="visually-hidden">ផ្នែក</label>
+                    <select id="selUnit" class="form-select form-select-sm" aria-label="ផ្នែក">
+                      <option value="">ផ្នែកទាំងអស់</option>
+                    </select>
+                  </div>
+                  <div class="flex-fill">
+                    <!-- Hidden by JS for non-SUPER -->
+                    <label for="selOwner" class="visually-hidden">Owner</label>
+                    <select id="selOwner" class="form-select form-select-sm" aria-label="Owner">
+                      <option value="">Owner ទាំងអស់</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Only my / Only empty -->
+                <div class="col-12 col-sm-auto d-flex align-items-center gap-3">
+                  <div class="form-check form-switch small m-0">
+                    <input class="form-check-input" type="checkbox" id="swOnlyMy">
+                    <label class="form-check-label" for="swOnlyMy">តែផ្នែកខ្ញុំ</label>
+                  </div>
+                  <div class="form-check small m-0">
+                    <input class="form-check-input" type="checkbox" id="onlyEmpty">
+                    <label class="form-check-label" for="onlyEmpty">បង្ហាញតែ “មិនទាន់បញ្ចូល”</label>
+                  </div>
+                </div>
+
+                <!-- Counters + Actions -->
+                <div class="col-12 col-md-auto d-flex align-items-center gap-2">
+                  <span id="completeInfo" class="badge text-bg-light" aria-live="polite">0 / 0</span>
+                  <span class="vr d-none d-md-inline"></span>
+                  <button id="btnCopyPrev" class="btn btn-outline-secondary btn-sm" type="button"
+                          title="យកតម្លៃពីរយៈពេលមុន">យកតម្លៃរយៈពេលមុន</button>
+                  <button id="btnSaveAll" class="btn btn-primary btn-sm" type="button" title="រក្សាទុកទាំងអស់">
+                    រក្សាទុកទាំងអស់
+                    <span class="badge text-bg-light ms-1" id="dirtyCount" aria-live="polite">0</span>
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="table-responsive">
+            <table id="tblReports" class="table table-striped align-middle mb-0">
+              <thead class="table-light sticky-head">
+              <tr>
+                <th style="width:70px">លេខ</th>
+                <th style="width:90px">ID</th>
+                <th style="width:500px">សូចនាករ</th>
+                <th style="width:140px">រយៈពេល</th>
+                <th style="width:150px">តម្លៃ</th>
+                <th style="width:150px">ផែនការ</th>
+                <th style="width:170px" class="text-end">សកម្មភាព</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr><td colspan="7" class="skel"></td></tr>
+              <tr><td colspan="7" class="skel"></td></tr>
+              <tr><td colspan="7" class="skel"></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="small text-muted mt-2 d-flex flex-wrap gap-3">
+            <span id="countInfo" aria-live="polite">0</span>
+            <span id="status" aria-live="polite"></span>
+            <span id="offlineBadge" class="badge bg-warning text-dark d-none">JSONP mode</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Floating Save Dock (visibility handled by JS) -->
+    <div id="saveDock" class="save-dock" aria-live="polite" aria-hidden="true">
+      <div class="save-dock-inner">
+        <div class="save-info">
+          <span class="kh-head">មានការផ្លាស់ប្ដូរ</span>
+          <span class="badge text-bg-light" id="dirtyCountDock">0</span>
+          <small class="text-muted ms-2" id="statusDock"></small>
+        </div>
+        <div class="save-actions">
+          <button id="btnSaveAllDock" class="btn btn-primary btn-sm">
+            រក្សាទុកទាំងអស់
+            <span class="badge text-bg-light ms-1" id="dirtyCountDockBtn">0</span>
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTop">ឡើងលើ</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Issue / Action modal -->
+<div class="modal fade" id="mdlIssue" tabindex="-1" aria-labelledby="mdlIssueTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <form class="modal-content" id="frmIssue" novalidate>
+      <div class="modal-header">
+        <h5 class="modal-title kh-head" id="mdlIssueTitle">Issue &amp; Action</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="បិទ"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="f_action_id">
+        <input type="hidden" id="f_indicator_id">
+        <input type="hidden" id="f_unit_id">
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">សូចនាករ</label>
+            <div id="f_indicator_name" class="form-control-plaintext"></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">រយៈពេល</label>
+            <div id="f_period_label" class="form-control-plaintext"></div>
+          </div>
+
+          <div class="col-12">
+            <label for="f_issue_text" class="form-label">Issue</label>
+            <textarea id="f_issue_text" class="form-control" rows="2" placeholder="ពិពណ៌នាបញ្ហា…" spellcheck="false"></textarea>
+          </div>
+
+          <div class="col-12">
+            <label for="f_action_text" class="form-label">Action</label>
+            <textarea id="f_action_text" class="form-control" rows="2" placeholder="ផែនការសកម្មភាព…" spellcheck="false"></textarea>
+          </div>
+
+          <div class="col-md-5">
+            <label for="f_action_owner" class="form-label">អ្នកទទួលខុសត្រូវ</label>
+            <input id="f_action_owner" class="form-control" placeholder="ឈ្មោះ/ក្រុម" autocomplete="off">
+          </div>
+          <div class="col-md-4">
+            <label for="f_action_due" class="form-label">កាលកំណត់</label>
+            <input id="f_action_due" type="date" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label for="f_action_status" class="form-label">ស្ថានភាព</label>
+            <select id="f_action_status" class="form-select">
+              <option value="">— ជ្រើស —</option>
+              <option value="planned">គ្រោង</option>
+              <option value="ongoing">កំពុងដំណើរការ</option>
+              <option value="done">បានបញ្ចប់</option>
+              <option value="blocked">មានឧបសគ្គ</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="editStatus" class="small text-muted mt-2" aria-live="polite"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">បោះបង់</button>
+        <button class="btn btn-primary" type="submit" id="btnSaveIssue">រក្សាទុក</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Bootstrap JS (optional but recommended) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- hydrate -->
 <script type="module">
-    import hydrate from '../../assets/js/pages/data-entry.page.js';
-    const container = document.currentScript.closest('.settings-page') || document.body;
-    try { await hydrate(container); } catch (e) { console.error(e); }
+  // ប្រសិនបើគម្រោងមាន header/navbar ជាប់លើកំពូល
+  // សូមកំណត់ offset ដោយ JS ខាងក្រោម (ឧ. 56px)
+  // document.documentElement.style.setProperty('--app-top-offset', '56px');
+
+  import hydrate from '../../assets/js/pages/data-entry.page.js';
+  const container = document.currentScript.closest('.settings-page') || document.body;
+
+  // Forward Save Dock buttons to original ones (if JS មិនបានធ្វើរួច)
+  document.getElementById('btnSaveAllDock')?.addEventListener('click', ()=> {
+    document.getElementById('btnSaveAll')?.click();
+  });
+  document.getElementById('btnTop')?.addEventListener('click', ()=> {
+    const head = document.querySelector('#tblReports thead');
+    if (head) head.scrollIntoView({ behavior:'smooth', block:'start' });
+    else window.scrollTo({ top:0, behavior:'smooth' });
+  });
+
+  try { await hydrate(container); } catch (e) { console.error(e); }
 </script>
+
+</body>
+</html>

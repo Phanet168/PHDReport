@@ -9,15 +9,17 @@ export const ID_FIELDS = {
   users:'user_id', departments:'department_id', units:'unit_id',
   periods:'period_id', indicators:'indicator_id', reports:'report_id',
   issues:'issue_id', actions:'action_id',
+  reports: 'report_id', 
 };
 
 const rowOfDoc = (snap)=> ({ ...(snap.data()||{}) });
 
 function buildWheres(params = {}){
   const KEYS = [
-    'department_id','unit_id','owner_id','year','month',
-    'indicator_id','report_id','action_id','issue_id','user_id'
-  ];
+  'department_id','unit_id','owner_id','year','month',
+  'indicator_id','report_id','period_id','action_id','issue_id','user_id'
+];
+
   const W = [];
   for (const k of KEYS){
     const v = params[k];
@@ -65,7 +67,7 @@ export async function gasSave(table, row = {}){
   const col     = collection(db, table);
   const now     = new Date().toISOString();
   let id        = row[idField];
-
+  
   if (!id){
     id = await getNextId(table);
     row[idField]   = id;
