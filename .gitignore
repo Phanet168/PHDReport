@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+functions/node_modules/
+package-lock.json
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+database-debug.log
+pubsub-debug.log
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build
+dist/
+build/
+.cache/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Archives (unless needed for distribution)
+*.zip
+*.tar.gz
+*.rar
+
+# Keep PHDReport.zip if it's a release artifact
+# Remove line below if you want to ignore it:
+# PHDReport.zip
