@@ -40,33 +40,30 @@ async function ensureXLSX() {
   throw last || new Error('XLSX not loaded');
 }
 
-/* ==================== jsPDF + autoTable (data-entry style PDF) ==================== */
-async function ensureJsPDF() {
-  if (window.jspdf?.jsPDF) return true;
-  await loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
-  return !!(window.jspdf?.jsPDF);
+/* ==================== pdfmake loader + Khmer fonts ==================== */
+async function ensurePdfMake(){
+  if (window.pdfMake && window.pdfMake.createPdf) return true;
+  await loadScript('https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/pdfmake.min.js');
+  return !!(window.pdfMake && window.pdfMake.createPdf);
 }
-async function ensureAutoTable() {
-  if (window.jspdf?.jsPDF && typeof window.jspdf.jsPDF.prototype.autoTable === 'function') return true;
-  await loadScript('https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js');
-  return (typeof window.jspdf?.jsPDF?.prototype?.autoTable === 'function');
+function arrayBufferToBase64(buf){
+  let out='', bytes=new Uint8Array(buf), chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk){
+    out += String.fromCharCode(...bytes.subarray(i,i+chunk));
+  }
+  return btoa(out);
 }
-
-/* ----- Khmer font embedding for jsPDF ----- */
-async function fetchFontBinary(url){
-  const u = url + (url.includes('?')?'&':'?') + 'v=' + Date.now();
-  const r = await fetch(u, { cache:'no-store' });
+async function fetchAsBase64(url){
+  const r = await fetch(url + (url.includes('?')?'&':'?') + 'v=' + Date.now(), {cache:'no-store'});
   if(!r.ok) throw new Error(`${r.status} ${r.statusText} @ ${url}`);
-  const buf = await r.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-  let bin = '';
-  for (let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
-  return bin;
+  return arrayBufferToBase64(await r.arrayBuffer());
 }
-async function ensureJsPDFKhmerFont(doc){
-  if (!doc) return false;
-  // if already added once
-  if (window.__JS_PDF_NSK_READY) { try{ doc.setFont('NotoSansKhmer','normal'); }catch{} return true; }
+async function ensureKhmerFontPdfMake(){
+  if (!window.pdfMake || !window.pdfMake.createPdf) {
+    const ok = await ensurePdfMake();
+    if (!ok) throw new Error('pdfMake not loaded');
+  }
+  if (window.__kmPdfMakeReady) return true;
 
   const base = import.meta.url;
   const REG = [
@@ -82,19 +79,26 @@ async function ensureJsPDFKhmerFont(doc){
     new URL('../../fonts/NotoSansKhmer-Bold.ttf', base).href,
   ];
   async function firstOk(list){
-    let last;
-    for (const u of list){ try{ return await fetchFontBinary(u); }catch(e){ last=e; } }
+    let last; for (const u of list){ try{ return await fetchAsBase64(u); }catch(e){ last=e; } }
     throw last || new Error('Cannot load NotoSansKhmer TTF from /assets/fonts');
   }
-  const [regBin, boldBin] = await Promise.all([ firstOk(REG), firstOk(BOLD) ]);
 
-  doc.addFileToVFS('NotoSansKhmer-Regular.ttf', regBin);
-  doc.addFileToVFS('NotoSansKhmer-Bold.ttf', boldBin);
-  doc.addFont('NotoSansKhmer-Regular.ttf','NotoSansKhmer','normal');
-  doc.addFont('NotoSansKhmer-Bold.ttf','NotoSansKhmer','bold');
+  const [regB64, boldB64] = await Promise.all([ firstOk(REG), firstOk(BOLD) ]);
 
-  try{ doc.setFont('NotoSansKhmer','normal'); }catch{}
-  window.__JS_PDF_NSK_READY = true;
+  window.pdfMake.vfs = window.pdfMake.vfs || {};
+  window.pdfMake.vfs['NotoSansKhmer-Regular.ttf'] = regB64;
+  window.pdfMake.vfs['NotoSansKhmer-Bold.ttf']    = boldB64;
+
+  window.pdfMake.fonts = Object.assign({}, window.pdfMake.fonts, {
+    NotoSansKhmer: {
+      normal: 'NotoSansKhmer-Regular.ttf',
+      bold:   'NotoSansKhmer-Bold.ttf',
+      italics: 'NotoSansKhmer-Regular.ttf',
+      bolditalics: 'NotoSansKhmer-Bold.ttf',
+    }
+  });
+
+  window.__kmPdfMakeReady = true;
   return true;
 }
 
@@ -124,6 +128,46 @@ async function loadHtml(root, relPath) {
   root.innerHTML = await fetchFirstOk(urls);
 }
 
+/* ==================== Number parsing (Khmer-friendly) ==================== */
+function normalizeSpaces(s){ return s.replace(/[\u00A0\u200B\u202F\u2009\u2007]/g,' '); }
+function khToAr(s){
+  if(s==null) return s;
+  const m={'០':'0','១':'1','២':'2','៣':'3','៤':'4','៥':'5','៦':'6','៧':'7','៨':'8','៩':'9'};
+  return String(s).replace(/[០-៩]/g,d=>m[d]||d);
+}
+function stripGroupSeps(str){
+  let s=str.replace(/[៖។]/g,' ');
+  if (s.includes(',') && s.includes('.')){
+    if (/,(\d{1,2})$/.test(s)) s=s.replace(/\./g,'').replace(',', '.');          // 1.234.567,89 → 1234567.89
+    else if (/\.(\d{1,2})$/.test(s)) s=s.replace(/,/g,'');                         // 1,234,567.89 → 1234567.89
+    else s=s.replace(/,/g,'');
+    return s;
+  }
+  if (s.includes(',')) return s.replace(/,/g,'');
+  const partsByDot = s.split('.');
+  if (partsByDot.length>2 || /\.\d{3}$/.test(s)) return s.replace(/\./g,'');
+  return s;
+}
+function extractNumberFromText(x){
+  if (x==null) return '';
+  let s = khToAr(String(x)); s=normalizeSpaces(s).trim();
+  const rxGrouped = /-?\d{1,3}(?:[ ,.\u00A0\u202F\u2009\u2007]\d{3})+(?:[.,]\d+)?/;
+  const rxPlain   = /-?\d+(?:[.,]\d+)?/;
+  let m = s.match(rxGrouped); if(!m) m=s.match(rxPlain); if(!m) return '';
+  let numStr = stripGroupSeps(m[0]).replace(/\s+/g,'');
+  const n=Number(numStr); return Number.isFinite(n)?n:'';
+}
+function toNumberIfPossible(x){
+  if (x==null) return '';
+  if (typeof x==='number' && Number.isFinite(x)) return x;
+  let s = normalizeSpaces(khToAr(String(x).trim()));
+  const isPct=/%$/.test(s); if (isPct) s=s.slice(0,-1);
+  const isPar=/^\(.*\)$/.test(s); if (isPar) s=s.replace(/^\(|\)$/g,'');
+  let n = extractNumberFromText(s); if (n==='') return String(x);
+  n = Number(n); if (!Number.isFinite(n)) return String(x);
+  if (isPct) n = n/100; if (isPar) n=-n; return n;
+}
+
 /* ==================== Excel merged helpers ==================== */
 function mergedMasterRC(ws, R, C) {
   const merges = ws['!merges']||[];
@@ -139,22 +183,7 @@ function getCellAny(ws, r, c){
   const addr = XLSX.utils.encode_cell({r,c});
   return ws[addr]||null;
 }
-function khToAr(s){
-  if(s==null) return s;
-  const m={'០':'0','១':'1','២':'2','៣':'3','៤':'4','៥':'5','៦':'6','៧':'7','៨':'8','៩':'9'};
-  return String(s).replace(/[០-៩]/g,d=>m[d]||d);
-}
-function toNumberIfPossible(x){
-  if (x==null) return '';
-  if (typeof x==='number' && Number.isFinite(x)) return x;
-  let s=khToAr(String(x).trim()); if(!s) return '';
-  s=s.replace(/[\u00A0\u200B]/g,'');
-  const pct=/%$/.test(s); if(pct) s=s.slice(0,-1);
-  const par=/^\(.*\)$/.test(s); if(par) s=s.replace(/^\(|\)$/g,'');
-  const n=Number(s.replace(/[\s,]/g,'')); if(!Number.isFinite(n)) return String(x);
-  return pct ? (par?-n:n)/100 : (par?-n:n);
-}
-function evaluateFormula(ws, f){
+function evaluateFormulaWS(ws, f){
   if(!ws||!f) return '';
   const t='='+String(f).replace(/^=/,'').trim();
   const m=t.match(/^=\s*SUM\s*\((.*)\)\s*$/i);
@@ -174,10 +203,8 @@ function evaluateFormula(ws, f){
       let v=''; if(/^[A-Z]+\d+:[A-Z]+\d+$/i.test(z)) v=sumRangeMerged(ws,z); else if(/^[A-Z]+\d+$/i.test(z)) v=readCellMerged(ws,z);
       const n=toNumberIfPossible(v); if(typeof n==='number'){acc+=sign*n; any=true;}
     }
-    return any?acc:'';
-  }
-  const one=t.match(/^=\s*([A-Z]+\d+)\s*$/i);
-  return one?readCellMerged(ws,one[1]):'';
+    return any?acc:''; }
+  const one=t.match(/^=\s*([A-Z]+\d+)\s*$/i); return one?readCellMerged(ws,one[1]):'';
 }
 function readCellMerged(ws, a1){
   const ref=XLSX.utils.decode_cell(String(a1).trim());
@@ -185,7 +212,7 @@ function readCellMerged(ws, a1){
   const cell=getCellAny(ws,r,c); if(!cell) return '';
   if(typeof cell.v!=='undefined'){ const p=toNumberIfPossible(cell.v); if(p!=='') return p; }
   if(typeof cell.w!=='undefined'){ const p=toNumberIfPossible(cell.w); if(p!=='') return p; }
-  if(typeof cell.f==='string'){ const v=evaluateFormula(ws,cell.f); if(v!=='') return v; }
+  if(typeof cell.f==='string'){ const v=evaluateFormulaWS(ws,cell.f); if(v!=='') return v; }
   return '';
 }
 function sumRangeMerged(ws, a1){
@@ -197,7 +224,7 @@ function sumRangeMerged(ws, a1){
       const cell=getCellAny(ws,mr,mc); if(!cell) continue;
       let v=''; if(typeof cell.v!=='undefined') v=toNumberIfPossible(cell.v);
       else if(typeof cell.w!=='undefined') v=toNumberIfPossible(cell.w);
-      else if(typeof cell.f==='string') v=toNumberIfPossible(evaluateFormula(ws,cell.f));
+      else if(typeof cell.f==='string') v=toNumberIfPossible(evaluateFormulaWS(ws,cell.f));
       if(typeof v==='number'&&Number.isFinite(v)){ sum+=v; any=true; }
     }
   }
@@ -212,12 +239,266 @@ function pickValueMerged(wb, sheet, cellOrRange){
   return { value:readCellMerged(ws,cc), error:null, sheetName:nm, cell:cc };
 }
 
-/* ==================== PDF (data-entry style) helpers ==================== */
+/* ==================== Cross-file formula evaluator ==================== */
+// Split arguments at top-level, honoring nested () and quoted strings
+function _splitArgsTopLevel(s){
+  const out = [];
+  let cur = '', depth = 0, inQuote = null, prev = '';
+  for (let i = 0; i < s.length; i++){
+    const ch = s[i];
+    if (inQuote){
+      if (ch === inQuote && prev !== '\\') inQuote = null;
+      cur += ch; prev = ch; continue;
+    }
+    if (ch === '"' || ch === "'"){ inQuote = ch; cur += ch; prev = ch; continue; }
+    if (ch === '('){ depth++; cur += ch; prev = ch; continue; }
+    if (ch === ')'){ if (depth > 0) depth--; cur += ch; prev = ch; continue; }
+    if (ch === ',' && depth === 0){ out.push(cur.trim()); cur=''; prev = ch; continue; }
+    cur += ch; prev = ch;
+  }
+  if (cur.trim() !== '') out.push(cur.trim());
+  return out;
+}
+
+function readA1FromWB(WB, a1){
+  const [sheet, cell] = String(a1||'').split('!');
+  if(!sheet || !cell) return '';
+  const got = pickValueMerged(WB, sheet, cell);
+  return got ? got.value : '';
+}
+
+function _resolveHC_HOSP(expr, HC_WB, HP_WB){
+  let out = String(expr||'');
+
+  // HC("Sheet!A1")
+  out = out.replace(/HC\s*\(\s*["']([^"']+)["']\s*\)/gi, (_,ref)=>{
+    const v = readA1FromWB(HC_WB, ref); const n=toNumberIfPossible(v); return Number.isFinite(n)?String(n):'0';
+  });
+
+  // HOSP("Sheet!A1")
+  out = out.replace(/HOSP\s*\(\s*["']([^"']+)["']\s*\)/gi, (_,ref)=>{
+    const v = readA1FromWB(HP_WB, ref); const n=toNumberIfPossible(v); return Number.isFinite(n)?String(n):'0';
+  });
+
+  // NUM("something") or NUM(123)
+  out = out.replace(/\bNUM\s*\(\s*([^()]+?)\s*\)/gi, (_,inside)=>{
+    const n = toNumberIfPossible(inside); return Number.isFinite(n)?String(n):'0';
+  });
+
+  return out;
+}
+
+function _evalFuncCall(name, args){
+  const num = (v)=>{
+    const n = toNumberIfPossible(v);
+    return (typeof n === 'number' && Number.isFinite(n)) ? n : 0;
+  };
+  // evaluate nested expressions in args first
+  const evalArg = (s)=> {
+    let e = String(s||'');
+    e = _reduceFunctions(_resolveHC_HOSP(e, null, null)); // handles nested NUM/ROUND etc if any literal
+    const safe = e.replace(/[^0-9+\-*/().\s]/g,'');
+    try { const v = Function('"use strict";return ('+ (safe||'0') +');')(); return Number(v)||0; }
+    catch { return num(s); }
+  };
+
+  // Handle ROUND(x, d)
+  const Nraw = args || [];
+  if (name === 'ROUND'){
+    const x = Nraw.length ? evalArg(Nraw[0]) : 0;
+    const d = Nraw.length >= 2 ? Math.max(0, Math.floor(num(Nraw[1]))) : 0;
+    const p = Math.pow(10, d);
+    return Math.round(x * p) / p;
+  }
+
+  const N = Nraw.map(evalArg);
+
+  switch (name) {
+    case 'SUM':  return N.reduce((a,b)=>a+b, 0);
+    case 'AVG':  return N.length ? N.reduce((a,b)=>a+b, 0) / N.length : 0;
+    case 'MIN':  return N.length ? Math.min(...N) : 0;
+    case 'MAX':  return N.length ? Math.max(...N) : 0;
+    case 'NUM':  return N.length ? N[0] : 0;
+    default: return 0;
+  }
+}
+
+// Reduce function calls with nested parentheses support
+function _reduceFunctions(expr){
+  const FN = /\b(SUM|AVG|MIN|MAX|NUM|ROUND)\s*\(/i;
+  let guard = 0, s = String(expr||'');
+  while (guard++ < 1000){
+    const m = s.match(FN);
+    if (!m) break;
+
+    const fn = m[1].toUpperCase();
+    let i = m.index + m[0].length; // after '('
+    let depth = 1, inQuote = null, prev = '';
+    for (; i < s.length; i++){
+      const ch = s[i];
+      if (inQuote){
+        if (ch === inQuote && prev !== '\\') inQuote = null;
+        prev = ch; continue;
+      }
+      if (ch === '"' || ch === "'"){ inQuote = ch; prev = ch; continue; }
+      if (ch === '('){ depth++; prev = ch; continue; }
+      if (ch === ')'){ depth--; if (depth === 0) break; prev = ch; continue; }
+      prev = ch;
+    }
+    if (depth !== 0) break; // unbalanced—stop defensively
+
+    const inner = s.slice(m.index + m[0].length, i);
+    const args  = _splitArgsTopLevel(inner);
+    const val   = _evalFuncCall(fn, args);
+
+    s = s.slice(0, m.index) + String(val) + s.slice(i + 1);
+  }
+  return s;
+}
+
+function evalResultFormula(expr, hcVal, hpVal, HC_WB, HP_WB){
+  let raw = String(expr||'').trim();
+  const hcNum = toNumberIfPossible(hcVal), hpNum = toNumberIfPossible(hpVal);
+
+  // Default behavior when no formula: sum of HC/HOSP
+  if (!raw){
+    if (Number.isFinite(hcNum) && Number.isFinite(hpNum)) return hcNum + hpNum;
+    if (Number.isFinite(hcNum)) return hcNum;
+    if (Number.isFinite(hpNum)) return hpNum;
+    return '';
+  }
+
+  // Resolve embedded HC("S!A1"), HOSP("S!A1"), NUM(...)
+  raw = _resolveHC_HOSP(raw, HC_WB, HP_WB);
+
+  // Allow direct token HC/HOSP (already computed)
+  raw = raw.replace(/\bHC\b/g, Number.isFinite(hcNum)?`(${hcNum})`:'0');
+  raw = raw.replace(/\bHOSP\b/g, Number.isFinite(hpNum)?`(${hpNum})`:'0');
+
+  // Reduce functions (SUM/AVG/ROUND/…)
+  raw = _reduceFunctions(raw);
+
+  // Final safe eval (numbers and ops only)
+  const safeExpr = raw.replace(/[^0-9+\-*/().\s]/g,'');
+  try{
+    const val = Function('"use strict";return ('+ (safeExpr||'0') +');')();
+    const n=Number(val);
+    return Number.isFinite(n)?n:'';
+  }catch{
+    return '';
+  }
+}
+
+/* ==================== PDF helpers (data-entry-like layout) ==================== */
 function safe(v){ return (v===null || v===undefined) ? '' : String(v); }
 function nowKh(){
   const d=new Date();
   const two=(n)=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${two(d.getMonth()+1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`;
+}
+async function tryLoadLogoBase64(){
+  try{
+    const r = await fetch('/assets/img/logo.png', {cache:'no-store'});
+    if(!r.ok) return null;
+    const b = await r.blob();
+    return await new Promise((res)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(b); });
+  }catch{ return null; }
+}
+function buildPdfDocLikeDataEntry(srcRows, meta){
+  const headerRow = [
+    {text:'លេខសូចនាករ', style:'th', alignment:'center'},
+    {text:'ឈ្មោះសូចនាករ', style:'th', alignment:'left'},
+    {text:'HC', style:'th', alignment:'right'},
+    {text:'HOSP', style:'th', alignment:'right'},
+    {text:'សរុប', style:'th', alignment:'right'},
+    {text:'ស្ថានភាព', style:'th', alignment:'left'},
+  ];
+  const body = [headerRow];
+  for (const r of srcRows){
+    body.push([
+      {text: r.id, style:'td', alignment:'center'},
+      {text: r.name, style:'td'},
+      {text: r.hc, style:'tdNum', alignment:'right'},
+      {text: r.hosp, style:'tdNum', alignment:'right'},
+      {text: r.total, style:'tdNumBold', alignment:'right'},
+      {text: r.status, style:'td'},
+    ]);
+  }
+
+  return {
+    pageSize:'A4',
+    pageOrientation:'landscape',
+    pageMargins:[26, 90, 26, 40],
+    defaultStyle:{ font:'NotoSansKhmer', fontSize:10, lineHeight:1.15 },
+    header: (currentPage, pageCount)=>({
+      margin:[26,20,26,10],
+      columns:[
+        {
+          width:'*',
+          stack:[
+            { text: meta.title || 'PHD Report — Import Preview', style:'title' },
+            { text: `ឆ្នាំ: ${meta.year}  •  កំឡុងពេល: ${meta.period}  •  បង្កើតនៅ: ${meta.generated}`, style:'sub' }
+          ]
+        },
+        (meta.logoData ? { width:70, image: meta.logoData, fit:[70,70], alignment:'right', margin:[0,0,0,0] } : '')
+      ]
+    }),
+    footer: (currentPage, pageCount)=>({
+      margin:[26, 8, 26, 8],
+      columns:[
+        { text: meta.org || 'Provincial Health Department — Stung Treng', style:'footLeft' },
+        { text: `ទំព័រ ${currentPage}/${pageCount}`, alignment:'right', style:'footRight' }
+      ]
+    }),
+    content:[
+      {
+        table:{
+          headerRows:1,
+          widths:[60, '*', 70, 70, 70, 120],
+          body
+        },
+        layout:{
+          fillColor:(rowIdx)=> (rowIdx===0? '#f2f4f7' : (rowIdx % 2 ? null : '#fcfcfd')),
+          hLineColor: '#e5e7eb',
+          vLineColor: '#e5e7eb'
+        }
+      }
+    ],
+    styles:{
+      title:{ fontSize:16, bold:true, margin:[0,0,0,4] },
+      sub:{ color:'#374151' },
+      th:{ bold:true, color:'#111827' },
+      td:{ color:'#111827' },
+      tdNum:{ color:'#111827' },
+      tdNumBold:{ bold:true, color:'#111827' },
+      footLeft:{ color:'#6b7280' },
+      footRight:{ color:'#6b7280' }
+    }
+  };
+}
+
+/* ==================== Dialog helper ==================== */
+function ensureDialog(root){
+  let dlg=root.querySelector('#sysDialog');
+  if(!dlg){
+    dlg=document.createElement('dialog'); dlg.id='sysDialog';
+    dlg.innerHTML=`
+      <form method="dialog" style="min-width:420px;max-width:80vw">
+        <h5 id="dlgTitle" class="mb-2"></h5>
+        <div id="dlgBody" class="small"></div>
+        <div class="text-end mt-3">
+          <button class="btn btn-sm btn-primary" value="ok">OK</button>
+        </div>
+      </form>`;
+    root.appendChild(dlg);
+  }
+  return dlg;
+}
+function showDialog(root,title,html){
+  const dlg=ensureDialog(root);
+  dlg.querySelector('#dlgTitle').textContent=title||'Message';
+  dlg.querySelector('#dlgBody').innerHTML=html||'';
+  if (dlg.showModal) dlg.showModal(); else alert((title?title+'\n':'')+html.replace(/<[^>]+>/g,' '));
 }
 
 /* ==================== Main Page ==================== */
@@ -303,6 +584,9 @@ export default async function hydrate(root){
     indicator_id:String(r.indicator_id||'').trim(),
     hc_sheet:String(r.hc_sheet||'').trim(),   hc_cell:String(r.hc_cell||'').trim(),
     hosp_sheet:String(r.hosp_sheet||'').trim(), hosp_cell:String(r.hosp_cell||'').trim(),
+    hc_formula:String(r.hc_formula||'').trim(),
+    hosp_formula:String(r.hosp_formula||'').trim(),
+    result_formula:String(r.result_formula||'').trim(),
   }));
 
   // Preview state
@@ -343,34 +627,40 @@ export default async function hydrate(root){
     tbody.innerHTML=`<tr><td colspan="6" class="text-center text-muted py-4">Loading…</td></tr>`;
 
     try{ [HC_WB,HP_WB] = await Promise.all([readWB(fHC), readWB(fHP)]); }
-    catch(e){ setStatus(' អាន Excel បរាជ័យ', false); return; }
+    catch(e){ setStatus('អាន Excel បរាជ័យ', false); return; }
 
     const rows=[], warn=[];
     for (const m of MAPPING){
       const id=String(m.indicator_id||'').trim(); if(!id) continue;
 
-      let vHC='', vHP='';
+      // HC value
+      let hcCellVal='', hpCellVal='';
       if (m.hc_sheet && m.hc_cell){
         const r=pickValueMerged(HC_WB, m.hc_sheet, m.hc_cell);
         if(r.error==='SHEET_NOT_FOUND') warn.push(`HC sheet "${r.sheetName}" not found for ${id}`);
-        vHC=r.value;
+        hcCellVal=r.value;
       }
       if (m.hosp_sheet && m.hosp_cell){
         const r=pickValueMerged(HP_WB, m.hosp_sheet, m.hosp_cell);
         if(r.error==='SHEET_NOT_FOUND') warn.push(`HOSP sheet "${r.sheetName}" not found for ${id}`);
-        vHP=r.value;
+        hpCellVal=r.value;
       }
 
-      const nHC=Number(vHC), nHP=Number(vHP);
-      const valHC=Number.isFinite(nHC)?nHC:(vHC===''?'':vHC);
-      const valHP=Number.isFinite(nHP)?nHP:(vHP===''?'':vHP);
-      let total='';
-      if(Number.isFinite(nHC)||Number.isFinite(nHP)) {
-        total=(Number.isFinite(nHC)?nHC:0)+(Number.isFinite(nHP)?nHP:0);
-      }
+      const hcVal = m.hc_formula ? evalResultFormula(m.hc_formula, '', '', HC_WB, HP_WB) : hcCellVal;
+      const hpVal = m.hosp_formula ? evalResultFormula(m.hosp_formula, '', '', HC_WB, HP_WB) : hpCellVal;
+      const total = evalResultFormula(m.result_formula, hcVal, hpVal, HC_WB, HP_WB);
+
+      const nHC=Number(hcVal), nHP=Number(hpVal), nT=Number(total);
+      const valHC=Number.isFinite(nHC)?nHC:(hcVal===''?'':hcVal);
+      const valHP=Number.isFinite(nHP)?nHP:(hpVal===''?'':hpVal);
+      const valT = Number.isFinite(nT)
+        ? nT
+        : (Number.isFinite(nHC)||Number.isFinite(nHP)
+            ? (Number.isFinite(nHC)?nHC:0)+(Number.isFinite(nHP)?nHP:0)
+            : '');
 
       const msgs=[]; if(!IND_SET.has(id)) msgs.push('<span class="badge bg-warning text-dark">ID មិនមាន</span>');
-      rows.push({ indicator_id:id, name:IND_NAME[id]||'', hc:valHC, hosp:valHP, total, status:msgs.join(' ') });
+      rows.push({ indicator_id:id, name:IND_NAME[id]||'', hc:valHC, hosp:valHP, total:valT, status:msgs.join(' ') });
     }
     rows.sort((a,b)=>a.indicator_id.localeCompare(b.indicator_id,'en',{numeric:true}));
     PREVIEW=rows;
@@ -428,14 +718,7 @@ export default async function hydrate(root){
       const hosp = (idxHOSP>=0 ? (r[idxHOSP]??'') : '');
       const tot  = (idxTotal>=0? (r[idxTotal]??''): '');
       const msgs=[]; if(!IND_SET.has(id)) msgs.push('<span class="badge bg-warning text-dark">ID មិនមាន</span>');
-      rows.push({
-        indicator_id:id,
-        name: name,
-        hc:   hc,
-        hosp: hosp,
-        total: tot,
-        status: msgs.join(' ')
-      });
+      rows.push({ indicator_id:id, name, hc, hosp, total:tot, status:msgs.join(' ') });
     }
 
     rows.sort((a,b)=>a.indicator_id.localeCompare(b.indicator_id,'en',{numeric:true}));
@@ -481,9 +764,9 @@ export default async function hydrate(root){
     setStatus('កំពុង Import ទៅ Firebase…');
     const existingByInd = await fetchExistingMap(period_id);
 
-    let ok=0, fail=0;
+    let ok=0, fail=0, errs=[];
     for (const r of PREVIEW){
-      if (!IND_SET.has(r.indicator_id)) { fail++; continue; }
+      if (!IND_SET.has(r.indicator_id)) { fail++; errs.push(`Unknown ID ${r.indicator_id}`); continue; }
       const foundRid = existingByInd.get(r.indicator_id);
       const report_id = foundRid || `${period_id}-${r.indicator_id}`;
       const nHC = Number(r.hc);
@@ -500,12 +783,18 @@ export default async function hydrate(root){
               : 0),
         updated_at:new Date().toISOString(),
       };
-      try{ await gasSave('reports', payload); ok++; }catch{ fail++; }
+      try{ await gasSave('reports', payload); ok++; }
+      catch(e){ fail++; errs.push(`${r.indicator_id}: ${e?.message||e}`); }
     }
-    setStatus(`Import: OK ${ok} • Fail ${fail}`, fail===0);
+    const okMsg = `Import: OK ${ok} • Fail ${fail}`;
+    setStatus(okMsg, fail===0);
+    showDialog(root, fail? 'Import finished with errors' : 'Import success',
+      `<div>${okMsg}</div>` + (fail? `<div class="small text-danger mt-2">${errs.slice(0,10).map(esc).join('<br>')}${errs.length>10?' …':''}</div>` : '')
+    );
   });
+  const esc = (s)=> String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-  /* ==================== Export helpers (reuse DOM) ==================== */
+  /* ==================== Export → PDF (like data-entry) ==================== */
   function getPreviewRowsFromDOM(){
     const rows=[];
     const strip = (s)=> String(s||'').replace(/\s+/g,' ').trim();
@@ -530,136 +819,42 @@ export default async function hydrate(root){
     const tag=(t==='nine')?'N9':(t==='year'?'Y':(v||'P'));
     return `${y}_${tag}`;
   }
-  function currentPeriodLabel() {
-    const y = (yearSel?.value || '').trim();
-    const t = (perType?.value || '').trim();
-    const v = (perValue?.value || '').trim();
-    const pretty = (t==='nine') ? '៩ ខែ' : (t==='year' ? 'ឆ្នាំ' : v);
-    return `${y}-${t==='nine'?'N9':(t==='year'?'Y':v)} (${pretty})`;
-  }
-
-  /* ==================== Export → PDF (columns = preview, Khmer font) ==================== */
-  async function exportPreviewPdfDataEntryStyle() {
-    const rowsDom = getPreviewRowsFromDOM();
-    if (!rowsDom.length){
-      setStatus('គ្មានទិន្នន័យក្នុងតារាង', false);
+  btnPdf.addEventListener('click', async () => {
+    const src = getPreviewRowsFromDOM();
+    if (!Array.isArray(src) || !src.length){
+      setStatus('គ្មានទិន្នន័យក្នុងតារាង', false); 
       return;
     }
 
-    const oldHtml = btnPdf.innerHTML;
-    const oldDisabled = btnPdf.disabled;
-    btnPdf.disabled = true;
-    btnPdf.innerHTML = `
-      <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-      កំពុងបង្កើត PDF…
-    `;
+    try{
+      await ensureKhmerFontPdfMake();
 
-    try {
-      const okPDF = await ensureJsPDF();
-      const okAT  = await ensureAutoTable();
-      if (!(okPDF && okAT)) throw new Error('jsPDF/autoTable not loaded');
+      const meta = {
+        title: 'សង្ខេបលទ្ធផលនាំចូល (Import Preview)',
+        year: (yearSel?.value||'').trim(),
+        period: (perType?.value||'').trim()==='nine' ? '៩ ខែ'
+                : (perType?.value||'').trim()==='year' ? 'ឆ្នាំ'
+                : (perValue?.value||'').trim(),
+        generated: nowKh(),
+        org: 'មន្ទីរសុខាភិបាលខេត្ត ស្ទឹងត្រែង',
+        logoData: await tryLoadLogoBase64()
+      };
 
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'A4' });
+      const tableDoc = buildPdfDocLikeDataEntry(src, meta);
 
-      // Embed Khmer font
-      await ensureJsPDFKhmerFont(doc);
-      doc.setFont('NotoSansKhmer','normal');
-
-      // Title
-      const label = currentPeriodLabel();
-      doc.setFontSize(14);
-      doc.text(`Import Preview • ${label}`, 40, 40);
-
-      // Head & Body (exactly like preview table order)
-      const head = [['លេខសូចនាករ','ឈ្មោះសូចនាករ','HC','HOSP','សរុប','ស្ថានភាព']];
-      const body = rowsDom.map(r => [
-        r.id || '',
-        r.name || '',
-        r.hc || '',
-        r.hosp || '',
-        r.total || '',
-        r.status || ''
-      ]);
-
-      doc.autoTable({
-        startY: 60,
-        head,
-        body,
-        styles: { font: 'NotoSansKhmer', fontSize: 10, cellPadding: 4 },
-        headStyles: { font: 'NotoSansKhmer', fontStyle: 'bold', fillColor: [240,240,240] },
-        columnStyles: {
-          0: { cellWidth: 90, halign: 'left' },   // ID
-          1: { cellWidth: 360, halign: 'left' },  // Name
-          2: { cellWidth: 90, halign: 'right' },  // HC
-          3: { cellWidth: 90, halign: 'right' },  // HOSP
-          4: { cellWidth: 110, halign: 'right' }, // Total
-          5: { cellWidth: 150, halign: 'left' },  // Status
-        }
+      await new Promise((res, rej)=>{
+        try{
+          window.pdfMake.createPdf(tableDoc).getBlob(
+            blob => blob ? res(true) : rej(new Error('pdf blob null'))
+          );
+        }catch(e){ rej(e); }
       });
 
-      doc.save(`preview_${makeFileTag()}.pdf`);
-      setStatus('Exported PDF (Khmer font, preview columns)');
-    } catch (e) {
-      // Fallback to print if anything fails
-      console.warn('PDF failed, fallback print:', e);
-      const rows = rowsDom;
-      const label = currentPeriodLabel();
-      const win = window.open('', '_blank');
-      const esc = s => String(s ?? '')
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      win.document.write(`
-        <html><head><meta charset="utf-8"><title>Import Preview • ${esc(label)}</title>
-        <style>
-          @page { size: A4 landscape; margin: 16mm; }
-          body{font-family: "Noto Sans Khmer", system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:0}
-          table{border-collapse:collapse;width:100%}
-          th,td{border:1px solid #ddd;padding:6px 8px;font-size:12px}
-          th{background:#f5f5f5}
-          td.num{text-align:right}
-        </style>
-        </head><body>
-          <h2 style="margin:0 0 8px 0; padding:0 0 8px 0;">Import Preview • ${esc(label)}</h2>
-          <table>
-            <thead>
-              <tr>
-                <th style="width:90px">លេខសូចនាករ</th>
-                <th style="width:360px">ឈ្មោះសូចនាករ</th>
-                <th style="width:90px">HC</th>
-                <th style="width:90px">HOSP</th>
-                <th style="width:110px">សរុប</th>
-                <th style="width:150px">ស្ថានភាព</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${
-                rows.map(r => `
-                  <tr>
-                    <td>${esc(r.id||'')}</td>
-                    <td>${esc(r.name||'')}</td>
-                    <td class="num">${esc(r.hc||'')}</td>
-                    <td class="num">${esc(r.hosp||'')}</td>
-                    <td class="num">${esc(r.total||'')}</td>
-                    <td>${esc(r.status||'')}</td>
-                  </tr>
-                `).join('')
-              }
-            </tbody>
-          </table>
-          <script>window.onload=()=>window.print()</script>
-        </body></html>
-      `);
-      win.document.close();
-      setStatus('Opened print view (fallback)');
-    } finally {
-      btnPdf.innerHTML = oldHtml;
-      btnPdf.disabled = oldDisabled;
+      window.pdfMake.createPdf(tableDoc).download(`preview_${makeFileTag()}.pdf`);
+      setStatus('Exported PDF (data-entry style)');
+    }catch(err){
+      setStatus('PDF export failed: ' + (err?.message || err), false);
     }
-  }
-
-  // Hook PDF button
-  btnPdf.addEventListener('click', async () => {
-    await exportPreviewPdfDataEntryStyle();
   });
 
   /* ==================== Export → Excel ==================== */
@@ -672,14 +867,11 @@ export default async function hydrate(root){
       data.push([...tds].map(td=>td.textContent.trim()));
     });
     try{
-      const y=(yearSel?.value||'').trim();
-      const t=(perType?.value||'').trim();
-      const v=(perValue?.value||'').trim();
-      const tag=(t==='nine')?'N9':(t==='year'?'Y':(v||'P'));
+      const tag = makeFileTag();
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet(data);
       XLSX.utils.book_append_sheet(wb, ws, 'Preview');
-      XLSX.writeFile(wb, `preview_${y}_${tag}.xlsx`);
+      XLSX.writeFile(wb, `preview_${tag}.xlsx`);
       setStatus('Exported Excel');
     }catch(e){ setStatus('Excel export failed: ' + (e?.message||e), false); }
   });

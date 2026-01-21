@@ -1,0 +1,43 @@
+<div class="settings-page">
+  <div class="container-page">
+
+    <!-- Page head -->
+    <div class="page-head">
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="kh-head h4 m-0">កំណត់ហេតុប្រជុំ</h1>
+        <nav aria-label="breadcrumb" class="small">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="#/">Dashboard</a></li>
+            <li class="breadcrumb-item">Settings</li>
+            <li class="breadcrumb-item active" aria-current="page">Minutes</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="separator-breadcrumb border-top"></div>
+    </div>
+
+    <!-- Body -->
+    <div class="page-body">
+      <div class="card shadow-sm centered-card">
+        <div class="card-body">
+
+          <!-- This is where JS will render the form -->
+          <div id="minuteFormRoot"></div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+    .settings-page{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+    .container-page{width:100%; max-width:1280px; margin:0 auto; padding:16px 18px 12px; display:flex; flex-direction:column; min-height:0;}
+    .page-head{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
+    .page-body{flex:1 1 auto; min-height:0; display:flex; justify-content:center;}
+    .separator-breadcrumb{ margin-top:2px; }
+    .centered-card{ width:100%; max-width:1100px; margin-top:12px; border:1px solid #eef0f4; border-radius:14px; }
+</style>
+
+<script type="module" src="/assets/js/pages/minute.page.js"></script>

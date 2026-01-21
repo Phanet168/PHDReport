@@ -144,14 +144,18 @@ export async function buildSettingsMenu(targetUlId='settingsMenu'){
 
     if (SUPER){
       const items = [
-        { label:'អ្នកប្រើប្រាស់',  icon:'i-Administrator', href:'#/settings/users' },
-        { label:'សូចនាករ',      icon:'i-Bar-Chart',     href:'#/settings/indicators' },
-        { label:'ជំពូក',        icon:'i-Library',       href:'#/settings/departments' },
-        { label:'ផ្នែក',        icon:'i-Network',       href:'#/settings/units' },
-        { label:'រយៈពេល',      icon:'i-Calendar-4',    href:'#/settings/periods' },
-        { label:'Import Mapping', icon:'i-Link',         href:'#/settings/import-mapping' },  // NEW
-        { label:'Import Excel',   icon:'i-Data-Download',href:'#/settings/import-excel' },
+        { label:'អ្នកប្រើប្រាស់',    icon:'i-Administrator',   href:'#/settings/users' },
+        { label:'សូចនាករ',        icon:'i-Bar-Chart',       href:'#/settings/indicators' },
+        { label:'ជំពូក',          icon:'i-Library',         href:'#/settings/departments' },
+        { label:'ផ្នែក',          icon:'i-Network',         href:'#/settings/units' },
+        { label:'រយៈពេល',        icon:'i-Calendar-4',      href:'#/settings/periods' },
+        { label:'Import Mapping', icon:'i-Link',            href:'#/settings/import-mapping' },
+        { label:'Import Excel',   icon:'i-Data-Download',   href:'#/settings/import-excel' },
+
+        // ✅ NEW: Minute / កំណត់ហេតុ (AI-assisted monthly minutes)
+        { label:'កំណត់ហេតុ (Minute)', icon:'i-Edit', href:'#/settings/minute' },
       ];
+
       box.innerHTML = [
         `<li class="nav-item mt-2 mb-1">
            <span class="text-uppercase text-muted small ps-3">ការកំណត់ (Settings)</span>
@@ -203,6 +207,7 @@ export async function buildSettingsMenu(targetUlId='settingsMenu'){
     });
   }
 }
+
 
 /* ============================== */
 export async function initMenus(){

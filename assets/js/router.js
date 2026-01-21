@@ -12,6 +12,8 @@ const ROUTES = {
   'settings/users':      'pages/settings/users/index.html',
   'settings/periods':    'pages/settings/periods/index.html',
   'settings/import-excel': 'pages/settings/import-excel/index.html',
+  'settings/import-mapping':'pages/settings/import-mapping/index.html',
+  'settings/minute':       'pages/settings/minute/index.html',
   'data-entry':          'pages/data-entry/index.html',
 };
 

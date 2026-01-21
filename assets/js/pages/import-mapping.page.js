@@ -1,4 +1,4 @@
-// assets/js/pages/import-mapping.page.js
+// assets/js/pages/settings/import-mapping.page.js
 import { gasList, gasSave, gasDelete } from '../app.api.firebase.js';
 import { isSuper, isAdmin } from '../app.auth.js';
 
@@ -46,7 +46,43 @@ async function loadHtml(root, relPath){
   root.innerHTML=html;
 }
 
-/* --------------------- Excel merged helpers -------------------- */
+/* --------------------- Number parsing helpers (Kh-friendly) -------------------- */
+function normalizeSpaces(s){ return s.replace(/[\u00A0\u200B\u202F\u2009\u2007]/g,' '); }
+function khToAr(s){ if(s==null) return s; const m={'០':'0','១':'1','២':'2','៣':'3','៤':'4','៥':'5','៦':'6','៧':'7','៨':'8','៩':'9'}; return String(s).replace(/[០-៩]/g,d=>m[d]||d); }
+function stripGroupSeps(str){
+  let s=str.replace(/[៖។]/g,' ');
+  if (s.includes(',') && s.includes('.')){
+    if (/,(\d{1,2})$/.test(s)) s=s.replace(/\./g,'').replace(',', '.');          // 1.234.567,89 → 1234567.89
+    else if (/\.(\d{1,2})$/.test(s)) s=s.replace(/,/g,'');                         // 1,234,567.89 → 1234567.89
+    else s=s.replace(/,/g,'');
+    return s;
+  }
+  if (s.includes(',')) return s.replace(/,/g,'');
+  const partsByDot = s.split('.');
+  if (partsByDot.length>2 || /\.\d{3}$/.test(s)) return s.replace(/\./g,'');
+  return s;
+}
+function extractNumberFromText(x){
+  if (x==null) return '';
+  let s = khToAr(String(x)); s=normalizeSpaces(s).trim();
+  const rxGrouped = /-?\d{1,3}(?:[ ,.\u00A0\u202F\u2009\u2007]\d{3})+(?:[.,]\d+)?/;
+  const rxPlain   = /-?\d+(?:[.,]\d+)?/;
+  let m = s.match(rxGrouped); if(!m) m=s.match(rxPlain); if(!m) return '';
+  let numStr = stripGroupSeps(m[0]).replace(/\s+/g,'');
+  const n=Number(numStr); return Number.isFinite(n)?n:'';
+}
+function toNumberIfPossible(x){
+  if (x==null) return '';
+  if (typeof x==='number' && Number.isFinite(x)) return x;
+  let s = normalizeSpaces(khToAr(String(x).trim()));
+  const isPct=/%$/.test(s); if (isPct) s=s.slice(0,-1);
+  const isPar=/^\(.*\)$/.test(s); if (isPar) s=s.replace(/^\(|\)$/g,'');
+  let n = extractNumberFromText(s); if (n==='') return String(x);
+  n = Number(n); if (!Number.isFinite(n)) return String(x);
+  if (isPct) n = n/100; if (isPar) n=-n; return n;
+}
+
+/* --------------------- Excel + merged helpers -------------------- */
 function mergedMasterRC(ws, R, C){
   const merges=ws['!merges']||[];
   for (const m of merges) if (R>=m.s.r && R<=m.e.r && C>=m.s.c && C<=m.e.c) return {r:m.s.r,c:m.s.c};
@@ -55,17 +91,6 @@ function mergedMasterRC(ws, R, C){
 function getCellAny(ws, r, c){
   const row=ws[r]; if(row&&typeof row==='object'){ const cell=row[c]; if(cell) return cell; }
   const addr=XLSX.utils.encode_cell({r,c}); return ws[addr]||null;
-}
-function khToAr(s){ if(s==null) return s; const m={'០':'0','១':'1','២':'2','៣':'3','៤':'4','៥':'5','៦':'6','៧':'7','៨':'8','៩':'9'}; return String(s).replace(/[០-៩]/g,d=>m[d]||d); }
-function toNumberIfPossible(x){
-  if (x==null) return '';
-  if (typeof x==='number' && Number.isFinite(x)) return x;
-  let s=khToAr(String(x).trim()); if(!s) return '';
-  s=s.replace(/[\u00A0\u200B]/g,'');
-  const pct=/%$/.test(s); if(pct) s=s.slice(0,-1);
-  const par=/^\(.*\)$/.test(s); if(par) s=s.replace(/^\(|\)$/g,'');
-  const n=Number(s.replace(/[\s,]/g,'')); if(!Number.isFinite(n)) return String(x);
-  return pct ? (par?-n:n)/100 : (par?-n:n);
 }
 function evaluateFormulaWS(ws, f){
   if(!ws||!f) return '';
@@ -87,8 +112,7 @@ function evaluateFormulaWS(ws, f){
       let v=''; if(/^[A-Z]+\d+:[A-Z]+\d+$/i.test(z)) v=sumRangeMerged(ws,z); else if(/^[A-Z]+\d+$/i.test(z)) v=readCellMerged(ws,z);
       const n=toNumberIfPossible(v); if(typeof n==='number'){acc+=sign*n; any=true;}
     }
-    return any?acc:'';
-  }
+    return any?acc:''; }
   const one=t.match(/^=\s*([A-Z]+\d+)\s*$/i); return one?readCellMerged(ws,one[1]):'';
 }
 function readCellMerged(ws, a1){
@@ -125,85 +149,104 @@ function pickValueMerged(wb, sheet, cellOrRange){
   return { value:readCellMerged(ws,cc), error:null, sheetName:nm, cell:cc };
 }
 
-/* --------------------- New cross-file Formula Evaluator -------------------- */
-/* Supports:
-   - HC("Sheet!A1"), HOSP("Sheet!B2")
-   - bare HC / HOSP (fallback numeric)
-   - SUM/AVG/MIN/MAX with comma args
-   - + - * / and ( )
-*/
+/* --------------------- Cross-file Formula Evaluator -------------------- */
+/* Split args at top-level commas, respecting nested () and quotes */
+function _splitArgsTopLevel(s){
+  const out=[]; let cur='', depth=0, inQ=null, prev='';
+  for(let i=0;i<s.length;i++){
+    const ch=s[i];
+    if(inQ){ if(ch===inQ && prev!=='\\') inQ=null; cur+=ch; prev=ch; continue; }
+    if(ch=='"'||ch=="'"){ inQ=ch; cur+=ch; prev=ch; continue; }
+    if(ch==='('){ depth++; cur+=ch; prev=ch; continue; }
+    if(ch===')'){ if(depth>0) depth--; cur+=ch; prev=ch; continue; }
+    if(ch===',' && depth===0){ out.push(cur.trim()); cur=''; prev=ch; continue; }
+    cur+=ch; prev=ch;
+  }
+  if(cur.trim()!=='') out.push(cur.trim());
+  return out;
+}
 function readA1FromWB(WB, a1){
   const [sheet, cell] = String(a1||'').split('!');
   if(!sheet || !cell) return '';
   const got = pickValueMerged(WB, sheet, cell);
   return got ? got.value : '';
 }
-function _num(v){ const n=Number(v); return Number.isFinite(n)?n:0; }
+function _resolveHC_HOSP(expr, HC_WB, HP_WB){
+  let out = String(expr||'');
+  out = out.replace(/HC\s*\(\s*["']([^"']+)["']\s*\)/gi, (_,ref)=>{
+    const v = readA1FromWB(HC_WB, ref); const n=toNumberIfPossible(v); return Number.isFinite(n)?String(n):'0';
+  });
+  out = out.replace(/HOSP\s*\(\s*["']([^"']+)["']\s*\)/gi, (_,ref)=>{
+    const v = readA1FromWB(HP_WB, ref); const n=toNumberIfPossible(v); return Number.isFinite(n)?String(n):'0';
+  });
+  out = out.replace(/\bNUM\s*\(\s*([^()]+?)\s*\)/gi, (_,inside)=>{
+    const n = toNumberIfPossible(inside); return Number.isFinite(n)?String(n):'0';
+  });
+  return out;
+}
 function _evalFuncCall(name, args){
-  const arr = args.map(_num);
-  if (!arr.length) return 0;
+  // Evaluate nested sub-expressions safely
+  const evalArg = (s)=>{
+    let e=String(s||'');
+    e=_reduceFunctions(_resolveHC_HOSP(e, null, null));
+    const safe=e.replace(/[^0-9+\-*/().\s]/g,'');
+    try{ const v=Function('"use strict";return ('+(safe||'0')+');')(); return Number(v)||0; }
+    catch{ const n=toNumberIfPossible(s); return (typeof n==='number'&&Number.isFinite(n))?n:0; }
+  };
+  if (name==='ROUND'){
+    const x = args.length? evalArg(args[0]) : 0;
+    const d = args.length>1? Math.max(0, Math.floor(evalArg(args[1]))) : 0;
+    const p = Math.pow(10, d); return Math.round(x*p)/p;
+  }
+  const N = (args||[]).map(evalArg);
   switch(name){
-    case 'SUM': return arr.reduce((a,b)=>a+b,0);
-    case 'AVG': return arr.reduce((a,b)=>a+b,0)/arr.length;
-    case 'MIN': return Math.min(...arr);
-    case 'MAX': return Math.max(...arr);
+    case 'SUM': return N.reduce((a,b)=>a+b,0);
+    case 'AVG': return N.length? N.reduce((a,b)=>a+b,0)/N.length : 0;
+    case 'MIN': return N.length? Math.min(...N) : 0;
+    case 'MAX': return N.length? Math.max(...N) : 0;
+    case 'NUM': return N.length? N[0] : 0;
     default: return 0;
   }
 }
-function _resolveHC_HOSP(expr, HC_WB, HP_WB){
-  // HC("S!A1")
-  expr = expr.replace(/HC\s*\(\s*["']([^"']+)["']\s*\)/gi, (_,ref)=>{
-    const v = readA1FromWB(HC_WB, ref); const n=Number(v); return Number.isFinite(n)?String(n):'0';
-  });
-  // HOSP("S!A1")
-  expr = expr.replace(/HOSP\s*\(\s*["']([^"']+)["']\s*\)/gi, (_,ref)=>{
-    const v = readA1FromWB(HP_WB, ref); const n=Number(v); return Number.isFinite(n)?String(n):'0';
-  });
-  return expr;
-}
 function _reduceFunctions(expr){
-  // Reduce nested functions from inner to outer by repeatedly replacing SUM(...), AVG(...), MIN(...), MAX(...)
-  const rx = /\b(SUM|AVG|MIN|MAX)\s*\(([^()]*?)\)/i;
-  let guard=0;
-  while (rx.test(expr) && guard++<200){
-    expr = expr.replace(rx, (_,name,argStr)=>{
-      const parts = argStr.split(/\s*,\s*/).filter(s=>s.length);
-      // each part may still contain numbers only (after HC/HOSP resolved)
-      const val = _evalFuncCall(name.toUpperCase(), parts);
-      return String(val);
-    });
+  const FN=/\b(SUM|AVG|MIN|MAX|NUM|ROUND)\s*\(/i;
+  let guard=0, s=String(expr||'');
+  while(guard++<1000){
+    const m=s.match(FN); if(!m) break;
+    const fn=m[1].toUpperCase();
+    let i=m.index+m[0].length, depth=1, inQ=null, prev='';
+    for(; i<s.length; i++){
+      const ch=s[i];
+      if(inQ){ if(ch===inQ && prev!=='\\') inQ=null; prev=ch; continue; }
+      if(ch=='"'||ch=="'"){ inQ=ch; prev=ch; continue; }
+      if(ch==='('){ depth++; prev=ch; continue; }
+      if(ch===')'){ depth--; if(depth===0) break; prev=ch; continue; }
+      prev=ch;
+    }
+    if(depth!==0) break;
+    const inner=s.slice(m.index+m[0].length, i);
+    const args=_splitArgsTopLevel(inner);
+    const val=_evalFuncCall(fn,args);
+    s=s.slice(0,m.index)+String(val)+s.slice(i+1);
   }
-  return expr;
+  return s;
 }
 function evalResultFormula(expr, hcVal, hpVal, HC_WB, HP_WB){
-  let raw = String(expr||'').trim();
-  const hcNum = Number(hcVal), hpNum = Number(hpVal);
-
-  // default fallback (no expression)
-  if (!raw){
-    if (Number.isFinite(hcNum) && Number.isFinite(hpNum)) return hcNum + hpNum;
-    if (Number.isFinite(hcNum)) return hcNum;
-    if (Number.isFinite(hpNum)) return hpNum;
+  let raw=String(expr||'').trim();
+  const hcNum=toNumberIfPossible(hcVal), hpNum=toNumberIfPossible(hpVal);
+  if(!raw){
+    if(Number.isFinite(hcNum) && Number.isFinite(hpNum)) return hcNum+hpNum;
+    if(Number.isFinite(hcNum)) return hcNum;
+    if(Number.isFinite(hpNum)) return hpNum;
     return '';
   }
-
-  // Step 1: substitute cross-file refs
-  raw = _resolveHC_HOSP(raw, HC_WB, HP_WB);
-
-  // Step 2: backward-compat HC/HOSP placeholders
-  raw = raw.replace(/\bHC\b/gi, Number.isFinite(hcNum)?`(${hcNum})`:'0');
-  raw = raw.replace(/\bHOSP\b/gi, Number.isFinite(hpNum)?`(${hpNum})`:'0');
-
-  // Step 3: reduce functions SUM/AVG/MIN/MAX(...)
-  raw = _reduceFunctions(raw);
-
-  // Step 4: keep only safe tokens and eval
-  const safeExpr = raw.replace(/[^0-9+\-*/().\s]/g,'');
-  try{
-    // eslint-disable-next-line no-new-func
-    const val = Function('"use strict";return ('+safeExpr+');')();
-    const n=Number(val); return Number.isFinite(n)?n:'';
-  }catch{ return ''; }
+  raw=_resolveHC_HOSP(raw, HC_WB, HP_WB);
+  raw=raw.replace(/\bHC\b/g, Number.isFinite(hcNum)?`(${hcNum})`:'0');
+  raw=raw.replace(/\bHOSP\b/g, Number.isFinite(hpNum)?`(${hpNum})`:'0');
+  raw=_reduceFunctions(raw);
+  const safeExpr=raw.replace(/[^0-9+\-*/().\s]/g,'');
+  try{ const val=Function('"use strict";return ('+(safeExpr||'0')+');')(); const n=Number(val); return Number.isFinite(n)?n:''; }
+  catch{ return ''; }
 }
 
 /* --------------------- Utils & UI helpers -------------------- */
@@ -282,7 +325,6 @@ export default async function hydrate(root){
   const helpBody    = root.querySelector('#helpBody');
 
   btnShowHelp?.addEventListener('click', ()=>{ helpBody.hidden = !helpBody.hidden; });
-
   [btnSaveAll,btnNewRow,btnReload,btnDeleteAll].forEach(b=>b?.setAttribute('type','button'));
   root.querySelectorAll('button:not([type])').forEach(b=>b.setAttribute('type','button'));
 
@@ -302,7 +344,6 @@ export default async function hydrate(root){
   const IND_IDS  = new Set(indicators.map(i=>String(i.indicator_id)));
   let MAP_ROWS   = toArr(await gasList('import_mappings'))||[];
 
-  // Add new fields if not exist in existing rows
   MAP_ROWS = MAP_ROWS.map(r=>({
     indicator_id:String(r.indicator_id),
     hc_sheet:r.hc_sheet||'',
@@ -327,16 +368,14 @@ export default async function hydrate(root){
     HC_WB = await readWB(testHC.files[0]); HC_SHEETS = HC_WB.SheetNames.slice();
     fillSelect(hcSheetGlobal, HC_SHEETS);
     ensureRowDatalist(root,'hcSheetNames',HC_SHEETS);
-    setStatus(`HC sheets: ${HC_SHEETS.join(', ')}`);
-    refreshTestButtons();
+    setStatus(`HC sheets: ${HC_SHEETS.join(', ')}`); refreshTestButtons();
   }
   async function onHPFileChange(){
     if(!testHOSP?.files?.[0]) return;
     HP_WB = await readWB(testHOSP.files[0]); HP_SHEETS = HP_WB.SheetNames.slice();
     fillSelect(hospSheetGlobal, HP_SHEETS);
     ensureRowDatalist(root,'hpSheetNames',HP_SHEETS);
-    setStatus(`HOSP sheets: ${HP_SHEETS.join(', ')}`);
-    refreshTestButtons();
+    setStatus(`HOSP sheets: ${HP_SHEETS.join(', ')}`); refreshTestButtons();
   }
   testHC?.addEventListener('change', onHCFileChange);
   testHOSP?.addEventListener('change', onHPFileChange);
@@ -350,99 +389,75 @@ export default async function hydrate(root){
     return { value:canon, source: input ? 'row':'global' };
   }
 
-  /* ---------- build row with 3 Formula textboxes ---------- */
-// ⬇️ ជំនួស function buildRow(r) ដាច់ខាត
-function buildRow(r){
-  const id = String(r.indicator_id);
-  const name = IND_NAME[id] || '';
+  // ---- Build row (3 formula input boxes) ----
+  function buildRow(r){
+    const id = String(r.indicator_id);
+    const name = IND_NAME[id] || '';
 
-  const tr = document.createElement('tr');
+    const tr = document.createElement('tr');
 
-  // កម្លាំងជួយបង្កើត input មិនមាន value attribute ក្នុង HTML
-  const mkInp = (dataF, placeholder='', listId) => {
-    const inp = document.createElement('input');
-    inp.className = 'form-control form-control-sm';
-    inp.setAttribute('data-f', dataF);
-    if (placeholder) inp.placeholder = placeholder;
-    if (listId) inp.setAttribute('list', listId);
-    return inp;
-  };
+    const mkInp = (dataF, placeholder='', listId) => {
+      const inp = document.createElement('input');
+      inp.className = 'form-control form-control-sm';
+      inp.setAttribute('data-f', dataF);
+      if (placeholder) inp.placeholder = placeholder;
+      if (listId) inp.setAttribute('list', listId);
+      return inp;
+    };
+    const td = (content) => { const el = document.createElement('td'); if (content instanceof Element) el.appendChild(content); else el.innerHTML = content; return el; };
 
-  // បង្កើត cell helper
-  const td = (content) => {
-    const el = document.createElement('td');
-    if (content instanceof Element) el.appendChild(content);
-    else el.innerHTML = content;
-    return el;
-  };
+    tr.appendChild(td(`<code>${id}</code>`));
+    tr.appendChild(td(`${name}`));
 
-  // Cells: ID + Name
-  tr.appendChild(td(`<code>${id}</code>`));
-  tr.appendChild(td(`${name}`));
+    const inpHcSheet   = mkInp('hc_sheet','HC sheet','hcSheetNames');
+    const inpHcCell    = mkInp('hc_cell','e.g. O8');
+    const inpHcFormula = mkInp('hc_formula',`NUM(HC("S!A1"))`);
 
-  // HC cells
-  const inpHcSheet   = mkInp('hc_sheet','HC sheet','hcSheetNames');
-  const inpHcCell    = mkInp('hc_cell','e.g. O8');
-  const inpHcFormula = mkInp('hc_formula',`HC("S!A1")+HC("S!A2")`);
+    const inpHpSheet   = mkInp('hosp_sheet','HOSP sheet','hpSheetNames');
+    const inpHpCell    = mkInp('hosp_cell','e.g. O9');
+    const inpHpFormula = mkInp('hosp_formula',`NUM(HOSP("S!B1"))`);
 
-  // HOSP cells
-  const inpHpSheet   = mkInp('hosp_sheet','HOSP sheet','hpSheetNames');
-  const inpHpCell    = mkInp('hosp_cell','e.g. O9');
-  const inpHpFormula = mkInp('hosp_formula',`HOSP("S!B1")+HOSP("S!B2")`);
+    const inpResult    = mkInp('result_formula',`(HC+HOSP)  // e.g. ROUND(HC/HOSP,2)`);
 
-  // Result formula
-  const inpResult    = mkInp('result_formula',`(HC("S!C1")+HOSP("S!D1"))/2`);
+    const tdActive = document.createElement('td');
+    tdActive.className = 'text-center';
+    const chkActive = document.createElement('input'); chkActive.type = 'checkbox'; chkActive.setAttribute('data-f','active');
+    tdActive.appendChild(chkActive);
 
-  // Active
-  const tdActive = document.createElement('td');
-  tdActive.className = 'text-center';
-  const chkActive = document.createElement('input');
-  chkActive.type = 'checkbox';
-  chkActive.setAttribute('data-f','active');
-  tdActive.appendChild(chkActive);
+    const tdActions = document.createElement('td');
+    tdActions.className = 'text-center';
+    tdActions.innerHTML = `
+      <div class="d-flex flex-wrap justify-content-center gap-1">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="useGlobal">Use Global</button>
+        <button type="button" class="btn btn-sm btn-outline-dark"      data-action="test">Test</button>
+        <button type="button" class="btn btn-sm btn-primary"           data-action="save">Save</button>
+        <button type="button" class="btn btn-sm btn-outline-danger"    data-action="del">Delete</button>
+      </div>`;
 
-  // Actions
-  const tdActions = document.createElement('td');
-  tdActions.className = 'text-center';
-  tdActions.innerHTML = `
-    <div class="d-flex flex-wrap justify-content-center gap-1">
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="useGlobal">Use Global</button>
-      <button type="button" class="btn btn-sm btn-outline-dark"      data-action="test">Test</button>
-      <button type="button" class="btn btn-sm btn-primary"           data-action="save">Save</button>
-      <button type="button" class="btn btn-sm btn-outline-danger"    data-action="del">Delete</button>
-    </div>
-  `;
+    tr.appendChild(td(inpHcSheet));
+    tr.appendChild(td(inpHcCell));
+    tr.appendChild(td(inpHcFormula));
 
-  // ដាក់ចូលជួរទៅតារាង
-  tr.appendChild(td(inpHcSheet));
-  tr.appendChild(td(inpHcCell));
-  tr.appendChild(td(inpHcFormula));
+    tr.appendChild(td(inpHpSheet));
+    tr.appendChild(td(inpHpCell));
+    tr.appendChild(td(inpHpFormula));
 
-  tr.appendChild(td(inpHpSheet));
-  tr.appendChild(td(inpHpCell));
-  tr.appendChild(td(inpHpFormula));
+    tr.appendChild(td(inpResult));
+    tr.appendChild(tdActive);
+    tr.appendChild(tdActions);
 
-  tr.appendChild(td(inpResult));
-  tr.appendChild(tdActive);
-  tr.appendChild(tdActions);
+    inpHcSheet.value   = r.hc_sheet || '';
+    inpHcCell.value    = r.hc_cell || '';
+    inpHcFormula.value = r.hc_formula || '';
+    inpHpSheet.value   = r.hosp_sheet || '';
+    inpHpCell.value    = r.hosp_cell || '';
+    inpHpFormula.value = r.hosp_formula || '';
+    inpResult.value    = r.result_formula || '';
+    chkActive.checked  = !!r.active;
 
-  // ⬇️ កំណត់តម្លៃដោយ .value (មិនកាត់ដោយ HTML parser ទៀត)
-  inpHcSheet.value   = r.hc_sheet || '';
-  inpHcCell.value    = r.hc_cell || '';
-  inpHcFormula.value = r.hc_formula || '';
-
-  inpHpSheet.value   = r.hosp_sheet || '';
-  inpHpCell.value    = r.hosp_cell || '';
-  inpHpFormula.value = r.hosp_formula || '';
-
-  inpResult.value    = r.result_formula || '';
-  chkActive.checked  = !!r.active;
-
-  // ភ្ជាប់ event ដូចដើម
-  attachRowEvents(tr, r);
-  return tr;
-}
-
+    attachRowEvents(tr, r);
+    return tr;
+  }
 
   function renderMappingTable(){
     const q=(filterTxt?.value||'').toLowerCase();
@@ -464,7 +479,7 @@ function buildRow(r){
     const q = (indFilter?.value || '').toLowerCase();
     const mapped = new Set(MAP_ROWS.map(r=>String(r.indicator_id)));
 
-    let list = indicators.slice();
+    let list = toArr(indicators).slice();
     if(scope==='unmapped') list = list.filter(i=>!mapped.has(String(i.indicator_id)));
     if(q) list=list.filter(i=> String(i.indicator_id).toLowerCase().includes(q) || String(i.indicator_name||'').toLowerCase().includes(q));
 
@@ -488,12 +503,7 @@ function buildRow(r){
       tr.querySelector('[data-action="addMap"]')?.addEventListener('click', ()=>{
         const id=String(it.indicator_id);
         if (MAP_ROWS.some(r=>String(r.indicator_id)===id)) return setStatus(`Already mapped: ${id}`);
-        MAP_ROWS.push({
-          indicator_id:id,
-          hc_sheet:'', hc_cell:'', hc_formula:'',
-          hosp_sheet:'', hosp_cell:'', hosp_formula:'',
-          result_formula:'', active:1
-        });
+        MAP_ROWS.push({ indicator_id:id, hc_sheet:'', hc_cell:'', hc_formula:'', hosp_sheet:'', hosp_cell:'', hosp_formula:'', result_formula:'', active:1 });
         renderMappingTable(); renderIndicators(); setStatus(`✅ Added ${id}`);
       });
       frag.appendChild(tr);
@@ -522,7 +532,6 @@ function buildRow(r){
         btn.disabled=true; setStatus(`🔍 Testing ${id}…`);
         if(!HC_WB) HC_WB=await readWB(testHC.files[0]); if(!HP_WB) HP_WB=await readWB(testHOSP.files[0]);
 
-        // resolve sheets (cell mode)
         const hcSheet=getRowSheet(tr,'hc').value;
         const hpSheet=getRowSheet(tr,'hosp').value;
 
@@ -531,14 +540,12 @@ function buildRow(r){
         const hcCellVal = (hcSheet && hcCell)? pickValueMerged(HC_WB, hcSheet, hcCell).value : '';
         const hpCellVal = (hpSheet && hpCell)? pickValueMerged(HP_WB, hpSheet, hpCell).value : '';
 
-        // resolve formula (formula mode)
         const hcFormula = tr.querySelector('[data-f="hc_formula"]').value.trim();
         const hpFormula = tr.querySelector('[data-f="hosp_formula"]').value.trim();
         const rsFormula = tr.querySelector('[data-f="result_formula"]').value.trim();
 
         const hcVal = hcFormula ? evalResultFormula(hcFormula, '', '', HC_WB, HP_WB) : hcCellVal;
         const hpVal = hpFormula ? evalResultFormula(hpFormula, '', '', HC_WB, HP_WB) : hpCellVal;
-
         const resultVal = evalResultFormula(rsFormula, hcVal, hpVal, HC_WB, HP_WB);
 
         const msgHtml = `
@@ -547,7 +554,7 @@ function buildRow(r){
           <div><b>HOSP</b> = ${hpVal!==''?hpVal:'—'} <span class="text-muted">(${hpFormula? 'HOSP Formula' : `${hpSheet||'-'}:${hpCell||'-'}`})</span></div>
           <div class="mt-1"><b>Result</b> = ${resultVal!==''?resultVal:'—'} <span class="text-muted">(${rsFormula||'default HC+HOSP'})</span></div>
           <hr class="my-2"/>
-          <div class="small text-muted">💡 Syntax: HC("Sheet!A1"), HOSP("Sheet!B2"), SUM(...), AVG(...), MIN(...), MAX(...), + - * / ( ).</div>`;
+          <div class="small text-muted">💡 Syntax: NUM(...), HC("Sheet!A1"), HOSP("Sheet!B2"), SUM/AVG/MIN/MAX, ROUND(x,d), + - * / ( ).</div>`;
         setStatus(`✅ TEST ${id}: HC=${hcVal!==''?hcVal:'—'} • HOSP=${hpVal!==''?hpVal:'—'} • RESULT=${resultVal!==''?resultVal:'—'}`);
         showDialog(root, `Test ${id}`, msgHtml);
       }catch(err){
@@ -573,8 +580,8 @@ function buildRow(r){
         result_formula:tr.querySelector('[data-f="result_formula"]').value.trim(),
         active: tr.querySelector('[data-f="active"]').checked ? 1 : 0,
       };
-      try{ await gasSave('import_mappings', payload); setStatus(`✅ Updated ${id}`); }
-      catch(e){ setStatus('Save failed: '+(e?.message||e), false); }
+      try{ await gasSave('import_mappings', payload); setStatus(`✅ Updated ${id}`); showDialog(root,'Save','រក្សាទុក​ជោគជ័យ'); }
+      catch(e){ setStatus('Save failed: '+(e?.message||e), false); showDialog(root,'Save failed', (e?.message||e)+''); }
     });
 
     tr.querySelector('[data-action="del"]')?.addEventListener('click', async ()=>{
@@ -585,7 +592,8 @@ function buildRow(r){
         MAP_ROWS = MAP_ROWS.filter(r=>String(r.indicator_id)!==id);
         renderMappingTable();
         setStatus(`✅ Deleted ${id}`);
-      }catch(err){ setStatus('Delete failed', false); }
+        showDialog(root,'Delete','លុបទិន្នន័យជោគជ័យ');
+      }catch(err){ setStatus('Delete failed', false); showDialog(root,'Delete failed', (err?.message||err)+''); }
     });
   }
 
@@ -595,12 +603,7 @@ function buildRow(r){
   btnNewRow?.addEventListener('click', ()=>{
     const id=prompt('Indicator ID?'); if(!id) return;
     if(!IND_IDS.has(String(id)) && !confirm(`ID "${id}" not in indicators. Add anyway?`)) return;
-    MAP_ROWS.push({
-      indicator_id:String(id),
-      hc_sheet:'', hc_cell:'', hc_formula:'',
-      hosp_sheet:'', hosp_cell:'', hosp_formula:'',
-      result_formula:'', active:1
-    });
+    MAP_ROWS.push({ indicator_id:String(id), hc_sheet:'', hc_cell:'', hc_formula:'', hosp_sheet:'', hosp_cell:'', hosp_formula:'', result_formula:'', active:1 });
     renderMappingTable(); setStatus(`✅ Added ${id}`);
   });
 
@@ -624,8 +627,8 @@ function buildRow(r){
         };
       }).filter(Boolean);
       await Promise.all(payloads.map(p=>gasSave('import_mappings', p)));
-      setStatus('✅ All saved');
-    }catch(e){ setStatus('Save All error: ' + (e?.message||e), false); }
+      setStatus('✅ All saved'); showDialog(root,'Save All','រក្សាទុកទាំងអស់ជោគជ័យ');
+    }catch(e){ setStatus('Save All error: ' + (e?.message||e), false); showDialog(root,'Save All failed', (e?.message||e)+''); }
     finally{ btnSaveAll.disabled=false; }
   });
 
@@ -647,19 +650,6 @@ function buildRow(r){
       renderMappingTable();
       setStatus('🔄 Reloaded');
     }finally{ btnReload.disabled=false; }
-  });
-
-  btnDeleteAll?.addEventListener('click', async ()=>{
-    if(!confirm('Delete ALL mappings? This cannot be undone.')) return;
-    try{
-      btnDeleteAll.disabled=true; setStatus('🗑️ Deleting all mappings…');
-      const rows = toArr(await gasList('import_mappings'))||[];
-      for (const r of rows){ const id=String(r.indicator_id||'').trim(); if(!id) continue;
-        try{ await gasDelete('import_mappings', 'indicator_id', id); }catch{}
-      }
-      MAP_ROWS=[]; renderMappingTable(); setStatus('✅ All mappings deleted');
-    }catch(e){ setStatus('Delete All failed', false); }
-    finally{ btnDeleteAll.disabled=false; }
   });
 
   // initial render
