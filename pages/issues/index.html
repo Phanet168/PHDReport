@@ -30,6 +30,12 @@
         .status-progress{background:#ecfeff;color:#155e75;border-color:#a5f3fc}
         .status-done{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
         .status-blocked{background:#fef2f2;color:#991b1b;border-color:#fecaca}
+        .resolution-card{border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:12px;background:#fff}
+        .resolution-card.resolved{border-left:4px solid #10b981;background:#f0fdf4}
+        .resolution-card.pending{border-left:4px solid #f97316;background:#fffbeb}
+        .resolution-badge{display:inline-block;padding:.25rem .6rem;border-radius:.5rem;font-size:.75rem;font-weight:600}
+        .resolution-done{background:#d1fae5;color:#065f46}
+        .resolution-pending{background:#fed7aa;color:#c2410c}
         button.btn-del{ display:none; } html.is-super button.btn-del{ display:inline-flex; }
     </style>
 </head>
@@ -54,7 +60,10 @@
             <div class="card shadow-sm centered-card w-100">
                 <div class="card-body">
                     <div class="toolbar mb-3">
-                        <h4 class="card-title m-0">បញ្ជីបញ្ហាប្រឈម</h4>
+                        <h4 class="card-title m-0">
+                            បញ្ជីបញ្ហាប្រឈម
+                            <span id="scopeBadge" class="badge bg-light text-dark ms-2" style="font-size:0.7rem;font-weight:400"></span>
+                        </h4>
                         <div class="ms-auto d-flex flex-wrap align-items-end gap-2">
                             <div class="seg d-inline-flex">
                                 <button type="button" class="segbtn active" data-type="all">All</button>
@@ -62,6 +71,7 @@
                                 <button type="button" class="segbtn" data-type="quarter">Quarter</button>
                                 <button type="button" class="segbtn" data-type="half">Half</button>
                                 <button type="button" class="segbtn" data-type="year">Year</button>
+                                <button type="button" class="segbtn" data-type="resolution">🎯 Resolution</button>
                             </div>
                             <div>
                                 <label class="form-label small m-0">Year</label>
@@ -81,7 +91,8 @@
 
                     <div id="issuesSummary" class="mb-2 small text-muted">Loading…</div>
 
-                    <div class="table-responsive">
+                    <!-- Table view (shown by default) -->
+                    <div id="tableView" class="table-responsive">
                         <table id="tblIssues" class="table table-striped align-middle mb-0">
                             <colgroup>
                                 <col style="width:320px"><col style="width:120px"><col><col>
@@ -101,6 +112,14 @@
                             <tbody><!-- render by JS --></tbody>
                         </table>
                     </div>
+                    </div>
+
+                    <!-- Resolution view (hidden by default) -->
+                    <div id="resolutionView" style="display:none" class="resolution-container">
+                        <div id="resolutionContent">
+                            <!-- Rendered by JS -->
+                        </div>
+                    </div>
 
                     <!-- កន្លែងសម្រាប់ render PDF ជា client-side (បើចង់) -->
                     <div id="pdfComposer" hidden></div>
@@ -110,6 +129,94 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Action Modal (SUPER only) -->
+<div class="modal fade" id="editActionModal" tabindex="-1" aria-labelledby="editActionLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editActionLabel">កែប្រែសកម្មភាព</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editActionForm">
+          <div class="mb-3">
+            <label for="editIndicator" class="form-label">សូចនាករ</label>
+            <input type="text" class="form-control" id="editIndicator" readonly style="background-color:#f5f5f5">
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editYear" class="form-label">ឆ្នាំ</label>
+                <input type="number" class="form-control" id="editYear" readonly style="background-color:#f5f5f5">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editMonth" class="form-label">ព្រឹត្តិបត្របង្ហាញ</label>
+                <input type="text" class="form-control" id="editMonth" readonly style="background-color:#f5f5f5">
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="editIssueText" class="form-label">បញ្ហាប្រឈម</label>
+            <textarea class="form-control" id="editIssueText" rows="2" placeholder="ពិពណ៌នាបញ្ហាប្រឈម"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="editActionText" class="form-label">សកម្មភាព</label>
+            <textarea class="form-control" id="editActionText" rows="2" placeholder="ពិពណ៌នាសកម្មភាព"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="editActionOwner" class="form-label">អ្នកទទួលខុសត្រូវ</label>
+            <input type="text" class="form-control" id="editActionOwner" placeholder="ឈ្មោះអ្នក ឬ បញ្ជីដែលបំបែកដោយលក្ខណៈពិសេស">
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editActionDue" class="form-label">កំណត់ពេល</label>
+                <input type="date" class="form-control" id="editActionDue">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editActionStatus" class="form-label">ស្ថានភាព</label>
+                <select class="form-select" id="editActionStatus">
+                  <option value="planned">បានគ្រោង</option>
+                  <option value="ongoing">កំពុងដំណើរការ</option>
+                  <option value="done">បានបញ្ចប់</option>
+                  <option value="blocked">មានឧបសគ្គ</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- ដំណោះស្រាយ / ប្រសិទ្ធផល (ដែលបង្ហាញតែពេលស្ថានភាពប្រែប្រួល) -->
+          <div id="resolutionSection" style="display:none; border-top:1px solid #e5e7eb; padding-top:12px">
+            <div class="alert alert-success mb-3" role="alert">
+              <strong>🎉 សូមស្វាគមន៍!</strong> អ្នកកំពុងសម្គាល់សកម្មភាពនេះថាបានបញ្ចប់។
+              <br><small class="text-muted">សូមបង្ហាញលម្អិតនៃដំណោះស្រាយ និងលទ្ធផល</small>
+            </div>
+            <div class="mb-3">
+              <label for="editResolutionText" class="form-label">លម្អិតដំណោះស្រាយ</label>
+              <textarea class="form-control" id="editResolutionText" rows="3" placeholder="ឧទាហរណ៍:&#10;• រៀបចំពិគ្រោះយោបល់ ថ្ងៃទី ១ ខែកុម្ភៈ ២០២៦&#10;• បានលើកលែងផងក៏ដោយ នៃលក្ខណៈវិនិច្ឆ័យដូចខាងក្រោម...&#10;• លទ្ធផល៖ ដែលបង្កើនឡើងដល់ ៨៥% លើសពីរំណាប់លើអាម៉ាស"></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="editResolutionDate" class="form-label">ថ្ងៃដែលបានដោះស្រាយ</label>
+              <input type="date" class="form-control" id="editResolutionDate">
+            </div>
+          </div>
+
+          <input type="hidden" id="editActionId" value="">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បិទ</button>
+        <button type="button" class="btn btn-primary" id="btnSaveEdit">រក្សាទុក</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
 

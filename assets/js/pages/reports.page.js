@@ -1,18 +1,22 @@
 // assets/js/pages/reports.page.js
 // Khmer Summary Report — group by Department → Unit, show Value & Target,
-// និងបញ្ជូន PDF ទៅ Google Apps Script Web App (ខេត្ត/ក្រសួង)
+// and send PDF payload to Google Apps Script Web App.
+//
+// ✅ For Firestore schema (from screenshot):
+// - reports docs contain: period_id: "2025-Y", indicator_id, unit_id, value, target, created_at, updated_at
+// - Year is derived from period_id (not from field "year")
+// - Periods supported: YYYY-Y, YYYY-N9, YYYY-H1/H2, YYYY-Q1..Q4, YYYY-M01..M12, YYYY-01..12
+// - No "@last" (must choose exact period)
 
 import { gasList } from '../app.api.firebase.js';
-import { isSuper } from '../app.auth.js';       // ✅ ADD: ដើម្បីពិនិត្យ SUPER
+import { isSuper } from '../app.auth.js';
 
 export default async function reportsPage(root, ctx){
-  /* ===== GAS Web App ===== */
   const GAS_WEBAPP = 'https://script.google.com/macros/s/AKfycbxYy_0Njta5t0lq4LJUFgVPkUsQNVuRCJDGuJmy1jZ6opVS380YoeBLVRTaxblyk1R0/exec';
 
   const $  = s => root.querySelector(s);
   const $$ = s => Array.from(root.querySelectorAll(s));
 
-  /* ===== DOM ===== */
   const bodyEl   = $('#tblReportsBody');
   const yearSel  = $('#reportYear');
   const tagSel   = $('#reportTag');
@@ -24,77 +28,80 @@ export default async function reportsPage(root, ctx){
   const statusEl = $('#status');
   if (!bodyEl) return;
 
-  /* ===== Auth ===== */
-  const SUPER = isSuper();       // ✅ បញ្ជាក់តួនាទី
+  const SUPER = isSuper();
 
-  /* ===== Utils ===== */
   const KH_MONTHS = ['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
   const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const pretty = (y,t)=>!y||!t?''
-    : /^M\d{2}$/.test(t) ? `${KH_MONTHS[+t.slice(1)-1]} ${y}` : (t==='Y12' ? `ឆ្នាំ ${y}` : `${y} ${t}`);
+  const pretty = (y,t)=>!y||!t?'' : (
+    /^M\d{2}$/.test(t) ? `${KH_MONTHS[+t.slice(1)-1]} ${y}` :
+    (t==='Y12' ? `ឆ្នាំ ${y}` : (t==='N9' ? `៩ខែ ${y}` : `${y} ${t}`))
+  );
 
-  // Parse {year, tag} (supports period_id "YYYY-MM")
+  // Parse "period_id" like "2025-Y", "2025-Q1", "2025-M01", "2025-01", ...
+  // fallback: id like "2025-Y__591__40"
   const normPeriod = (obj = {})=>{
-    let {year, month, tag, period_id} = obj;
-    if (typeof year === 'string' && /^\d{4}$/.test(year)) year = parseInt(year, 10);
-    const pid = String(period_id || '').trim();
-    if (/^\d{4}-\d{2}$/.test(pid)) {
-      const y = parseInt(pid.slice(0,4), 10);
-      const t = 'M' + pid.slice(5,7);
-      return { year: y, tag: t, pid };
-    }
-    const t0 = String(tag || month || '').toUpperCase();
-    return { year: year || undefined, tag: t0 || '', pid: '' };
-  };
+    let pid = String(obj.period_id || obj.periodId || '').trim();
 
-  // Rank for tag when period_id absent
-  const tagRank = (t)=>{
-    if (!t) return -1;
-    if (/^M\d{2}$/.test(t)) return parseInt(t.slice(1),10);       // 1..12
-    if (/^Q[1-4]$/.test(t)) return 100 + parseInt(t.slice(1),10);  // 101..104
-    if (/^H[12]$/.test(t))  return 200 + parseInt(t.slice(1),10);  // 201..202
-    if (t==='N9')  return 300 + 9;
-    if (t==='Y12') return 400 + 12;
-    return 0;
-  };
-  // b later than a ?
-  const isLater = (a, b)=>{
-    if (a?.pid && b?.pid) return b.pid > a.pid;
-    if (b?.pid && !a?.pid) return true;
-    if (a?.pid && !b?.pid) return false;
-    if (a?.year && b?.year && a.year !== b.year) return b.year > a.year;
-    const ra = tagRank(a?.tag), rb = tagRank(b?.tag);
-    if (rb !== ra) return rb > ra;
-    const tsa = +new Date(a?.updated_at || a?.updatedAt || a?.timestamp || 0);
-    const tsb = +new Date(b?.updated_at || b?.updatedAt || b?.timestamp || 0);
-    return tsb > tsa;
+    if (!pid) {
+      const rawId = String(obj.id || obj.doc_id || obj.docId || '').trim();
+      if (rawId.includes('__')) pid = rawId.split('__')[0]; // "2025-Y"
+    }
+
+    if (pid) {
+      let m = pid.match(/^(\d{4})-Y$/i);
+      if (m) return { year: +m[1], tag: 'Y12', pid };
+
+      m = pid.match(/^(\d{4})-N9$/i);
+      if (m) return { year: +m[1], tag: 'N9', pid };
+
+      m = pid.match(/^(\d{4})-H([12])$/i);
+      if (m) return { year: +m[1], tag: `H${m[2]}`, pid };
+
+      m = pid.match(/^(\d{4})-Q([1-4])$/i);
+      if (m) return { year: +m[1], tag: `Q${m[2]}`, pid };
+
+      m = pid.match(/^(\d{4})-M(0[1-9]|1[0-2])$/i);
+      if (m) return { year: +m[1], tag: `M${m[2]}`, pid };
+
+      m = pid.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+      if (m) return { year: +m[1], tag: `M${m[2]}`, pid };
+    }
+
+    // ultimate fallback if your actions have year/tag fields
+    let year = obj.year;
+    if (typeof year === 'string' && /^\d{4}$/.test(year)) year = parseInt(year, 10);
+    if (typeof year !== 'number') year = undefined;
+
+    const t0 = String(obj.tag || obj.month || '').toUpperCase().trim();
+    return { year, tag: t0, pid };
   };
 
   const keyOf = (indicator_id, year, tag)=> `${indicator_id}|${year}|${tag}`;
 
-  // Base64URL(JSON) for GAS
   const toB64UTF8 = (obj)=>{
     const s = JSON.stringify(obj);
     const bytes = new TextEncoder().encode(s);
-    let bin = ""; for (let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+    let bin = "";
+    for (let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
     return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   };
 
   /* ===== State ===== */
-  let MODE = 'M';                // 'M' | 'Q' | 'H' | 'N9' | 'Y12'
-  let REP_MAP  = new Map();      // indicator+period → {value,target,...}
-  let YEARS    = new Set();      // years from reports/actions
-  let LATEST_BY_IND = new Map(); // indicator → latest {year, tag, ...}
-  let BASE_ROWS = [];            // indicator meta rows
-  let ACTIONS_IDX = new Map();   // (indicator_id|year|tag) → {issues[], actions[]}
+  let MODE = 'M';
+  let REP_MAP  = new Map();
+  let YEARS    = new Set();
+  let BASE_ROWS = [];
+  let ACTIONS_IDX = new Map();
 
   /* ===== Skeleton ===== */
   (function skel(n=6){
     bodyEl.innerHTML = '';
     for (let i=0;i<n;i++){
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td colspan="5"><div class="skeleton" style="height:18px; width:30%"></div>
-                      <div class="skeleton mt-2" style="height:14px; width:80%"></div></td>`;
+      tr.innerHTML = `<td colspan="5">
+        <div class="skeleton" style="height:18px; width:30%"></div>
+        <div class="skeleton mt-2" style="height:14px; width:80%"></div>
+      </td>`;
       bodyEl.appendChild(tr);
     }
   })();
@@ -108,12 +115,14 @@ export default async function reportsPage(root, ctx){
     gasList('reports').catch(()=>[]),
   ]);
 
-  // Lookups
-  const indById  = new Map((indicators||[]).map(i=>[String(i.indicator_id), i]));
-  const unitMeta = new Map((units||[]).map(u=>[String(u.unit_id), {name:u.unit_name, dept:String(u.department_id||'')}]));
-  const deptName = Object.fromEntries((depts||[]).map(d=>[String(d.department_id), d.department_name]));
+  const unitMeta = new Map((units||[]).map(u=>[
+    String(u.unit_id),
+    { name: u.unit_name, dept: String(u.department_id||'') }
+  ]));
+  const deptName = Object.fromEntries((depts||[]).map(d=>[
+    String(d.department_id), d.department_name
+  ]));
 
-  // Build BASE_ROWS
   BASE_ROWS = (indicators||[]).map(ind=>{
     const id  = String(ind.indicator_id);
     const uid = String(ind.unit_id || '');
@@ -131,42 +140,39 @@ export default async function reportsPage(root, ctx){
   // ACTIONS_IDX
   ACTIONS_IDX = new Map();
   (actions||[]).forEach(a=>{
-    const {year, tag} = normPeriod(a);
+    const { year, tag } = normPeriod(a);
     if (!year || !tag) return;
     YEARS.add(year);
+
     const id = String(a.indicator_id||'');
-    const k = keyOf(id, year, tag);
+    const k  = keyOf(id, year, tag);
     const cur = ACTIONS_IDX.get(k) || {issues:[], actions:[]};
+
     if (a.issue_text)  cur.issues.push(a.issue_text);
     if (a.action_text) cur.actions.push(a.action_text);
+
     ACTIONS_IDX.set(k, cur);
   });
 
-  // REP_MAP + LATEST_BY_IND
+  // REP_MAP
   REP_MAP = new Map();
-  LATEST_BY_IND = new Map();
   (reports||[]).forEach(r=>{
-    const { year, tag, pid } = normPeriod(r);
+    const { year, tag } = normPeriod(r);
     if (!year || !tag) return;
     YEARS.add(year);
+
     const indId = String(r.indicator_id||'');
-    const vt = {
+    REP_MAP.set(keyOf(indId, year, tag), {
       value: Number(r.value ?? r.val ?? r.current ?? NaN),
-      target: Number(r.target ?? r.plan ?? NaN),
-      department_id: String(r.department_id || ''),
-      unit_id: String(r.unit_id || ''),
-      year, tag, pid,
-      updated_at: r.updated_at || r.updatedAt || r.timestamp || ''
-    };
-    REP_MAP.set(keyOf(indId, year, tag), vt);
-    const cur = LATEST_BY_IND.get(indId);
-    if (!cur || isLater(cur, vt)) LATEST_BY_IND.set(indId, vt);
+      target: Number(r.target ?? r.plan ?? NaN)
+    });
   });
+
+  if (!YEARS.size) YEARS.add(new Date().getFullYear());
 
   /* ===== Controls ===== */
   function buildYearOptions(){
     const list = [...YEARS].filter(Boolean).sort((a,b)=>b-a);
-    if (!list.length) list.push(new Date().getFullYear());
     yearSel.innerHTML = list.map(y=>`<option value="${y}">${y}</option>`).join('');
     yearSel.value = String(list[0]);
   }
@@ -174,15 +180,24 @@ export default async function reportsPage(root, ctx){
   function buildTagOptions(){
     const t = MODE;
     const opts = [];
-    opts.push(`<option value="@last">ចុងក្រោយ</option>`);
+
     if (t==='M'){
-      for (let m=1;m<=12;m++){ const mm = 'M'+String(m).padStart(2,'0'); opts.push(`<option value="${mm}">${mm}</option>`); }
-    } else if (t==='Q'){ opts.push(...['Q1','Q2','Q3','Q4'].map(x=>`<option value="${x}">${x}</option>`)); }
-      else if (t==='H'){ opts.push(...['H1','H2'].map(x=>`<option value="${x}">${x}</option>`)); }
-      else if (t==='N9'){ opts.push(`<option value="N9">N9</option>`); }
-      else if (t==='Y12'){ opts.push(`<option value="Y12">Y12</option>`); }
+      for (let m=1;m<=12;m++){
+        const mm = 'M'+String(m).padStart(2,'0');
+        opts.push(`<option value="${mm}">${KH_MONTHS[m-1]} (${mm})</option>`);
+      }
+    } else if (t==='Q'){
+      opts.push(...['Q1','Q2','Q3','Q4'].map(x=>`<option value="${x}">${x}</option>`));
+    } else if (t==='H'){
+      opts.push(...['H1','H2'].map(x=>`<option value="${x}">${x}</option>`));
+    } else if (t==='N9'){
+      opts.push(`<option value="N9">៩ខែ (N9)</option>`);
+    } else if (t==='Y12'){
+      opts.push(`<option value="Y12">ឆ្នាំ (Y12)</option>`);
+    }
+
     tagSel.innerHTML = opts.join('');
-    tagSel.value='@last';
+    if (tagSel.options.length) tagSel.value = tagSel.options[0].value;
   }
 
   function bindSeg(){
@@ -190,31 +205,21 @@ export default async function reportsPage(root, ctx){
       b.addEventListener('click', ()=>{
         segBtns.forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
-        MODE = b.dataset.pt; // M/Q/H/N9/Y12
+        MODE = b.dataset.pt;
         buildTagOptions();
         render();
-      }, {passive:true});
+      });
     });
   }
 
-  /* ===== Value/Target getters ===== */
   const getVT = (indicator_id, year, tag)=>{
-    if (tag === '@last') {
-      const row = LATEST_BY_IND.get(indicator_id);
-      if (!row) return { value:'—', target:'—', year:null, tag:null, isLatest:true };
-      return {
-        value: Number.isFinite(row.value) ? row.value : '—',
-        target: Number.isFinite(row.target) ? row.target : '—',
-        year: row.year, tag: row.tag, isLatest:true
-      };
-    }
     const vt = REP_MAP.get(keyOf(indicator_id, year, tag));
     return {
       value: (vt && Number.isFinite(vt.value)) ? vt.value : '—',
       target: (vt && Number.isFinite(vt.target)) ? vt.target : '—',
-      year, tag, isLatest:false
     };
   };
+
   const getIA = (indicator_id, year, tag)=>{
     const a = ACTIONS_IDX.get(keyOf(indicator_id, year, tag));
     return {
@@ -223,19 +228,18 @@ export default async function reportsPage(root, ctx){
     };
   };
 
-  /* ===== Render ===== */
   function render(){
-    const ySel = Number(yearSel.value||new Date().getFullYear());
-    const tagChosen = String(tagSel.value||'').toUpperCase();
-    const q   = String(txtQ?.value||'').trim().toLowerCase();
+    const ySel = Number(yearSel.value || new Date().getFullYear());
+    const tagChosen = String(tagSel.value || '').toUpperCase();
+    const q = String(txtQ?.value || '').trim().toLowerCase();
 
     const rows = BASE_ROWS.map(b=>{
       const vt = getVT(b.indicator_id, ySel, tagChosen);
-      const ia = getIA(b.indicator_id, vt.year || ySel, vt.tag || tagChosen);
+      const ia = getIA(b.indicator_id, ySel, tagChosen);
       return {
         ...b,
-        year: vt.year || ySel,
-        tag : vt.tag  || (tagChosen==='@last' ? '' : tagChosen),
+        year: ySel,
+        tag : tagChosen,
         value : vt.value,
         target: vt.target,
         issues : ia.issues,
@@ -247,20 +251,22 @@ export default async function reportsPage(root, ctx){
       return blob.includes(q);
     });
 
-    // group Dept → Unit → Indicator
     const byDept = new Map();
     rows.forEach(r=>{
-      const d = String(r.department_id||'@NA');
+      const d = String(r.department_id || '@NA');
       if (!byDept.has(d)) byDept.set(d, []);
       byDept.get(d).push(r);
     });
 
-    const deptIds = [...byDept.keys()].sort((a,b)=> String(deptName[a]||a).localeCompare(String(deptName[b]||b), 'km-KH', {numeric:true}));
+    const deptIds = [...byDept.keys()].sort((a,b)=>
+      String(deptName[a] || a).localeCompare(String(deptName[b] || b), 'km-KH', {numeric:true})
+    );
+
     const frag = document.createDocumentFragment();
     let totalRows = 0;
 
     deptIds.forEach((depId, dIdx)=>{
-      const dRows = byDept.get(depId)||[];
+      const dRows = byDept.get(depId) || [];
       const dName = deptName[depId] || (depId==='@NA' ? '(គ្មានជំពូក)' : depId);
 
       const trD = document.createElement('tr');
@@ -270,7 +276,7 @@ export default async function reportsPage(root, ctx){
 
       const byUnit = new Map();
       dRows.forEach(r=>{
-        const u = String(r.unit_id||'@NA');
+        const u = String(r.unit_id || '@NA');
         if (!byUnit.has(u)) byUnit.set(u, []);
         byUnit.get(u).push(r);
       });
@@ -288,21 +294,22 @@ export default async function reportsPage(root, ctx){
         trU.innerHTML = `<td colspan="5" class="ps-3">${dIdx+1}.${uIdx+1} ${esc(uName)}</td>`;
         frag.appendChild(trU);
 
-        const list = (byUnit.get(uId)||[]).slice().sort((a,b)=>{
-          return String(a.indicator_name||'').localeCompare(String(b.indicator_name||''), 'km-KH', {numeric:true});
-        });
+        const list = (byUnit.get(uId) || []).slice().sort((a,b)=>
+          String(a.indicator_name||'').localeCompare(String(b.indicator_name||''), 'km-KH', {numeric:true})
+        );
 
         list.forEach(r=>{
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>
               <div class="fw-semibold">${esc(r.indicator_name || '(គ្មានឈ្មោះសូចនាករ)')}</div>
-              <div class="small text-muted">${esc(tagChosen==='@last' ? (pretty(r.year, r.tag) || 'ចុងក្រោយ') : pretty(r.year, r.tag))}</div>
+              <div class="small text-muted">${esc(pretty(r.year, r.tag))}</div>
             </td>
-            <td class="text-center">${Number.isFinite(r.value)? r.value : '—'}</td>
-            <td class="text-center">${Number.isFinite(r.target)? r.target : '—'}</td>
-            <td>${r.issues.length ? ('• ' + r.issues.join('<br>• ')) : '—'}</td>
-            <td>${r.actions.length ? ('• ' + r.actions.join('<br>• ')) : '—'}</td>`;
+            <td class="text-center">${Number.isFinite(r.value) ? r.value : '—'}</td>
+            <td class="text-center">${Number.isFinite(r.target) ? r.target : '—'}</td>
+            <td>${r.issues.length ? ('• ' + r.issues.map(esc).join('<br>• ')) : '—'}</td>
+            <td>${r.actions.length ? ('• ' + r.actions.map(esc).join('<br>• ')) : '—'}</td>
+          `;
           frag.appendChild(tr);
           totalRows++;
         });
@@ -310,10 +317,10 @@ export default async function reportsPage(root, ctx){
     });
 
     bodyEl.replaceChildren(frag);
-    statusEl.textContent = `បានជ្រើស៖ ឆ្នាំ ${ySel} • ${tagChosen==='@last'?'(ចុងក្រោយ)':('រយៈពេល '+tagChosen)} • សរុប ${totalRows} ជួរដេក`;
+    statusEl.textContent = `បានជ្រើស៖ ឆ្នាំ ${ySel} • ${pretty(ySel, tagChosen)} • សរុប ${totalRows} ជួរដេក`;
   }
 
-  /* ===== PDF helpers ===== */
+  /* ===== PDF ===== */
   function ensureHiddenForm(){
     let form = document.getElementById('reportPdfForm');
     if (!form){
@@ -336,20 +343,19 @@ export default async function reportsPage(root, ctx){
   }
 
   function gatherReportData(){
-    const year = Number(yearSel.value||new Date().getFullYear());
-    const tag  = String(tagSel.value||'').toUpperCase();
-    const mode = MODE;
-
-    const rowsForPdf = [];
-    const ySel = year, tagChosen = tag;
+    const year = Number(yearSel.value || new Date().getFullYear());
+    const tagChosen = String(tagSel.value || '').toUpperCase();
 
     const rows = BASE_ROWS.map(b=>{
-      const vt = getVT(b.indicator_id, ySel, tagChosen);
-      const ia = getIA(b.indicator_id, vt.year || ySel, vt.tag || tagChosen);
+      const vt = getVT(b.indicator_id, year, tagChosen);
+      const ia = getIA(b.indicator_id, year, tagChosen);
       return {
-        ...b,
-        year: vt.year || ySel,
-        tag : vt.tag  || (tagChosen==='@last' ? '' : tagChosen),
+        indicator_id   : b.indicator_id,
+        indicator_name : b.indicator_name || '',
+        department_name: b.department_name || '',
+        unit_name      : b.unit_name || '',
+        year,
+        tag: tagChosen,
         value : Number.isFinite(vt.value) ? vt.value : '',
         target: Number.isFinite(vt.target) ? vt.target : '',
         issues : ia.issues,
@@ -358,53 +364,39 @@ export default async function reportsPage(root, ctx){
     });
 
     rows.sort((a,b)=>{
-      const dn=(a.department_name||'').localeCompare(b.department_name||'', 'km-KH', {numeric:true});
+      const dn = (a.department_name||'').localeCompare(b.department_name||'', 'km-KH', {numeric:true});
       if (dn) return dn;
-      const ua=(a.unit_name||'').localeCompare(b.unit_name||'', 'km-KH', {numeric:true});
-      if (ua) return ua;
+      const un = (a.unit_name||'').localeCompare(b.unit_name||'', 'km-KH', {numeric:true});
+      if (un) return un;
       return (a.indicator_name||'').localeCompare(b.indicator_name||'', 'km-KH', {numeric:true});
     });
 
-    rows.forEach(r=>{
-      rowsForPdf.push({
-        indicator_id   : r.indicator_id,
-        indicator_name : r.indicator_name || '',
-        department_name: r.department_name || '',
-        unit_name      : r.unit_name || '',
-        year: r.year, tag: r.tag,
-        value : r.value,
-        target: r.target,
-        issues : r.issues,
-        actions: r.actions
-      });
-    });
-
     const meta = {
-      year: ySel,
-      tag : tagChosen,
-      periodText: tagChosen==='@last' ? 'ចុងក្រោយ' : pretty(ySel, tagChosen),
-      mode,
+      year,
+      tag: tagChosen,
+      periodText: pretty(year, tagChosen),
+      mode: MODE,
       title1: 'របាយការណ៍សង្ខេប',
       title2: 'តម្លៃសូចនាករ • គោលដៅ • បញ្ហា • សកម្មភាព',
       org1: 'មន្ទីរសុខាភិបាលខេត្ត',
       org2: 'ផ្នែកផែនការ និងត្រួតពិនិត្យ'
     };
 
-    return { meta, rows: rowsForPdf };
+    return { meta, rows };
   }
 
   function postPdf(kind){
     const form  = ensureHiddenForm();
     const input = document.getElementById('reportPayloadB64');
     const { meta, rows } = gatherReportData();
-    const payload = { meta: { ...meta, audience: kind }, rows };
-    input.value = toB64UTF8(payload);
+    input.value = toB64UTF8({ meta: { ...meta, audience: kind }, rows });
     form.submit();
   }
 
-  /* ===== Wire up ===== */
   function onApply(){ render(); }
   function onSearchEnter(e){ if (e.key === 'Enter') render(); }
+  function onYearChange(){ render(); }
+  function onTagChange(){ render(); }
 
   bindSeg();
   buildYearOptions();
@@ -412,44 +404,39 @@ export default async function reportsPage(root, ctx){
 
   btnApply?.addEventListener('click', onApply);
   txtQ?.addEventListener('keydown', onSearchEnter);
-  yearSel?.addEventListener('change', ()=>{ buildTagOptions(); render(); });
-  tagSel?.addEventListener('change', render);
+  yearSel?.addEventListener('change', onYearChange);
+  tagSel?.addEventListener('change', onTagChange);
 
-  // ✅ PDF buttons: visible & active only for SUPER
+  let onPDFP = null, onPDFM = null;
   if (!SUPER){
-    // លាក់ប៊ូតុង (UI) និងកុំភ្ជាប់ event listeners (logic)
     btnPDFP?.classList.add('d-none');
     btnPDFM?.classList.add('d-none');
   } else {
-    if (btnPDFP && !btnPDFP.dataset.bound){
-      btnPDFP.dataset.bound = '1';
-      btnPDFP.addEventListener('click', ()=>{
-        const old = btnPDFP.textContent; btnPDFP.disabled = true; btnPDFP.textContent = 'កំពុងបង្កើត…';
-        try { postPdf('province'); } finally { setTimeout(()=>{ btnPDFP.disabled=false; btnPDFP.textContent=old; }, 800); }
-      }, {passive:true});
-    }
-    if (btnPDFM && !btnPDFM.dataset.bound){
-      btnPDFM.dataset.bound = '1';
-      btnPDFM.addEventListener('click', ()=>{
-        const old = btnPDFM.textContent; btnPDFM.disabled = true; btnPDFM.textContent = 'កំពុងបង្កើត…';
-        try { postPdf('ministry'); } finally { setTimeout(()=>{ btnPDFM.disabled=false; btnPDFM.textContent=old; }, 800); }
-      }, {passive:true});
-    }
+    onPDFP = ()=>{
+      const old = btnPDFP.textContent;
+      btnPDFP.disabled = true; btnPDFP.textContent = 'កំពុងបង្កើត…';
+      try { postPdf('province'); }
+      finally { setTimeout(()=>{ btnPDFP.disabled=false; btnPDFP.textContent=old; }, 800); }
+    };
+    onPDFM = ()=>{
+      const old = btnPDFM.textContent;
+      btnPDFM.disabled = true; btnPDFM.textContent = 'កំពុងបង្កើត…';
+      try { postPdf('ministry'); }
+      finally { setTimeout(()=>{ btnPDFM.disabled=false; btnPDFM.textContent=old; }, 800); }
+    };
+    btnPDFP?.addEventListener('click', onPDFP);
+    btnPDFM?.addEventListener('click', onPDFM);
   }
 
-  // First paint
   render();
 
-  /* ===== Cleanup ===== */
   return ()=> {
     btnApply?.removeEventListener('click', onApply);
     txtQ?.removeEventListener('keydown', onSearchEnter);
-    yearSel?.removeEventListener('change', render);
-    tagSel?.removeEventListener('change', render);
-    if (SUPER){
-      btnPDFP?.replaceWith(btnPDFP.cloneNode(true));
-      btnPDFM?.replaceWith(btnPDFM.cloneNode(true));
-    }
+    yearSel?.removeEventListener('change', onYearChange);
+    tagSel?.removeEventListener('change', onTagChange);
+    if (onPDFP) btnPDFP?.removeEventListener('click', onPDFP);
+    if (onPDFM) btnPDFM?.removeEventListener('click', onPDFM);
   };
 }
 

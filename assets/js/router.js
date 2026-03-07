@@ -5,6 +5,8 @@ const ROUTES = {
   '':                    'pages/home.html',
   'issues':              'pages/issues/index.html',
   'reports':             'pages/reports/index.html',
+  'dashboard':           'pages/super/index.html',
+  'super':               'pages/super/index.html',
   'super-dashboard':     'pages/super/index.html',
   'settings/indicators': 'pages/settings/indicators/index.html',
   'settings/departments':'pages/settings/departments/index.html',

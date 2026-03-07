@@ -10,10 +10,12 @@
 */
 const ROUTE = {
   "":                        "home",
+  "dashboard":               "dashboard",
   "data-entry":              "data-entry",
   "reports":                 "reports",
   "issues":                  "issues",
   "super":                   "super-dashboard",
+  "super-dashboard":         "super-dashboard",
 
   // Settings
   "settings/indicators":     "indicators",
@@ -28,9 +30,13 @@ const ROUTE = {
 
 /* Clean path: "#/settings/minute" → "settings/minute" */
 function cleanPath(p) {
-  return String(p || "")
-    .replace(/^#\//, "")
-    .replace(/\/+$/, "");
+  const cleaned = String(p || "")
+    .replace(/^#\//, "")  // Remove #/
+    .replace(/^#/, "")    // Remove just # (edge case)
+    .replace(/\/+$/, "")  // Remove trailing slashes
+    .trim();
+  console.log('[cleanPath] input:', p, '→ output:', cleaned);
+  return cleaned;
 }
 
 /*
@@ -47,12 +53,18 @@ async function loadModule(slug) {
   let lastError;
   for (const url of urls) {
     try {
-      return await import(/* @vite-ignore */ url);
+      console.log('[loadModule] Trying to import:', url);
+      const mod = await import(/* @vite-ignore */ url);
+      console.log('[loadModule] SUCCESS loaded:', url);
+      return mod;
     } catch (err) {
+      console.log('[loadModule] Failed to load', url, ':', err.message);
       lastError = err;
     }
   }
-  throw new Error(`Cannot import module for slug="${slug}"`);
+  const msg = `Cannot import module for slug="${slug}". Tried: ${urls.join(', ')}. Last error: ${lastError?.message}`;
+  console.error('[loadModule]', msg);
+  throw new Error(msg);
 }
 
 /* ========== Exported function (REQUIRED BY router.js) ========== */
@@ -60,11 +72,20 @@ export async function hydratePage(root, rawPath) {
   if (!root) return;
 
   const path = cleanPath(rawPath || location.hash);
-  const slug = ROUTE[path];
+  let slug = ROUTE[path];
+
+  console.log('[hydratePage] DEBUG rawPath:', rawPath, 'cleaned path:', path, 'slug:', slug, 'ROUTE keys:', Object.keys(ROUTE));
 
   if (!slug) {
-    console.warn("No slug for path:", path);
-    return;
+    // Fallback: try exact match in ROUTE keys
+    const exactMatch = Object.keys(ROUTE).find(k => k === path);
+    if (exactMatch) {
+      slug = ROUTE[exactMatch];
+      console.log('[hydratePage] Found via exact match:', slug);
+    } else {
+      console.warn("No slug for path:", path, "Available routes:", Object.keys(ROUTE));
+      return;
+    }
   }
 
   try {

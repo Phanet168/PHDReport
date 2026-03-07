@@ -39,7 +39,7 @@ function prettyPid(pid){
   if (type==='month')   return `${KH_MONTHS[month-1]} ${y}`;
   if (type==='quarter') return `ត្រីមាស ${khDigits(tag.slice(1))} • ${y}`;
   if (type==='half')    return `ឆមាស ${khDigits(tag.slice(1))} • ${y}`;
-  if (tag==='Y12')      return `១២ខែ • ${y}`;
+  if (tag==='Y12')      return `១១ខែ • ${y}`;
   return `ឆ្នាំ ${y}`;
 }
 function prevPid(pid){
@@ -393,7 +393,13 @@ export default async function hydrate(root){
     ROWS = IND.map(ind=>{
       const key=`${String(ind.indicator_id)}|${String(ind.unit_id)}`;
       const v=vMap.get(key)||{}, a=aMap.get(key)||{};
-      const can_edit = SUPER || String(ind.owner_uid||'')===MY_UID || String(ind.unit_id||'')===MY_UNIT;
+      // User can edit if:
+      // - SUPER (all)
+      // - Owner of indicator
+      // - Unit matches AND Department matches (double validation)
+      const unitMatch = String(ind.unit_id||'')===MY_UNIT;
+      const deptMatch = String(ind.department_id||'')===MY_DEPT;
+      const can_edit = SUPER || String(ind.owner_uid||'')===MY_UID || (unitMatch && deptMatch);
 
       return {
         period_id,
@@ -414,6 +420,8 @@ export default async function hydrate(root){
         action_owner : a.action_owner || '',
         action_due   : a.action_due || '',
         action_status: a.action_status || '',
+        resolution_text : a.resolution_text || '',
+        resolution_date : a.resolution_date || '',
       };
     });
 
@@ -588,6 +596,7 @@ export default async function hydrate(root){
   const frm   = R.querySelector('#frmIssue');
   const Modal = window.bootstrap?.Modal;
   const mdl   = (Modal && mdlEl) ? new Modal(mdlEl) : null;
+  
   const f = {
     aid : R.querySelector('#f_action_id'),
     iid : R.querySelector('#f_indicator_id'),
@@ -599,8 +608,33 @@ export default async function hydrate(root){
     owner: R.querySelector('#f_action_owner'),
     due  : R.querySelector('#f_action_due'),
     stat : R.querySelector('#f_action_status'),
+    resText : R.querySelector('#f_resolution_text'),
+    resDate : R.querySelector('#f_resolution_date'),
+    resSect : R.querySelector('#resolutionSection'),
     est  : R.querySelector('#editStatus')
   };
+
+  /**
+   * Toggle resolution section visibility based on action status
+   */
+  function updateResolutionUI() {
+    const statusSel = f.stat;
+    const resSect = f.resSect;
+    const resDate = f.resDate;
+    
+    if (!statusSel || !resSect) return;
+    
+    const isDone = statusSel.value === 'done' || statusSel.value === 'completed';
+    resSect.style.display = isDone ? '' : 'none';
+    
+    // Auto-fill resolution date with today if empty and marked done
+    if (isDone && (!resDate.value || resDate.value === '')) {
+      resDate.value = new Date().toISOString().split('T')[0];
+    }
+  }
+
+  // Listen for status change to toggle resolution section
+  f.stat?.addEventListener('change', updateResolutionUI);
   tbody?.addEventListener('click', e=>{
     const btn=e.target.closest?.('button[data-act="issue"]'); if(!btn) return;
     const key=btn.dataset.key;
@@ -616,12 +650,19 @@ export default async function hydrate(root){
     f.owner&&(f.owner.value=row.action_owner||'');
     f.due&&(f.due.value=row.action_due||'');
     f.stat&&(f.stat.value=row.action_status||'');
+    f.resText&&(f.resText.value=row.resolution_text||'');
+    f.resDate&&(f.resDate.value=row.resolution_date ? row.resolution_date.split('T')[0] : '');
     f.est&&(f.est.textContent='');
+    // Show/hide resolution section based on current status
+    updateResolutionUI();
     mdl?.show();
   });
   frm?.addEventListener('submit', async (e)=>{
     e.preventDefault();
     const pid = curPid();
+    const actionStatus = (R.querySelector('#f_action_status')?.value || '').trim();
+    const isDone = actionStatus === 'done' || actionStatus === 'completed';
+    
     const payload = {
       action_id   : (R.querySelector('#f_action_id')?.value || null),
       indicator_id: String(R.querySelector('#f_indicator_id')?.value || ''),
@@ -631,8 +672,15 @@ export default async function hydrate(root){
       action_text : (R.querySelector('#f_action_text')?.value || '').trim(),
       action_owner: (R.querySelector('#f_action_owner')?.value || '').trim(),
       action_due  : (R.querySelector('#f_action_due')?.value || ''),
-      action_status: (R.querySelector('#f_action_status')?.value || '')
+      action_status: actionStatus
     };
+    // Add resolution fields if marked as done
+    if (isDone) {
+      payload.resolution_text = (R.querySelector('#f_resolution_text')?.value || '').trim();
+      payload.resolution_date = (R.querySelector('#f_resolution_date')?.value || '');
+      payload.resolved_at = new Date().toISOString();
+    }
+    
     const btn = R.querySelector('#btnSaveIssue'); const old=btn?.innerHTML;
     if (btn){ btn.disabled=true; btn.innerHTML='កំពុងរក្សាទុក…'; }
     try{
@@ -646,7 +694,9 @@ export default async function hydrate(root){
           action_text  : payload.action_text,
           action_owner : payload.action_owner,
           action_due   : payload.action_due,
-          action_status: payload.action_status
+          action_status: payload.action_status,
+          resolution_text : isDone ? payload.resolution_text : (ROWS[idx].resolution_text || ''),
+          resolution_date : isDone ? payload.resolution_date : (ROWS[idx].resolution_date || '')
         };
       }
       setStatus('រក្សាទុក Issue/Action រួចរាល់');
@@ -671,66 +721,190 @@ export default async function hydrate(root){
     }));
   }
   function rowsToCSV(rows){
-    const header=['period','indicator_id','indicator_name','department','unit','value','target','status'];
+    const header=['រយៈពេល','លេខសម្គាល់','សូចនាករ','ជំពូក','ផ្នែក','តម្លៃ','គោលដៅ','ស្ថានភាព'];
     const lines=[header.join(',')];
     const esc=v=>`"${String(v??'').replace(/"/g,'""')}"`;
     for (const r of rows) lines.push([esc(r.period),esc(r.indicator_id),esc(r.indicator_name),esc(r.department),esc(r.unit),r.value??'',r.target??'',r.status].join(','));
-    return lines.join('\n');
+    return '\uFEFF' + lines.join('\n'); // UTF-8 BOM for Khmer support
   }
-  function exportExcel(){
+  async function exportExcel(){
+    console.log('[ExportExcel] Function triggered');
     const pid=curPid(); const label=pid?prettyPid(pid):'period';
-    const data=rowsForExport(getCurrentViewRows(), label);
-    if (window.XLSX?.utils?.writeFile){
-      const ws=XLSX.utils.json_to_sheet(data);
-      const wb=XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Reports');
-      const cols=Object.keys(data[0]||{});
-      ws['!cols']=cols.map(k=>({ wch: Math.min(Math.max(k.length, ...data.map(r=>String(r[k]??'').length))+2, 50) }));
-      XLSX.writeFile(wb, `reports_${pid||'period'}.xlsx`);
+    const rows=getCurrentViewRows();
+
+    if (!rows.length) {
+      console.warn('[ExportExcel] No data to export');
+      alert('គ្មានទិន្នន័យដើម្បី export! សូមជ្រើសរើសរយៈពេល និងធ្វើឱ្យប្រាកដថាមានទិន្នន័យ។');
+      setStatus('បរាជ័យ: គ្មានទិន្នន័យ', false);
       return;
     }
-    const csv=rowsToCSV(data);
-    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`reports_${pid||'period'}.csv`; a.click(); URL.revokeObjectURL(a.href);
+
+    if (typeof XLSX !== 'undefined' && XLSX.utils && XLSX.writeFile){
+      try {
+        console.log('[ExportExcel] XLSX library is available');
+        const wb = XLSX.utils.book_new();
+        const headers = ['រយៈពេល','លេខសម្គាល់','សូចនាករ','ជំពូក','ផ្នែក','តម្លៃ','គោលដៅ','ស្ថានភាព'];
+        const data = [headers];
+
+        rows.forEach(r => {
+          data.push([
+            label,
+            r.indicator_id || '',
+            r.indicator_name || '',
+            r.department_name || '',
+            r.unit_name || '',
+            r.value ?? '',
+            r.target ?? '',
+            isEmptyVal(r.value) ? 'មិនទាន់បញ្ចូល' : 'បានបញ្ចូលរួច'
+          ]);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        ws['!cols'] = [
+          { wch: 18 },
+          { wch: 15 },
+          { wch: 45 },
+          { wch: 25 },
+          { wch: 20 },
+          { wch: 12 },
+          { wch: 12 },
+          { wch: 18 }
+        ];
+
+        const tableRange = XLSX.utils.encode_range({
+          s: { c: 0, r: 0 },
+          e: { c: headers.length - 1, r: data.length - 1 }
+        });
+
+        ws['!autofilter'] = { ref: tableRange };
+        XLSX.utils.book_append_sheet(wb, ws, 'របាយការណ៍');
+        XLSX.writeFile(wb, `របាយការណ៍_${pid||'period'}.xlsx`);
+
+        console.log('[ExportExcel] Excel file exported successfully');
+        setStatus(`Excel រក្សាទុកបានជោគជ័យ (${rows.length} ជួរ)`, true);
+        return;
+      } catch (err) {
+        console.error('[ExportExcel] Error:', err);
+        setStatus('បរាជ័យ Excel: ' + err.message, false);
+      }
+    } else {
+      console.warn('[ExportExcel] XLSX library not available');
+    }
+
+    exportCSV();
+  }
+  function exportCSV(){
+    console.log('[ExportCSV] Function triggered');
+    const pid=curPid(); const label=pid?prettyPid(pid):'period';
+    const rows=getCurrentViewRows();
+
+    if (!rows.length) {
+      console.warn('[ExportCSV] No data to export');
+      alert('គ្មានទិន្នន័យដើម្បី export! សូមជ្រើសរើសរយៈពេល និងធ្វើឱ្យប្រាកដថាមានទិន្នន័យ។');
+      setStatus('បរាជ័យ: គ្មានទិន្នន័យ', false);
+      return;
+    }
+
+    const headers = ['រយៈពេល','លេខសម្គាល់','សូចនាករ','ជំពូក','ផ្នែក','តម្លៃ','គោលដៅ','ស្ថានភាព'];
+    const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [headers.map(esc).join(',')];
+
+    rows.forEach(r => {
+      lines.push([
+        esc(label),
+        esc(r.indicator_id || ''),
+        esc(r.indicator_name || ''),
+        esc(r.department_name || ''),
+        esc(r.unit_name || ''),
+        r.value ?? '',
+        r.target ?? '',
+        esc(isEmptyVal(r.value) ? 'មិនទាន់បញ្ចូល' : 'បានបញ្ចូលរួច')
+      ].join(','));
+    });
+
+    const csvText = lines.join('\r\n');
+    const blob = new Blob(["\uFEFF" + csvText], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `របាយការណ៍_${pid||'period'}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    console.log('[ExportCSV] CSV file exported successfully');
+    setStatus(`CSV រក្សាទុកបានជោគជ័យ (${rows.length} ជួរ)`, true);
   }
   function exportPdf(){
     const pid=curPid(); const label=pid?prettyPid(pid):'period';
     const rows=getCurrentViewRows();
-    const hasJsPDF = window.jspdf?.jsPDF;
-    const canAuto  = hasJsPDF && typeof window.jspdf.jsPDF.prototype.autoTable==='function';
-    if (hasJsPDF && canAuto){
-      const { jsPDF } = window.jspdf;
-      const doc=new jsPDF({orientation:'landscape', unit:'pt', format:'A4'});
-      doc.setFontSize(14); doc.text(`Reports • ${label}`,40,40);
-      const body = rows.map(r=>[
-        r.indicator_id||'', r.indicator_name||'', r.department_name||'', r.unit_name||'',
-        r.value==null?'':r.value, r.target==null?'':r.target, isEmptyVal(r.value)?'UNFILLED':'FILLED'
-      ]);
-      doc.autoTable({
-        startY:60,
-        head:[['ID','Indicator','Department','Unit','Value','Target','Status']],
-        body, styles:{fontSize:9, cellPadding:4}, headStyles:{fillColor:[240,240,240]},
-        columnStyles:{0:{cellWidth:90},1:{cellWidth:260},2:{cellWidth:160},3:{cellWidth:140},4:{cellWidth:90,halign:'right'},5:{cellWidth:90,halign:'right'},6:{cellWidth:110}}
-      });
-      doc.save(`reports_${pid||'period'}.pdf`); return;
+
+    if (!rows.length) {
+      alert('គ្មានទិន្នន័យដើម្បី export! សូមជ្រើសរើសរយៈពេល និងធ្វើឱ្យប្រាកដថាមានទិន្នន័យ។');
+      setStatus('បរាជ័យ: គ្មានទិន្នន័យ', false);
+      return;
     }
-    const win=window.open('','_blank'); const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    const win=window.open('','_blank'); 
+    const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     win.document.write(`
-      <html><head><meta charset="utf-8"><title>Reports • ${esc(label)}</title>
-      <style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:24px}
-      table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:6px 8px;font-size:12px}
-      th{background:#f5f5f5}.num{text-align:right}
-      .status-FILLED{color:#155724;background:#e7f7e7;border:1px solid #b7e4c7;padding:2px 6px;border-radius:4px}
-      .status-UNFILLED{color:#7a5d00;background:#fff3cd;border:1px solid #ffe69c;padding:2px 6px;border-radius:4px}</style>
-      </head><body><h2>Reports • ${esc(label)}</h2>
-      <table><thead><tr><th style="width:90px">ID</th><th style="width:360px">Indicator</th><th style="width:200px">Department</th><th style="width:160px">Unit</th><th style="width:110px">Value</th><th style="width:110px">Target</th><th style="width:120px">Status</th></tr></thead>
-      <tbody>${
-        rows.map(r=>`<tr><td>${esc(r.indicator_id)}</td><td>${esc(r.indicator_name)}</td><td>${esc(r.department_name)}</td><td>${esc(r.unit_name)}</td><td class="num">${esc(r.value==null?'':r.value)}</td><td class="num">${esc(r.target==null?'':r.target)}</td><td><span class="status-${isEmptyVal(r.value)?'UNFILLED':'FILLED'}">${isEmptyVal(r.value)?'UNFILLED':'FILLED'}</span></td></tr>`).join('')
-      }</tbody></table><script>window.onload=()=>window.print()</script></body></html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600&display=swap" rel="stylesheet">
+        <title>របាយការណ៍ • ${esc(label)}</title>
+        <style>
+          body{font-family:'Noto Sans Khmer',system-ui,sans-serif;margin:24px;color:#333}
+          h2{font-weight:600;margin-bottom:16px;color:#1a1a1a}
+          table{border-collapse:collapse;width:100%;margin-top:12px}
+          th,td{border:1px solid #ddd;padding:8px 10px;font-size:11pt;text-align:left}
+          th{background:#f5f5f5;font-weight:600;color:#1a1a1a}
+          .num{text-align:right;font-family:system-ui,sans-serif}
+          .status-FILLED{color:#155724;background:#d4edda;border:1px solid #c3e6cb;padding:3px 8px;border-radius:4px;font-size:10pt}
+          .status-UNFILLED{color:#856404;background:#fff3cd;border:1px solid #ffeeba;padding:3px 8px;border-radius:4px;font-size:10pt}
+          @media print{
+            @page{margin:1.5cm}
+            body{margin:0}
+          }
+        </style>
+      </head>
+      <body>
+        <h2>របាយការណ៍ • ${esc(label)}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:80px">លេខសម្គាល់</th>
+              <th style="width:280px">សូចនាករ</th>
+              <th style="width:160px">ជំពូក</th>
+              <th style="width:140px">ផ្នែក</th>
+              <th style="width:90px" class="num">តម្លៃ</th>
+              <th style="width:90px" class="num">គោលដៅ</th>
+              <th style="width:110px">ស្ថានភាព</th>
+            </tr>
+          </thead>
+          <tbody>${
+            rows.map(r=>`
+              <tr>
+                <td>${esc(r.indicator_id)}</td>
+                <td>${esc(r.indicator_name)}</td>
+                <td>${esc(r.department_name)}</td>
+                <td>${esc(r.unit_name)}</td>
+                <td class="num">${esc(r.value==null?'':r.value)}</td>
+                <td class="num">${esc(r.target==null?'':r.target)}</td>
+                <td>
+                  <span class="status-${isEmptyVal(r.value)?'UNFILLED':'FILLED'}">
+                    ${isEmptyVal(r.value)?'មិនទាន់បញ្ចូល':'បានបញ្ចូលរួច'}
+                  </span>
+                </td>
+              </tr>
+            `).join('')
+          }</tbody>
+        </table>
+        <script>window.onload=()=>window.print()</script>
+      </body>
+      </html>
     `);
     win.document.close();
   }
   $('#btnExportXlsx')?.addEventListener('click', exportExcel);
+  $('#btnExportCsv')?.addEventListener('click', exportCSV);
   $('#btnExportPdf')?.addEventListener('click', exportPdf);
 
   /* ---------- Filter events ---------- */
