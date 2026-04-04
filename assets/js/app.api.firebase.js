@@ -77,6 +77,32 @@ async function findDocsByPk(coll, pkField, pkValue) {
   return snap.docs; // array of QueryDocumentSnapshot
 }
 
+// Best-effort resolver for legacy callers that omit unit_id in reports payload.
+async function resolveIndicatorUnitId(indicator_id) {
+  const iid = toStr(indicator_id);
+  if (!iid) return '';
+
+  // Fast path: indicator document id == indicator_id
+  try {
+    const direct = await getDoc(doc(db, 'indicators', iid));
+    if (direct.exists()) {
+      const v = toStr(direct.data()?.unit_id);
+      if (v) return v;
+    }
+  } catch (_) { /* fallback to query below */ }
+
+  // Fallback path: random doc id but indicator_id field matches
+  try {
+    const matches = await findDocsByPk('indicators', 'indicator_id', iid);
+    if (matches.length) {
+      const v = toStr(matches[0].data()?.unit_id);
+      if (v) return v;
+    }
+  } catch (_) { /* no-op */ }
+
+  return '';
+}
+
 /* ============================================================================
    UPSERT
    - reports: composite id → deterministic upsert (no duplicate possible)
@@ -86,12 +112,28 @@ export async function gasSave(coll, row = {}) {
 
   /* ---------- HARD-UNIQUE for `reports` (by composite id) ---------- */
   if (coll === 'reports') {
-    const period_id    = toStr(row.period_id);
+    let period_id      = toStr(row.period_id);
     const indicator_id = toStr(row.indicator_id);
-    const unit_id      = toStr(row.unit_id);
+    let unit_id        = toStr(row.unit_id);
+
+    // Backward compatibility for legacy importers:
+    // derive period_id from year/tag and unit_id from indicators.
+    if (!period_id) {
+      const y = toStr(row.year);
+      const t = toStr(row.tag).toUpperCase();
+      if (y && t) period_id = `${y}-${t}`;
+    }
+    if (!unit_id && indicator_id) {
+      unit_id = await resolveIndicatorUnitId(indicator_id);
+    }
 
     if (!period_id || !indicator_id || !unit_id) {
-      throw new Error('reports: period_id, indicator_id, unit_id are required');
+      const miss = [
+        !period_id ? 'period_id' : '',
+        !indicator_id ? 'indicator_id' : '',
+        !unit_id ? 'unit_id' : ''
+      ].filter(Boolean).join(', ');
+      throw new Error(`reports: required missing -> ${miss}`);
     }
 
     const docId = composeReportId(period_id, indicator_id, unit_id);

@@ -578,6 +578,10 @@ export default async function hydrate(root){
   const indicators = await gasList('indicators').catch(()=>[]);
   const IND_SET  = new Set(indicators.map(i=>String(i.indicator_id)));
   const IND_NAME = Object.fromEntries(indicators.map(i=>[String(i.indicator_id), i.indicator_name||'']));
+  const IND_UNIT = Object.fromEntries(indicators.map(i=>[
+    String(i.indicator_id),
+    String(i.unit_id ?? '').trim()
+  ]));
 
   const maps = await gasList('import_mappings').catch(()=>[]);
   const MAPPING = (maps||[]).filter(r=>r.active!==0 && r.active!==false).map(r=>({
@@ -750,7 +754,8 @@ export default async function hydrate(root){
       for (const r of (arr||[])){
         const rid=String(r.report_id||'').trim();
         const iid=String(r.indicator_id||'').trim();
-        if (rid&&iid) map.set(iid, rid);
+        const uid=String(r.unit_id||'').trim();
+        if (rid&&iid&&uid) map.set(`${iid}|${uid}`, rid);
       }
       return map;
     }catch{ return new Map(); }
@@ -760,31 +765,49 @@ export default async function hydrate(root){
     const year = Number(yearSel.value||0);
     const tag  = makeTag(perType.value, perValue.value);
     const period_id = `${year}-${tag}`;
+    const total = PREVIEW.length;
 
-    setStatus('កំពុង Import ទៅ Firebase…');
+    setStatus(`កំពុង Import ទៅ Firebase… (0/${total})`);
+    btnImport.disabled = true;
+    btnPreview.disabled = true;
     const existingByInd = await fetchExistingMap(period_id);
 
     let ok=0, fail=0, errs=[];
-    for (const r of PREVIEW){
-      if (!IND_SET.has(r.indicator_id)) { fail++; errs.push(`Unknown ID ${r.indicator_id}`); continue; }
-      const foundRid = existingByInd.get(r.indicator_id);
-      const report_id = foundRid || `${period_id}-${r.indicator_id}`;
-      const nHC = Number(r.hc);
-      const nHP = Number(r.hosp);
-      const nTotal = Number(r.total);
-      const payload = {
-        report_id, indicator_id:r.indicator_id, year, tag, period_id,
-        value_hc:Number.isFinite(nHC)?nHC:0,
-        value_hosp:Number.isFinite(nHP)?nHP:0,
-        value:Number.isFinite(nTotal)
-          ? nTotal
-          : (Number.isFinite(nHC)||Number.isFinite(nHP)
-              ? (Number.isFinite(nHC)?nHC:0)+(Number.isFinite(nHP)?nHP:0)
-              : 0),
-        updated_at:new Date().toISOString(),
-      };
-      try{ await gasSave('reports', payload); ok++; }
-      catch(e){ fail++; errs.push(`${r.indicator_id}: ${e?.message||e}`); }
+    let done = 0;
+    try{
+      for (const r of PREVIEW){
+        if (!IND_SET.has(r.indicator_id)) { fail++; errs.push(`Unknown ID ${r.indicator_id}`); done++; continue; }
+        const unit_id = String(IND_UNIT[r.indicator_id] || '').trim();
+        if (!unit_id) { fail++; errs.push(`${r.indicator_id}: missing unit_id in indicators`); done++; continue; }
+        const foundRid = existingByInd.get(`${r.indicator_id}|${unit_id}`);
+        const report_id = foundRid || `${period_id}-${r.indicator_id}`;
+        const nHC = Number(r.hc);
+        const nHP = Number(r.hosp);
+        const nTotal = Number(r.total);
+        const payload = {
+          report_id, indicator_id:r.indicator_id, unit_id, year, tag, period_id,
+          value_hc:Number.isFinite(nHC)?nHC:0,
+          value_hosp:Number.isFinite(nHP)?nHP:0,
+          value:Number.isFinite(nTotal)
+            ? nTotal
+            : (Number.isFinite(nHC)||Number.isFinite(nHP)
+                ? (Number.isFinite(nHC)?nHC:0)+(Number.isFinite(nHP)?nHP:0)
+                : 0),
+          updated_at:new Date().toISOString(),
+        };
+        try{ await gasSave('reports', payload); ok++; }
+        catch(e){ fail++; errs.push(`${r.indicator_id}: ${e?.message||e}`); }
+        finally{
+          done++;
+          if (done % 5 === 0 || done === total){
+            setStatus(`កំពុង Import ទៅ Firebase… (${done}/${total}) • OK ${ok} • Fail ${fail}`, fail===0);
+            await new Promise(res=>setTimeout(res, 0)); // let UI repaint while looping
+          }
+        }
+      }
+    }finally{
+      btnImport.disabled = false;
+      btnPreview.disabled = false;
     }
     const okMsg = `Import: OK ${ok} • Fail ${fail}`;
     setStatus(okMsg, fail===0);

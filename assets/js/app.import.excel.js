@@ -32,6 +32,9 @@ export default async function hydrate(root){
   const IND_NAME = Object.fromEntries(indicators.map(i => [
     String(i.indicator_id), i.indicator_name || ''
   ]));
+  const IND_UNIT = Object.fromEntries(indicators.map(i => [
+    String(i.indicator_id), String(i.unit_id ?? '').trim()
+  ]));
 
   // ---------- Year/Tag pickers ----------
   (function initYearTag(){
@@ -245,26 +248,44 @@ export default async function hydrate(root){
     if (!PREVIEW.length) return;
     const year = Number(yearSel.value||0);
     const tag  = String(tagSel.value||'').toUpperCase();
+    const total = PREVIEW.length;
 
-    setStatus('កំពុង Import ទៅ Firebase…');
+    setStatus(`កំពុង Import ទៅ Firebase… (0/${total})`);
+    btnImport.disabled = true;
+    btnPreview.disabled = true;
     let ok=0, fail=0;
+    let done=0;
 
-    for (const r of PREVIEW){
-      if (!r.valid){ fail++; continue; }
-      const payload = {
-        indicator_id: r.indicator_id,
-        year, tag,
-        period_id: `${year}-${tag.replace(/^M/, '')}`,
-        value: Number(r.total) || 0,
-        updated_at: new Date().toISOString()
-      };
-      try{
-        await gasSave('reports', payload);
-        ok++;
-      }catch(e){
-        fail++;
-        console.warn('[IMP] save fail', r.indicator_id, e);
+    try{
+      for (const r of PREVIEW){
+        if (!r.valid){ fail++; done++; continue; }
+        const unit_id = String(IND_UNIT[r.indicator_id] || '').trim();
+        if (!unit_id){ fail++; done++; continue; }
+        const payload = {
+          indicator_id: r.indicator_id,
+          unit_id,
+          year, tag,
+          period_id: `${year}-${tag}`,
+          value: Number(r.total) || 0,
+          updated_at: new Date().toISOString()
+        };
+        try{
+          await gasSave('reports', payload);
+          ok++;
+        }catch(e){
+          fail++;
+          console.warn('[IMP] save fail', r.indicator_id, e);
+        }finally{
+          done++;
+          if (done % 5 === 0 || done === total){
+            setStatus(`កំពុង Import ទៅ Firebase… (${done}/${total}) • OK ${ok} • Fail ${fail}`, fail===0);
+            await new Promise(res=>setTimeout(res, 0)); // let UI repaint while looping
+          }
+        }
       }
+    }finally{
+      btnImport.disabled = false;
+      btnPreview.disabled = false;
     }
     setStatus(`Import: OK ${ok} • Fail ${fail}`, fail===0);
   });

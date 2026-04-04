@@ -42,6 +42,19 @@ function prettyPid(pid){
   if (tag==='Y12')      return `១១ខែ • ${y}`;
   return `ឆ្នាំ ${y}`;
 }
+function legacyPeriodAliases(pid){
+  const p = parsePid(pid);
+  const out = new Set([String(pid || '').trim()]);
+  if (p.type === 'month' && Number.isFinite(p.month)) {
+    const mm = String(p.month).padStart(2,'0');
+    // Support both period formats used in this project:
+    // - modern: YYYY-MMM (e.g. 2026-M02)
+    // - legacy: YYYY-MM  (e.g. 2026-02)
+    out.add(`${p.year}-M${mm}`);
+    out.add(`${p.year}-${mm}`);
+  }
+  return Array.from(out).filter(Boolean);
+}
 function prevPid(pid){
   const p=parsePid(pid);
   if (p.type==='month'){ let y=p.year,m=p.month-1; if(m<1){y--;m=12;} return `${y}-${String(m).padStart(2,'0')}`; }
@@ -371,10 +384,27 @@ export default async function hydrate(root){
     setStatus('កំពុងផ្ទុកទិន្នន័យ…');
 
     let vals=[], acts=[];
-    try{ vals = toArr(await gasList('reports', { period_id, _ts:Date.now() })); }catch{}
+    const aliases = legacyPeriodAliases(period_id);
+    const aliasSet = new Set(aliases);
+    try{
+      const batches = await Promise.all(
+        aliases.map(pid => gasList('reports', { period_id: pid, _ts:Date.now() }).catch(()=>[]))
+      );
+      vals = batches.flatMap(toArr);
+    }catch{}
     try{ acts = toArr(await gasList('actions', { period_id, _ts:Date.now() })); }catch{}
 
-    vals = vals.filter(v=>String(v.period_id)===String(period_id));
+    vals = vals.filter(v=>aliasSet.has(String(v.period_id)));
+    // dedupe by composite identity in case aliases point to same logical records
+    {
+      const seen = new Set();
+      vals = vals.filter(v=>{
+        const k = `${String(v.indicator_id)}|${String(v.unit_id)}|${String(v.period_id)}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    }
     acts = acts.filter(a=>String(a.period_id)===String(period_id));
 
     // rebuild REPORT_INDEX
@@ -567,8 +597,12 @@ export default async function hydrate(root){
     const prev = prevPid(pid);
     setStatus('កំពុងយកតម្លៃរយៈពេលមុន…');
     try{
-      const prevRows = toArr(await gasList('reports', { period_id: prev, _ts:Date.now() }))
-                        .filter(r=>String(r.period_id)===String(prev));
+      const prevAliases = legacyPeriodAliases(prev);
+      const batches = await Promise.all(
+        prevAliases.map(x => gasList('reports', { period_id: x, _ts:Date.now() }).catch(()=>[]))
+      );
+      const prevRows = batches.flatMap(toArr)
+                        .filter(r=>prevAliases.includes(String(r.period_id)));
       const mapPrev = new Map(prevRows.map(r=>[`${String(r.indicator_id)}|${String(r.unit_id)}`, r]));
       let changed=0;
       for (const r of ROWS){
