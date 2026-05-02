@@ -1,0 +1,26 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+build/
+*.lock
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Platform
+android/.gradle/
+android/local.properties
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/.last_build_id
+
+# Firebase config (DO NOT COMMIT)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# Generated
+**/*.g.dart
