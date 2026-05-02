@@ -1,0 +1,11 @@
+name: Mobile App
+
+dependencies:
+  go_router:
+  flutter_riverpod:
+  firebase_core:
+  firebase_auth:
+  cloud_firestore:
+  cloud_functions:
+  google_fonts:
+  intl:
