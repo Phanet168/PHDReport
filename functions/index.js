@@ -1,6 +1,7 @@
 // functions/index.js
 const functions = require('firebase-functions');
 const admin    = require('firebase-admin');
+const { randomBytes } = require('node:crypto');
 
 admin.initializeApp();
 
@@ -41,7 +42,7 @@ exports.adminCreateUser = functions.https.onCall(async (data, context) => {
   const displayName = String(data?.displayName || '');
   if (!email) throw new functions.https.HttpsError('invalid-argument', 'email required');
 
-  const tmp = (Math.random().toString(36)+Math.random().toString(36)).slice(2, 18); // temp password
+  const tmp = randomBytes(24).toString('base64url'); // 192 bits of cryptographic randomness
   try {
     const u = await admin.auth().createUser({ email, password: tmp, displayName: displayName || undefined });
     return { ok: true, uid: u.uid };

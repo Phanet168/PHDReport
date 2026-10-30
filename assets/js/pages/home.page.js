@@ -1,3 +1,4 @@
+import { escapeHtml } from '../utils.js';
 // assets/js/pages/home.page.js
 // Dashboard Overview (Khmer UI) — Month/Quarter/Half/9M/Year compare
 // • Role-aware indicator list (Super = all; others = own dept/unit)
@@ -47,7 +48,7 @@ export default async function hydrateHome(root){
   let chart = null;
 
   // ---------- Utils ----------
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+  const esc = escapeHtml;
   const isNum = v => Number.isFinite(+v);
   const pad2  = n => String(n).padStart(2,'0');
   const fmtNum = v => (v==null || v==='') ? '—' : (Number(v).toLocaleString('km-KH'));
@@ -154,7 +155,7 @@ export default async function hydrateHome(root){
     if (!years.size) years.add(new Date().getFullYear());
 
     const arr=[...years].sort((a,b)=>b-a);
-    yearSel.innerHTML = arr.map(y=>`<option value="${y}">${y}</option>`).join('');
+    yearSel.innerHTML = arr.map(y=>`<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
     // default to newest
     yearSel.value = arr[0];
   }
@@ -307,8 +308,8 @@ export default async function hydrateHome(root){
         trigger:'axis',
         formatter(params){
           const title = params[0]?.axisValueLabel || '';
-          const lines = params.map(p=>`${p.marker} ${p.seriesName}: <b>${fmtNum(p.value)}</b>`);
-          return `<div style="min-width:180px">${title}<br>`.concat(lines.join('<br>'),'</div>');
+          const lines = params.map(p=>`${p.marker} ${esc(p.seriesName)}: <b>${fmtNum(p.value)}</b>`);
+          return `<div style="min-width:180px">${esc(title)}<br>`.concat(lines.join('<br>'),'</div>');
         }
       },
       legend:{ top:0, data:['ឆ្នាំនេះ','ឆ្នាំមុន','គោលដៅ'] },

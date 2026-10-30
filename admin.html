@@ -231,7 +231,8 @@
     startRouter();
   </script>
 
-  <script>
+  <script type="module">
+    import { escapeHtml } from "./assets/js/utils.js";
     // ===== Auth guard =====
     const ls = window.localStorage;
     function getProfile(){ try{ return JSON.parse(ls.getItem('AUTH')||'null'); }catch{ return null; } }
@@ -274,14 +275,14 @@
       rows.forEach(r=>{
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${r.user_id||''}</td>
-          <td>${r.user_name||''}</td>
-          <td>${r.user_type||''}</td>
-          <td>${r.user_root||''}</td>
-          <td>${r.department_id||''}</td>
+          <td>${escapeHtml(r.user_id||'')}</td>
+          <td>${escapeHtml(r.user_name||'')}</td>
+          <td>${escapeHtml(r.user_type||'')}</td>
+          <td>${escapeHtml(r.user_root||'')}</td>
+          <td>${escapeHtml(r.department_id||'')}</td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${r.user_id}">Edit</button>
-            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.user_id}">Del</button>
+            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${escapeHtml(r.user_id)}">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${escapeHtml(r.user_id)}">Del</button>
           </td>`;
         tb.appendChild(tr);
       });
@@ -328,13 +329,13 @@
       rows.forEach(r=>{
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${r.indicator_id||''}</td>
-          <td>${r.indicator_name||''}</td>
-          <td>${r.indicator_type||''}</td>
-          <td>${r.department_id||''}</td>
+          <td>${escapeHtml(r.indicator_id||'')}</td>
+          <td>${escapeHtml(r.indicator_name||'')}</td>
+          <td>${escapeHtml(r.indicator_type||'')}</td>
+          <td>${escapeHtml(r.department_id||'')}</td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${r.indicator_id}">Edit</button>
-            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.indicator_id}">Del</button>
+            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${escapeHtml(r.indicator_id)}">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${escapeHtml(r.indicator_id)}">Del</button>
           </td>`;
         tb.appendChild(tr);
       });
@@ -376,13 +377,13 @@
       rows.forEach(r=>{
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${r.period_id||''}</td>
-          <td>${r.period_name||''}</td>
-          <td>${r.year||''}</td>
-          <td>${r.month||''}</td>
+          <td>${escapeHtml(r.period_id||'')}</td>
+          <td>${escapeHtml(r.period_name||'')}</td>
+          <td>${escapeHtml(r.year||'')}</td>
+          <td>${escapeHtml(r.month||'')}</td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${r.period_id}">Edit</button>
-            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.period_id}">Del</button>
+            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${escapeHtml(r.period_id)}">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${escapeHtml(r.period_id)}">Del</button>
           </td>`;
         tb.appendChild(tr);
       });
@@ -424,11 +425,11 @@
       rows.forEach(r=>{
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${r.department_id||''}</td>
-          <td>${r.department_name||''}</td>
+          <td>${escapeHtml(r.department_id||'')}</td>
+          <td>${escapeHtml(r.department_name||'')}</td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${r.department_id}">Edit</button>
-            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.department_id}">Del</button>
+            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${escapeHtml(r.department_id)}">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${escapeHtml(r.department_id)}">Del</button>
           </td>`;
         tb.appendChild(tr);
       });
@@ -466,12 +467,12 @@
       rows.forEach(r=>{
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${r.unit_id||''}</td>
-          <td>${r.unit_name||''}</td>
-          <td>${r.department_id||''}</td>
+          <td>${escapeHtml(r.unit_id||'')}</td>
+          <td>${escapeHtml(r.unit_name||'')}</td>
+          <td>${escapeHtml(r.department_id||'')}</td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${r.unit_id}">Edit</button>
-            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.unit_id}">Del</button>
+            <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${escapeHtml(r.unit_id)}">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${escapeHtml(r.unit_id)}">Del</button>
           </td>`;
         tb.appendChild(tr);
       });

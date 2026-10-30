@@ -1,3 +1,4 @@
+import { escapeHtml } from '../utils.js';
 // assets/js/pages/super-dashboard.page.js
 import { gasList } from '../app.api.firebase.js';
 import { isSuper } from '../app.auth.js';
@@ -189,7 +190,7 @@ export default async function hydrate(root){
 
   // ---- Utils
   function toInt(v,d=0){ const n=Number(v); return Number.isFinite(n)?n:d; }
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&gt;','>':'&gt;','"':'&quot;'}[m] || m));
+  const esc = escapeHtml;
   function normPeriod(obj={}){
     let {year, tag, month, period_id} = obj;
     if (typeof year === 'string' && /^\d{4}$/.test(year)) year=parseInt(year,10);
@@ -221,7 +222,7 @@ export default async function hydrate(root){
     actions.forEach(a=>{ const {year} = normPeriod(a); if (year) years.add(year); });
     const list = [...years].sort((a,b)=>b-a);
     if (!list.length) list.push(new Date().getFullYear());
-    yearSel.innerHTML = list.map(y=>`<option>${y}</option>`).join('');
+    yearSel.innerHTML = list.map(y=>`<option>${escapeHtml(y)}</option>`).join('');
     yearSel.value = list[0];
   }
   function buildTags(){
@@ -237,13 +238,13 @@ export default async function hydrate(root){
   function buildDeps(){
     if (!deptSel) return;
     deptSel.innerHTML = `<option value="">ជំពូក—ទាំងអស់</option>` +
-      departments.map(d=>`<option value="${d.department_id}">${d.department_name}</option>`).join('');
+      departments.map(d=>`<option value="${escapeHtml(d.department_id)}">${escapeHtml(d.department_name)}</option>`).join('');
   }
   function buildUnits(depId=''){
     if (!unitSel) return;
     const list = depId ? units.filter(u=>String(u.department_id)===String(depId)) : units;
     unitSel.innerHTML = `<option value="">ផ្នែក—ទាំងអស់</option>` +
-      list.map(u=>`<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+      list.map(u=>`<option value="${escapeHtml(u.unit_id)}">${escapeHtml(u.unit_name)}</option>`).join('');
   }
   buildYears(); buildTags(); buildDeps(); buildUnits('');
 

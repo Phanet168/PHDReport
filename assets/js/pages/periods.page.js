@@ -1,3 +1,4 @@
+import { escapeHtml } from '../utils.js';
 // assets/js/pages/periods.page.js
 import { getAuth, isSuper } from '../app.auth.js';
 import { gasList, gasSave, gasDelete, ID_FIELDS } from '../app.api.firebase.js';
@@ -168,10 +169,10 @@ async function initPeriods(root){
       const tr = document.createElement('tr');
       tr.dataset.id = r.period_id;
       tr.innerHTML = `
-        <td>${r.period_id}</td>
-        <td>${r.period_name || ''}</td>
-        <td>${r.year || ''}</td>
-        <td>${r.month || ''}</td>
+        <td>${escapeHtml(r.period_id)}</td>
+        <td>${escapeHtml(r.period_name || '')}</td>
+        <td>${escapeHtml(r.year || '')}</td>
+        <td>${escapeHtml(r.month || '')}</td>
         <td class="td-actions">
           <div class="actions-right">
             ${SUPER

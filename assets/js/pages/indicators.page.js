@@ -1,3 +1,4 @@
+import { escapeHtml } from '../utils.js';
 // /assets/js/pages/indicators.page.js
 import { getAuth, isSuper, isAdmin } from '../app.auth.js';
 import { gasList, gasSave, gasDelete, ID_FIELDS } from '../app.api.firebase.js';
@@ -84,7 +85,7 @@ function makeModal(id){
 /* -------------------------- Utils -------------------------- */
 const toInt = (v,d=0)=>{ const n=Number(v); return Number.isFinite(n)?n:d; };
 const text = v => (v==null?'':String(v));
-const safe = s => String(s ?? '').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const safe = escapeHtml;
 
 /* -------------------------- Stable index + selection state -------------------------- */
 const BY_ID = new Map();     // indicator_id(string) -> raw record
@@ -308,7 +309,7 @@ async function initIndicators(root){
   function fillDeptSelect(selected){
     if (!selDept) return;
     selDept.innerHTML = `<option value="">— ជ្រើសជំពូក —</option>` +
-      CACHE.departments.map(d=> `<option value="${d.department_id}">${d.department_name}</option>`).join('');
+      CACHE.departments.map(d=> `<option value="${escapeHtml(d.department_id)}">${escapeHtml(d.department_name)}</option>`).join('');
     if (selected) selDept.value = String(selected);
     selDept.disabled = !SUPER;
   }
@@ -323,7 +324,7 @@ async function initIndicators(root){
       CACHE.unitsByDep.set(key, units);
       for (const u of units) MAPS.unitName[String(u.unit_id)] = u.unit_name;
     }
-    selUnit.innerHTML += units.map(u=> `<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+    selUnit.innerHTML += units.map(u=> `<option value="${escapeHtml(u.unit_id)}">${escapeHtml(u.unit_name)}</option>`).join('');
     if (selected) selUnit.value = String(selected);
     selUnit.disabled = !SUPER;
   }
@@ -332,11 +333,11 @@ async function initIndicators(root){
     selOwner.innerHTML = '';
     if (SUPER){
       selOwner.innerHTML = `<option value="">— ជ្រើសម្ចាស់ —</option>` +
-        Object.entries(MAPS.ownerLabelByUid).map(([uid,label])=> `<option value="${uid}">${label}</option>`).join('');
+        Object.entries(MAPS.ownerLabelByUid).map(([uid,label])=> `<option value="${escapeHtml(uid)}">${escapeHtml(label)}</option>`).join('');
       selOwner.disabled = false;
     }else{
       const myLabel = MAPS.ownerLabelByUid[myUid] || 'ខ្លួនឯង';
-      selOwner.innerHTML = `<option value="${myUid}">${myLabel}</option>`;
+      selOwner.innerHTML = `<option value="${escapeHtml(myUid)}">${escapeHtml(myLabel)}</option>`;
       selOwner.disabled = true;
     }
   }
@@ -449,17 +450,17 @@ async function initIndicators(root){
       const tr = document.createElement('tr');
       tr.setAttribute('data-key', key);
       tr.innerHTML = `
-        ${SUPER ? `<td><input class="row-check form-check-input" type="checkbox" data-key="${key}" ${isChecked?'checked':''} aria-label="ជ្រើស"></td>` : ''}
-        <td>${String(r.indicator_id || '')}</td>
-        <td>${String(r.indicator_name || '')}</td>
-        <td>${String(r.indicator_type || '')}</td>
-        <td>${String(r.department_name || '')}</td>
-        <td>${String(r.unit_name || '')}</td>
-        <td>${String(r.owner || '')}</td>
+        ${SUPER ? `<td><input class="row-check form-check-input" type="checkbox" data-key="${escapeHtml(key)}" ${isChecked?'checked':''} aria-label="ជ្រើស"></td>` : ''}
+        <td>${escapeHtml(String(r.indicator_id || ''))}</td>
+        <td>${escapeHtml(String(r.indicator_name || ''))}</td>
+        <td>${escapeHtml(String(r.indicator_type || ''))}</td>
+        <td>${escapeHtml(String(r.department_name || ''))}</td>
+        <td>${escapeHtml(String(r.unit_name || ''))}</td>
+        <td>${escapeHtml(String(r.owner || ''))}</td>
         <td class="text-end">
           ${canEdit
-            ? `<button type="button" class="btn btn-sm btn-warning" data-act="edit" data-key="${key}">កែ</button>
-               <button type="button" class="btn btn-sm btn-danger"  data-act="del"  data-key="${key}">លុប</button>`
+            ? `<button type="button" class="btn btn-sm btn-warning" data-act="edit" data-key="${escapeHtml(key)}">កែ</button>
+               <button type="button" class="btn btn-sm btn-danger"  data-act="del"  data-key="${escapeHtml(key)}">លុប</button>`
             : `<span class="text-muted">—</span>`
           }
         </td>`;
@@ -691,7 +692,7 @@ async function initIndicators(root){
       // fill owner list
       if (selBulkOwner){
         selBulkOwner.innerHTML = `<option value="">— ជ្រើសម្ចាស់ —</option>` +
-          Object.entries(MAPS.ownerLabelByUid).map(([uid,label])=> `<option value="${uid}">${label}</option>`).join('');
+          Object.entries(MAPS.ownerLabelByUid).map(([uid,label])=> `<option value="${escapeHtml(uid)}">${escapeHtml(label)}</option>`).join('');
       }
       if (bulkCountEl) bulkCountEl.textContent = String(SELECTED.size || 0);
       if (bulkListEl){

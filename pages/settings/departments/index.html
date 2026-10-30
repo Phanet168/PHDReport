@@ -125,6 +125,7 @@
 </style>
 
 <script type="module">
+import { escapeHtml } from "../../../assets/js/utils.js";
   import { getAuth, isSuper } from '../../../assets/js/app.auth.js';
   import { gasList, gasSave, gasDelete, ID_FIELDS } from '../../../assets/js/app.api.firebase.js';
 
@@ -206,8 +207,8 @@
       const tr = document.createElement('tr');
       tr.dataset.id = r.department_id;
       tr.innerHTML = `
-        <td style="width:110px"><span class="badge text-bg-light border">#${r.department_id}</span></td>
-        <td>${r.department_name || ''}</td>
+        <td style="width:110px"><span class="badge text-bg-light border">#${escapeHtml(r.department_id)}</span></td>
+        <td>${escapeHtml(r.department_name || '')}</td>
         <td class="td-actions">
           <div class="actions-right">
             ${SUPER

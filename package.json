@@ -1,0 +1,10 @@
+{
+  "name": "phd-report-security-tests",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "parse5": "7.2.1"
+  }
+}

@@ -1,3 +1,4 @@
+import { escapeHtml } from '../utils.js';
 // assets/js/pages/reports.page.js
 // Khmer Summary Report — group by Department → Unit, show Value & Target,
 // និងបញ្ជូន PDF ទៅ Google Apps Script Web App (ខេត្ត/ក្រសួង)
@@ -29,7 +30,7 @@ export default async function reportsPage(root, ctx){
 
   /* ===== Utils ===== */
   const KH_MONTHS = ['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const esc = escapeHtml;
   const pretty = (y,t)=>!y||!t?''
     : /^M\d{2}$/.test(t) ? `${KH_MONTHS[+t.slice(1)-1]} ${y}` : (t==='Y12' ? `ឆ្នាំ ${y}` : `${y} ${t}`);
 
@@ -167,7 +168,7 @@ export default async function reportsPage(root, ctx){
   function buildYearOptions(){
     const list = [...YEARS].filter(Boolean).sort((a,b)=>b-a);
     if (!list.length) list.push(new Date().getFullYear());
-    yearSel.innerHTML = list.map(y=>`<option value="${y}">${y}</option>`).join('');
+    yearSel.innerHTML = list.map(y=>`<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
     yearSel.value = String(list[0]);
   }
 
@@ -301,8 +302,8 @@ export default async function reportsPage(root, ctx){
             </td>
             <td class="text-center">${Number.isFinite(r.value)? r.value : '—'}</td>
             <td class="text-center">${Number.isFinite(r.target)? r.target : '—'}</td>
-            <td>${r.issues.length ? ('• ' + r.issues.join('<br>• ')) : '—'}</td>
-            <td>${r.actions.length ? ('• ' + r.actions.join('<br>• ')) : '—'}</td>`;
+            <td>${r.issues.length ? ('• ' + r.issues.map(escapeHtml).join('<br>• ')) : '—'}</td>
+            <td>${r.actions.length ? ('• ' + r.actions.map(escapeHtml).join('<br>• ')) : '—'}</td>`;
           frag.appendChild(tr);
           totalRows++;
         });

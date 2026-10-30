@@ -1,3 +1,4 @@
+import { escapeHtml } from './utils.js';
 // assets/js/router.js
 import { hydratePage } from './hydrate.js';
 
@@ -34,7 +35,7 @@ async function renderOnce(){
     await hydratePage(root, key);
   }catch(e){
     console.error('[router]', e);
-    root.innerHTML=`<div class="container-page"><div class="alert alert-danger mt-3">មិនអាចផ្ទុកទំព័រ<br><small>${e?.message||e}</small></div></div>`;
+    root.innerHTML=`<div class="container-page"><div class="alert alert-danger mt-3">មិនអាចផ្ទុកទំព័រ<br><small>${escapeHtml(e?.message||e)}</small></div></div>`;
   }finally{ inflight--; }
 }
 export async function startRouter(){

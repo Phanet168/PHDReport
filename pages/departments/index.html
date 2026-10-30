@@ -99,6 +99,7 @@
 </style>
 
 <script type="module">
+import { escapeHtml } from "../../assets/js/utils.js";
   // ✅ PATH ត្រឹមត្រូវសម្រាប់ pages/settings/departments/ → assets/js/
   import { getAuth, isSuper } from '../../../assets/js/app.auth.js';
   import { gasList, gasSave, gasDelete, ID_FIELDS } from '../../../assets/js/app.menu.js';
@@ -173,11 +174,11 @@
     for(const d of rows){
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${d.department_id}</td>
-        <td>${d.department_name || ''}</td>
+        <td>${escapeHtml(d.department_id)}</td>
+        <td>${escapeHtml(d.department_name || '')}</td>
         <td class="td-actions">
-          <button class="btn btn-sm btn-warning" data-act="edit" data-id="${d.department_id}">កែ</button>
-          <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${d.department_id}">លុប</button>
+          <button class="btn btn-sm btn-warning" data-act="edit" data-id="${escapeHtml(d.department_id)}">កែ</button>
+          <button class="btn btn-sm btn-danger"  data-act="del"  data-id="${escapeHtml(d.department_id)}">លុប</button>
         </td>`;
       frag.appendChild(tr);
     }

@@ -1,3 +1,4 @@
+import { escapeHtml } from '../utils.js';
 // assets/js/pages/users.page.js
 import { getAuth, isSuper } from '../app.auth.js';
 import { gasList, gasSave, gasDelete } from '../app.api.firebase.js';
@@ -146,7 +147,7 @@ async function initUsers(root){
   function fillDeptSelect(selected){
     if (!selDept) return;
     selDept.innerHTML = `<option value="">— ជ្រើសជំពូក —</option>` +
-      CACHE.departments.map(d=> `<option value="${d.department_id}">${d.department_name}</option>`).join('');
+      CACHE.departments.map(d=> `<option value="${escapeHtml(d.department_id)}">${escapeHtml(d.department_name)}</option>`).join('');
     if (selected) selDept.value = String(selected);
   }
   async function fillUnitSelect(depId, selected){
@@ -156,7 +157,7 @@ async function initUsers(root){
     const key = String(depId);
     let units = CACHE.unitsByDep.get(key);
     if (!units){ units = CACHE.units.filter(u=> String(u.department_id)===key); CACHE.unitsByDep.set(key, units); }
-    selUnit.innerHTML += units.map(u=> `<option value="${u.unit_id}">${u.unit_name}</option>`).join('');
+    selUnit.innerHTML += units.map(u=> `<option value="${escapeHtml(u.unit_id)}">${escapeHtml(u.unit_name)}</option>`).join('');
     if (selected) selUnit.value = String(selected);
   }
   fillDeptSelect('');
@@ -234,32 +235,32 @@ async function initUsers(root){
       const hasUid = !!r.auth_uid;
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${r.user_id}</td>
-        <td>${r.full_name}</td>
-        <td class="text-truncate" title="${r.email}">
-          ${r.email || ''} ${hasUid?'<i class="i-Key text-success" title="Has Auth UID"></i>':''}
+        <td>${escapeHtml(r.user_id)}</td>
+        <td>${escapeHtml(r.full_name)}</td>
+        <td class="text-truncate" title="${escapeHtml(r.email)}">
+          ${escapeHtml(r.email || '')} ${hasUid?'<i class="i-Key text-success" title="Has Auth UID"></i>':''}
         </td>
-        <td>${r.phone}</td>
+        <td>${escapeHtml(r.phone)}</td>
         <td>${roleBadge(r.role)}</td>
-        <td>${r.department}</td>
-        <td>${r.unit}</td>
+        <td>${escapeHtml(r.department)}</td>
+        <td>${escapeHtml(r.unit)}</td>
         <td>${statusBadge(r.status)}</td>
         <td class="text-end">
           <div class="btn-group">
-            <button class="btn btn-sm btn-warning" data-act="edit" data-id="${r.user_id}">
+            <button class="btn btn-sm btn-warning" data-act="edit" data-id="${escapeHtml(r.user_id)}">
               <i class="i-Pen-2"></i> កែ
             </button>
-            <button class="btn btn-sm btn-outline-primary" data-act="reset" data-email="${r.email}" ${!r.email?'disabled':''}>
+            <button class="btn btn-sm btn-outline-primary" data-act="reset" data-email="${escapeHtml(r.email)}" ${!r.email?'disabled':''}>
               <i class="i-Repeat-3"></i> Reset
             </button>
             ${r.status===STATUS.ACTIVE
-              ? `<button class="btn btn-sm btn-outline-secondary" data-act="suspend" data-id="${r.user_id}">
+              ? `<button class="btn btn-sm btn-outline-secondary" data-act="suspend" data-id="${escapeHtml(r.user_id)}">
                    <i class="i-Lock-2"></i> Suspend
                  </button>`
-              : `<button class="btn btn-sm btn-outline-success" data-act="reactivate" data-id="${r.user_id}">
+              : `<button class="btn btn-sm btn-outline-success" data-act="reactivate" data-id="${escapeHtml(r.user_id)}">
                    <i class="i-Yes"></i> Reactivate
                  </button>`}
-            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.user_id}">
+            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${escapeHtml(r.user_id)}">
               <i class="i-Close"></i> លុប
             </button>
           </div>

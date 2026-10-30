@@ -1,3 +1,4 @@
+import { escapeHtml } from '../utils.js';
 // assets/js/pages/data-entry.page.js
 import { getAuth, isSuper } from '../app.auth.js';
 import { gasList, gasSave } from '../app.api.firebase.js';
@@ -85,7 +86,7 @@ async function buildPeriodSelectorsFromDB(selYear, selPeriod, onChange){
                      .sort((a,b)=>ordTag(a.period_month)-ordTag(b.period_month));
     selPeriod.innerHTML = list.map(r=>{
       const label = r.period_name?.trim() ? r.period_name : prettyPid(r.period_id);
-      return `<option value="${r.period_id}">${label}</option>`;
+      return `<option value="${escapeHtml(r.period_id)}">${escapeHtml(label)}</option>`;
     }).join('');
     const d=new Date(); const prefer = `${y}-${String(d.getMonth()+1).padStart(2,'0')}`;
     if ([...selPeriod.options].some(o=>o.value===prefer)) selPeriod.value = prefer;
@@ -144,14 +145,14 @@ export default async function hydrate(root){
   function fillDept(){
     if (!selDept) return;
     selDept.innerHTML = `<option value="">ជំពូកទាំងអស់</option>`+
-      DEPTS.map(d=>`<option value="${d.department_id}">${d.department_name||''}</option>`).join('');
+      DEPTS.map(d=>`<option value="${escapeHtml(d.department_id)}">${escapeHtml(d.department_name||'')}</option>`).join('');
     if (!SUPER && MY_DEPT) selDept.value = MY_DEPT;
   }
   function fillUnit(depId){
     if (!selUnit) return;
     const list = depId ? UNITS.filter(u=>String(u.department_id)===String(depId)) : UNITS;
     selUnit.innerHTML = `<option value="">ផ្នែកទាំងអស់</option>`+
-      list.map(u=>`<option value="${u.unit_id}">${u.unit_name||''}</option>`).join('');
+      list.map(u=>`<option value="${escapeHtml(u.unit_id)}">${escapeHtml(u.unit_name||'')}</option>`).join('');
     if (!SUPER && MY_UNIT && (!depId || String(depId)===String(MY_DEPT))) selUnit.value = MY_UNIT;
   }
   function buildOwnerFilter(){
@@ -169,7 +170,7 @@ export default async function hydrate(root){
     const opt = (uid)=> {
       const u=userByUid.get(uid)||{};
       const label = u.full_name || u.user_name || uid;
-      return `<option value="${uid}">${label}</option>`;
+      return `<option value="${escapeHtml(uid)}">${escapeHtml(label)}</option>`;
     };
     selOwner.innerHTML = `<option value="">អ្នកទាំងអស់</option>` + owners.map(opt).join('');
   }
@@ -283,7 +284,7 @@ export default async function hydrate(root){
         deptIndex++; unitIndex=0; rowIndex=0;
         const trD = document.createElement('tr');
         trD.className='group-dept';
-        trD.innerHTML = `<td colspan="7">${khDigits(deptIndex)}. ${r.department_name || r.department_id || '—'}</td>`;
+        trD.innerHTML = `<td colspan="7">${khDigits(deptIndex)}. ${escapeHtml(r.department_name || r.department_id || '—')}</td>`;
         frag.appendChild(trD);
       }
       // Group: Unit
@@ -291,7 +292,7 @@ export default async function hydrate(root){
         curUnit = r.unit_id; unitIndex++; rowIndex=0;
         const trU = document.createElement('tr');
         trU.className='group-unit';
-        trU.innerHTML = `<td colspan="7">${khDigits(deptIndex)}.${khDigits(unitIndex)} ${r.unit_name || r.unit_id || '—'}</td>`;
+        trU.innerHTML = `<td colspan="7">${khDigits(deptIndex)}.${khDigits(unitIndex)} ${escapeHtml(r.unit_name || r.unit_id || '—')}</td>`;
         frag.appendChild(trU);
       }
 
@@ -314,32 +315,32 @@ export default async function hydrate(root){
 
       tr.innerHTML = `
         <td style="width:70px">${rowNum}</td>
-        <td style="width:90px">${r.indicator_id}</td>
+        <td style="width:90px">${escapeHtml(r.indicator_id)}</td>
         <td>
-          <div class="fw-semibold">${r.indicator_name||''}</div>
+          <div class="fw-semibold">${escapeHtml(r.indicator_name||'')}</div>
           <div class="small mt-1">
             ${missingDB
               ? '<span class="badge badge-missing">មិនទាន់បញ្ចូល</span>'
               : '<span class="badge badge-done">បានបញ្ចូលរួច</span>'}
           </div>
         </td>
-        <td style="width:140px">${prettyPid(pid)}</td>
+        <td style="width:140px">${escapeHtml(prettyPid(pid))}</td>
         <td style="width:150px">
           ${r.can_edit ? `
             <input type="text" inputmode="decimal" class="form-control form-control-sm inp-val"
-                   data-key="${key}" data-field="value"
-                   value="${showValue==null?'':showValue}" placeholder="0" />
-          ` : `<div class="form-control-plaintext">${isEmptyVal(dbValue)?'<span class="text-muted">—</span>':dbValue}</div>`}
+                   data-key="${escapeHtml(key)}" data-field="value"
+                   value="${escapeHtml(showValue==null?'':showValue)}" placeholder="0" />
+          ` : `<div class="form-control-plaintext">${isEmptyVal(dbValue)?'<span class="text-muted">—</span>':escapeHtml(dbValue)}</div>`}
         </td>
         <td style="width:150px">
           ${r.can_edit ? `
             <input type="text" inputmode="decimal" class="form-control form-control-sm inp-val"
-                   data-key="${key}" data-field="target"
-                   value="${showTarget==null?'':showTarget}" placeholder="0" />
-          ` : `<div class="form-control-plaintext">${isEmptyVal(dbTarget)?'<span class="text-muted">—</span>':dbTarget}</div>`}
+                   data-key="${escapeHtml(key)}" data-field="target"
+                   value="${escapeHtml(showTarget==null?'':showTarget)}" placeholder="0" />
+          ` : `<div class="form-control-plaintext">${isEmptyVal(dbTarget)?'<span class="text-muted">—</span>':escapeHtml(dbTarget)}</div>`}
         </td>
         <td class="text-end" style="width:170px">
-          <button class="btn btn-sm btn-outline-primary" data-act="issue" data-key="${key}">Issue / Action</button>
+          <button class="btn btn-sm btn-outline-primary" data-act="issue" data-key="${escapeHtml(key)}">Issue / Action</button>
         </td>
       `;
       frag.appendChild(tr);

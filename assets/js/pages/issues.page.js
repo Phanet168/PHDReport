@@ -1,3 +1,4 @@
+import { escapeHtml } from '../utils.js';
 // assets/js/pages/issues.page.js
 // Page module for "#/issues" — Khmer UI, grouped by Department → Unit,
 // sorted by department_id → unit_id → indicator_name → due date.
@@ -32,7 +33,7 @@ export default async function issuesPage(root, ctx) {
 
   /* ====== Utils ====== */
   const KH_MONTHS=['មករា','កុម្ភៈ','មិនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
-  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const esc = escapeHtml;
   const fmtDate=s=>{
     if(!s) return '';
     const d=new Date(s); if (Number.isNaN(+d)) return esc(s);
@@ -173,7 +174,7 @@ export default async function issuesPage(root, ctx) {
   /* ====== Filter helpers ====== */
   function buildYearOptions(list){
     const years=[...new Set(list.map(a=>a.year).filter(Boolean))].sort((a,b)=>b-a);
-    const opts = ['<option value="">ទាំងអស់</option>'].concat(years.map(y=>`<option value="${y}">${y}</option>`));
+    const opts = ['<option value="">ទាំងអស់</option>'].concat(years.map(y=>`<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`));
     if (ySel) ySel.innerHTML = opts.join('');
   }
   function fillTagOptions(){

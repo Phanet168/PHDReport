@@ -84,6 +84,7 @@
 
 <!-- App logic -->
 <script type="module">
+import { escapeHtml } from "../../assets/js/utils.js";
   import { getAuth, isSuper, isDataEntry, isViewer, applyLoginButton } from '../../assets/js/app.auth.js';
 
   // ====== CONFIG ======
@@ -162,7 +163,7 @@
       render();
     }catch(err){
       status.textContent = 'បរាជ័យ: '+err.message;
-      tblBody.innerHTML = `<tr><td colspan="3" class="text-danger text-center">បរាជ័យ៖ ${err.message}</td></tr>`;
+      tblBody.innerHTML = `<tr><td colspan="3" class="text-danger text-center">បរាជ័យ៖ ${escapeHtml(err.message)}</td></tr>`;
     }
   }
 
@@ -175,21 +176,18 @@
     }
     tblBody.innerHTML = rows.map(r=>`
       <tr>
-        <td><span class="badge badge-light badge-id">#${r.department_id}</span></td>
+        <td><span class="badge badge-light badge-id">#${escapeHtml(r.department_id)}</span></td>
         <td>${escapeHtml(r.department_name || '')}</td>
         <td class="text-center">
           <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-primary" data-act="edit" data-id="${r.department_id}">កែប្រែ</button>
-            <button class="btn btn-outline-danger" data-act="del" data-id="${r.department_id}" ${!canWrite?'disabled':''}>លុប</button>
+            <button class="btn btn-outline-primary" data-act="edit" data-id="${escapeHtml(r.department_id)}">កែប្រែ</button>
+            <button class="btn btn-outline-danger" data-act="del" data-id="${escapeHtml(r.department_id)}" ${!canWrite?'disabled':''}>លុប</button>
           </div>
         </td>
       </tr>
     `).join('');
   }
 
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
 
   // ====== Modal logic ======
   const depModal = new bootstrap.Modal(document.getElementById('depModal'));

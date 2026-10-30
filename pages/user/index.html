@@ -48,6 +48,7 @@
   </div>
 
 <script type="module">
+import { escapeHtml } from "../../assets/js/utils.js";
   import { getAuth, clearAuth } from '../../assets/js/app.auth.js';
   import { listReports, listIndicators, exportCsv } from '../../assets/js/app.api.js';
 
@@ -62,7 +63,7 @@
     const j = await listIndicators();
     const rows = Array.isArray(j.rows)? j.rows : (Array.isArray(j)? j: []);
     const sel = document.getElementById('ind');
-    sel.insertAdjacentHTML('beforeend', rows.map(r=>`<option value="${r.indicator_id}">${r.indicator_name||('ID '+r.indicator_id)}</option>`).join(''));
+    sel.insertAdjacentHTML('beforeend', rows.map(r=>`<option value="${escapeHtml(r.indicator_id)}">${escapeHtml(r.indicator_name||('ID '+r.indicator_id))}</option>`).join(''));
   }
 
   // render table
@@ -71,10 +72,10 @@
     $tb.innerHTML = rows.map((r,i)=>`
       <tr>
         <td>${i+1}</td>
-        <td>${r.period_id||''}</td>
-        <td>${r.indicator_id||''}</td>
-        <td>${r.value??0}</td>
-        <td>${r.department_id||''}</td>
+        <td>${escapeHtml(r.period_id||'')}</td>
+        <td>${escapeHtml(r.indicator_id||'')}</td>
+        <td>${escapeHtml(r.value??0)}</td>
+        <td>${escapeHtml(r.department_id||'')}</td>
       </tr>
     `).join('');
   }

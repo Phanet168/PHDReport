@@ -1,3 +1,4 @@
+import { escapeHtml } from '../utils.js';
 // assets/js/pages/departments.page.js
 import { getAuth, isSuper } from '../app.auth.js';
 import { gasList, gasSave, gasDelete, ID_FIELDS } from '../app.api.firebase.js';
@@ -87,8 +88,8 @@ async function initDepartments(root){
       const tr = document.createElement('tr');
       tr.dataset.id = String(r.department_id ?? ''); // keep as string
       tr.innerHTML = `
-        <td style="width:110px"><span class="badge text-bg-light border">#${r.department_id}</span></td>
-        <td>${r.department_name ?? ''}</td>
+        <td style="width:110px"><span class="badge text-bg-light border">#${escapeHtml(r.department_id)}</span></td>
+        <td>${escapeHtml(r.department_name ?? '')}</td>
         <td class="td-actions">
           <div class="actions-right">
             ${SUPER

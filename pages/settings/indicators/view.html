@@ -67,6 +67,7 @@
 </div>
 
 <script type="module">
+import { escapeHtml } from "../../../assets/js/utils.js";
   import { getAuth, isSuper } from '../../../assets/js/app.auth.js';
   import { gasList, gasSave, gasDelete, ID_FIELDS } from '../../../assets/js/app.menu.js';
 
@@ -97,14 +98,14 @@
     for (const ind of CACHE.indicators){
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${ind.indicator_id}</td>
-        <td>${ind.indicator_name}</td>
-        <td>${ind.indicator_type || ''}</td>
-        <td>${deptMap[String(ind.department_id)] || ''}</td>
+        <td>${escapeHtml(ind.indicator_id)}</td>
+        <td>${escapeHtml(ind.indicator_name)}</td>
+        <td>${escapeHtml(ind.indicator_type || '')}</td>
+        <td>${escapeHtml(deptMap[String(ind.department_id)] || '')}</td>
         <td>
           ${canEditRow(ind, auth)
-            ? `<button class="btn btn-sm btn-warning me-2" data-act="edit" data-id="${ind.indicator_id}">កែ</button>
-               <button class="btn btn-sm btn-danger" data-act="del"  data-id="${ind.indicator_id}">លុប</button>`
+            ? `<button class="btn btn-sm btn-warning me-2" data-act="edit" data-id="${escapeHtml(ind.indicator_id)}">កែ</button>
+               <button class="btn btn-sm btn-danger" data-act="del"  data-id="${escapeHtml(ind.indicator_id)}">លុប</button>`
             : `<span class="text-muted">—</span>`}
         </td>`;
       frag.appendChild(tr);
@@ -115,7 +116,7 @@
   function fillDepartments(prefValue){
     const sel = document.getElementById('department_id');
     sel.innerHTML = `<option value="">— ជ្រើស —</option>` +
-      CACHE.departments.map(d => `<option value="${d.department_id}">${d.department_name}</option>`).join('');
+      CACHE.departments.map(d => `<option value="${escapeHtml(d.department_id)}">${escapeHtml(d.department_name)}</option>`).join('');
     if (prefValue) sel.value = prefValue;
     sel.disabled = !isSuper(getAuth());
   }

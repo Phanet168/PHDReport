@@ -1,3 +1,4 @@
+import { escapeHtml } from './utils.js';
 // assets/js/main.index.js
 // ✅ នាំចូលពី app.auth.js (relative from same folder)
 import { getAuth, ensureLoggedIn, applyLoginButton, isSuper, whenAuthReady } from "./app.auth.js";
@@ -58,9 +59,9 @@ async function buildDeptMenu(target='deptMenu'){
     ul.innerHTML = rows.length
       ? rows.map(r=>`
         <li class="nav-item">
-          <a href="#/depts/${r.department_id}">
+          <a href="#/depts/${escapeHtml(r.department_id)}">
             <i class="nav-icon i-Arrow-Right-in-Circle"></i>
-            <span class="item-name">${r.department_name || ('Dept '+r.department_id)}</span>
+            <span class="item-name">${escapeHtml(r.department_name || ('Dept '+r.department_id))}</span>
           </a>
         </li>`).join('')
       : `<li class="nav-item text-muted px-3 py-2">គ្មានទិន្នន័យ</li>`;

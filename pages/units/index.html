@@ -119,6 +119,7 @@
 </style>
 
 <script type="module">
+import { escapeHtml } from "../../assets/js/utils.js";
     import { gasGet, gasPost } from '../../../assets/js/config.js';
 
     (() => {
@@ -152,7 +153,6 @@
 
       // helpers
       const LS = { get:k=>JSON.parse(localStorage.getItem(k)||'null'), set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)) };
-      const escapeHtml = s => String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
       const newId = (p='unit') => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
       const toInt = v => { const n=Number(v); return Number.isFinite(n)? n : v; };
       const setStatus = (m,ok=true)=>{ statusLine.textContent=m||''; statusLine.classList.toggle('text-danger',!ok); };
@@ -178,7 +178,7 @@
       function fillDepartmentsSelect(){
         const opts=['<option value="">— ជ្រើសរើស —</option>'];
         for(const d of (CACHE.departments||[])){
-          opts.push(`<option value="${d[PK_DEP]}">${escapeHtml(d.department_name||d.name||d[PK_DEP])}</option>`);
+          opts.push(`<option value="${escapeHtml(d[PK_DEP])}">${escapeHtml(d.department_name||d.name||d[PK_DEP])}</option>`);
         }
         $dep.innerHTML=opts.join('');
       }
@@ -245,14 +245,14 @@
           const tr=document.createElement('tr');
           const depName = CACHE.depById[String(u[PK_DEP])] || '';
           tr.innerHTML = `
-            <td>${u[PK_UNIT]??''}</td>
+            <td>${escapeHtml(u[PK_UNIT]??'')}</td>
             <td>${escapeHtml(u.unit_name||'')}</td>
             <td>${escapeHtml(depName||'')}</td>
             <td>${escapeHtml(u.unit_type||'')}</td>
             <td class="actions-cell">
               <div class="actions-stack">
-                <button class="btn btn-sm btn-outline-primary" data-act="edit"   data-id="${u[PK_UNIT]}"><i class="i-Pen-2"></i> កែប្រែ</button>
-                <button class="btn btn-sm btn-outline-danger"  data-act="remove" data-id="${u[PK_UNIT]}"><i class="i-Close"></i> លុប</button>
+                <button class="btn btn-sm btn-outline-primary" data-act="edit"   data-id="${escapeHtml(u[PK_UNIT])}"><i class="i-Pen-2"></i> កែប្រែ</button>
+                <button class="btn btn-sm btn-outline-danger"  data-act="remove" data-id="${escapeHtml(u[PK_UNIT])}"><i class="i-Close"></i> លុប</button>
               </div>
             </td>`;
           frag.appendChild(tr);

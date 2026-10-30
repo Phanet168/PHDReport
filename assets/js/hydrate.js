@@ -1,3 +1,4 @@
+import { escapeHtml } from './utils.js';
 // assets/js/hydrate.js
 
 import { isSuper, isAdmin } from './app.auth.js';
@@ -85,7 +86,7 @@ function renderNotFound(root, path) {
   root.innerHTML = `
     <div class="container-page">
       <div class="alert alert-secondary mt-3">
-        <strong>រកមិនឃើញទំព័រ</strong> (<code>#/${path}</code>)
+        <strong>រកមិនឃើញទំព័រ</strong> (<code>#/${escapeHtml(path)}</code>)
         <a href="#/" class="ms-2">ត្រឡប់​ទំព័រដើម</a>
       </div>
     </div>`;
@@ -174,7 +175,7 @@ export async function hydratePage(root, hash) {
       <div class="container-page">
         <div class="alert alert-danger mt-3">
           <div class="fw-semibold">មិនអាចផ្ទុក JS module សម្រាប់ <code>${pageName}</code></div>
-          <div class="small text-muted">${e?.message || e}</div>
+          <div class="small text-muted">${escapeHtml(e?.message || e)}</div>
           <div class="mt-2">សូមពិនិត្យថា មានឯកសារ <code>${pageName}.page.js</code> ឬ <code>${pageName}.init.js</code> នៅ <code>assets/js/pages/</code></div>
         </div>
       </div>`;

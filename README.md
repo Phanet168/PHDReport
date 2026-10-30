@@ -208,7 +208,7 @@ Located in `functions/index.js`:
 
 See the comprehensive code review document for details. Priority items:
 
-1. **XSS Prevention**: Implement consistent HTML escaping for user-generated content
+1. **XSS Prevention**: Shared output escaping protects table, dropdown, attribute, and route-error rendering; keep new render paths covered by tests.
 2. **Testing**: Add unit and integration tests
 3. **Linting**: Configure ESLint for code quality
 4. **Documentation**: Expand API and code documentation
@@ -216,12 +216,14 @@ See the comprehensive code review document for details. Priority items:
 
 ## Testing
 
-Currently, there is no automated testing infrastructure. Manual testing is required.
+Run focused security regressions from the repository root (Node.js 18+):
 
-**Planned improvements**:
-- Unit tests for utility functions
-- Integration tests with Firebase Emulator Suite
-- E2E tests for critical user flows
+```bash
+npm ci
+npm test
+```
+
+See [tests/README.md](tests/README.md) for coverage and validation limits.
 
 ## Deployment
 

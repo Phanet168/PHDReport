@@ -76,6 +76,7 @@
   </div>
 
 <script type="module">
+import { escapeHtml } from "../../assets/js/utils.js";
   import { getAuth, isSuper, isDataEntry, isViewer, clearAuth } from '../../assets/js/app.auth.js';
   import { listIndicators, listReports, upsertReport, deleteReport, yFromPeriod, exportCsv } from '../../assets/js/app.api.js';
 
@@ -101,7 +102,7 @@
   async function loadIndicators(){
     const j = await listIndicators();
     const rows = Array.isArray(j.rows)? j.rows : (Array.isArray(j)? j: []);
-    indSel.innerHTML = rows.map(r=>`<option value="${r.indicator_id}">${r.indicator_name||('ID '+r.indicator_id)}</option>`).join('');
+    indSel.innerHTML = rows.map(r=>`<option value="${escapeHtml(r.indicator_id)}">${escapeHtml(r.indicator_name||('ID '+r.indicator_id))}</option>`).join('');
   }
 
   // Table rendering
@@ -109,14 +110,14 @@
   function renderRows(rows){
     $tb.innerHTML = rows.map(r=>`
       <tr>
-        <td>${r.report_id||''}</td>
-        <td>${r.period_id||''}</td>
-        <td>${r.department_id||''}</td>
-        <td>${r.indicator_id||''}</td>
-        <td>${r.value??0}</td>
-        <td>${r._updatedAt||r._createdAt||''}</td>
+        <td>${escapeHtml(r.report_id||'')}</td>
+        <td>${escapeHtml(r.period_id||'')}</td>
+        <td>${escapeHtml(r.department_id||'')}</td>
+        <td>${escapeHtml(r.indicator_id||'')}</td>
+        <td>${escapeHtml(r.value??0)}</td>
+        <td>${escapeHtml(r._updatedAt||r._createdAt||'')}</td>
         <td class="text-nowrap">
-          <button class="btn btn-sm btn-outline-danger" data-del="${r.report_id}" data-year="${yFromPeriod(r.period_id)}">លុប</button>
+          <button class="btn btn-sm btn-outline-danger" data-del="${escapeHtml(r.report_id)}" data-year="${escapeHtml(yFromPeriod(r.period_id))}">លុប</button>
         </td>
       </tr>
     `).join('');

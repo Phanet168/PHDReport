@@ -1,3 +1,4 @@
+import { escapeHtml } from '../utils.js';
 // assets/js/pages/units.page.js
 import { getAuth, isSuper } from '../app.auth.js';
 import { gasList, gasSave, gasDelete, ID_FIELDS } from '../app.api.firebase.js';
@@ -125,7 +126,7 @@ async function initUnits(root){
   }
   function fillDeptSelect(selected=''){
     depSelEl.innerHTML = `<option value="">— ជ្រើសជំពូក —</option>`
-      + DEPTS.map(d=> `<option value="${d.department_id}">${d.department_name}</option>`).join('');
+      + DEPTS.map(d=> `<option value="${escapeHtml(d.department_id)}">${escapeHtml(d.department_name)}</option>`).join('');
     if (selected) depSelEl.value = String(selected);
     depSelEl.classList.remove('is-invalid');
   }
@@ -181,10 +182,10 @@ async function initUnits(root){
         const tr = document.createElement('tr');
         tr.dataset.id = String(u[ID_FIELD] ?? '');
         tr.innerHTML = `
-          <td>${u[ID_FIELD]}</td>
-          <td>${u.unit_name ?? ''}</td>
-          <td>${deptNameById(u.department_id)}</td>
-          <td>${u.unit_type ?? ''}</td>
+          <td>${escapeHtml(u[ID_FIELD])}</td>
+          <td>${escapeHtml(u.unit_name ?? '')}</td>
+          <td>${escapeHtml(deptNameById(u.department_id))}</td>
+          <td>${escapeHtml(u.unit_type ?? '')}</td>
           <td class="td-actions">
             <div class="actions-right d-flex gap-2">
               ${SUPER
